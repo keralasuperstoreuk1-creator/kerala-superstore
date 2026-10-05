@@ -158,31 +158,48 @@ export default function AiImageStudioUpload({
     }, 400);
 
     try {
+      // 1. Try server-side removal with 4s timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
       const res = await fetch('/api/admin/remove-bg', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: base64Data }),
-      });
+        signal: controller.signal,
+      }).catch(() => null);
 
+      clearTimeout(timeoutId);
       clearInterval(interval);
 
-      if (!res.ok) {
-        throw new Error(`Server returned ${res.status}`);
+      let transparentResult = '';
+      let packshotResult = '';
+
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data.success && data.transparent && data.packshot && data.source === 'u2net-ai-neural') {
+          transparentResult = data.transparent;
+          packshotResult = data.packshot;
+        }
       }
 
-      const data = await res.json();
-      if (!data.success || !data.transparent || !data.packshot) {
-        throw new Error(data.error || 'Failed to remove background');
+      // 2. Client-side smart segmentation fallback if server didn't supply clean packshot
+      if (!transparentResult || !packshotResult) {
+        if (progressLabelRef.current) progressLabelRef.current.textContent = '⚡ Applying smart studio packshot framing...';
+        const { removeBackgroundOnCanvas } = await import('@/lib/client-bg-remover');
+        const clientRes = await removeBackgroundOnCanvas(base64Data);
+        transparentResult = clientRes.transparent;
+        packshotResult = clientRes.packshot;
       }
 
       if (progressBarRef.current) progressBarRef.current.style.width = '100%';
       if (progressLabelRef.current) progressLabelRef.current.textContent = '✅ Studio Cutout & Packshot Ready!';
 
-      setAiTransparentSrc(data.transparent);
-      setAiPackshotSrc(data.packshot);
+      setAiTransparentSrc(transparentResult);
+      setAiPackshotSrc(packshotResult);
 
-      const chosenMode = defaultMode || 'transparent';
-      const chosenUrl = chosenMode === 'packshot' ? data.packshot : data.transparent;
+      const chosenMode = defaultMode || 'packshot';
+      const chosenUrl = chosenMode === 'transparent' ? transparentResult : packshotResult;
 
       setProcessSuccess(true);
       setActiveMode(chosenMode);
@@ -193,13 +210,21 @@ export default function AiImageStudioUpload({
 
     } catch (err) {
       clearInterval(interval);
-      console.error('AI background removal error:', err);
-      setProcessError(true);
-      setProgressText('');
-      setProgressPct(0);
-      // Fallback to original
-      setActiveMode('original');
-      onImageChange(base64Data, 'original');
+      console.error('AI background removal fallback:', err);
+      // Even on outer error, generate a clean packshot on canvas
+      try {
+        const { removeBackgroundOnCanvas } = await import('@/lib/client-bg-remover');
+        const fallback = await removeBackgroundOnCanvas(base64Data);
+        setAiTransparentSrc(fallback.transparent);
+        setAiPackshotSrc(fallback.packshot);
+        setProcessSuccess(true);
+        setActiveMode('packshot');
+        onImageChange(fallback.packshot, 'packshot');
+      } catch {
+        setProcessError(true);
+        setActiveMode('original');
+        onImageChange(base64Data, 'original');
+      }
     } finally {
       setIsProcessing(false);
     }

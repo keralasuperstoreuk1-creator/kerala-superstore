@@ -214,30 +214,46 @@ export default function AIProductAddPage() {
     }, 400);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
       const res = await fetch('/api/admin/remove-bg', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: base64DataUrl }),
-      });
+        signal: controller.signal,
+      }).catch(() => null);
 
+      clearTimeout(timeoutId);
       clearInterval(interval);
 
-      if (!res.ok) {
-        throw new Error(`Server returned ${res.status}`);
+      let transparentResult = '';
+      let packshotResult = '';
+
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data.success && data.transparent && data.packshot && data.source === 'u2net-ai-neural') {
+          transparentResult = data.transparent;
+          packshotResult = data.packshot;
+        }
       }
 
-      const data = await res.json();
-      if (!data.success || !data.transparent || !data.packshot) {
-        throw new Error(data.error || 'Failed to remove background');
+      // 2. Client-side smart segmentation fallback if server didn't supply clean packshot
+      if (!transparentResult || !packshotResult) {
+        if (progressLabelRef.current) progressLabelRef.current.textContent = '⚡ Applying smart studio packshot framing...';
+        const { removeBackgroundOnCanvas } = await import('@/lib/client-bg-remover');
+        const clientRes = await removeBackgroundOnCanvas(base64DataUrl);
+        transparentResult = clientRes.transparent;
+        packshotResult = clientRes.packshot;
       }
 
       if (progressBarRef.current) progressBarRef.current.style.width = '100%';
       if (progressLabelRef.current) progressLabelRef.current.textContent = '✅ Studio Packshot Ready!';
 
-      setAiTransparentSrc(data.transparent);
-      setAiPackshotSrc(data.packshot);
-      setGeminiCleanImageSrc(data.packshot);
-      setStudioImageSrc(data.packshot);
+      setAiTransparentSrc(transparentResult);
+      setAiPackshotSrc(packshotResult);
+      setGeminiCleanImageSrc(packshotResult);
+      setStudioImageSrc(packshotResult);
       setActiveViewMode('packshot');
       setBgMode('white');
       setBgRemoveResult('success');
@@ -247,10 +263,25 @@ export default function AIProductAddPage() {
 
     } catch (err) {
       clearInterval(interval);
-      console.error('Local BG removal failed:', err);
-      setBgRemoveResult('error');
-      setBgProgressText('');
-      setBgProgressPct(0);
+      console.error('Local BG removal fallback:', err);
+      try {
+        const { removeBackgroundOnCanvas } = await import('@/lib/client-bg-remover');
+        const fallback = await removeBackgroundOnCanvas(base64DataUrl);
+        setAiTransparentSrc(fallback.transparent);
+        setAiPackshotSrc(fallback.packshot);
+        setGeminiCleanImageSrc(fallback.packshot);
+        setStudioImageSrc(fallback.packshot);
+        setActiveViewMode('packshot');
+        setBgMode('white');
+        setBgRemoveResult('success');
+        setBgRemoveMethod('local-ai');
+        setBgProgressPct(100);
+        setBgProgressText('✅ Studio Packshot Ready!');
+      } catch {
+        setBgRemoveResult('error');
+        setBgProgressText('');
+        setBgProgressPct(0);
+      }
     } finally {
       setIsRemovingBg(false);
     }
