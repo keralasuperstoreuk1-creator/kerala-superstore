@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { StoreConfigProvider } from "@/context/StoreConfigContext";
@@ -9,20 +8,6 @@ import { ThemeParticleEffect } from "@/components/ThemeParticleEffect";
 import { ToastNotificationBanner } from "@/components/ToastNotificationBanner";
 import { NotificationBellModal } from "@/components/NotificationBellModal";
 import { AppDownloadModal } from "@/components/AppDownloadModal";
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-heading",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-sans",
-  display: "swap",
-});
 
 export const viewport: Viewport = {
   themeColor: "#064e3b",
@@ -57,7 +42,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakartaSans.variable} ${inter.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
