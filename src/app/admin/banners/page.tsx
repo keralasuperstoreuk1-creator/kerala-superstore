@@ -101,7 +101,7 @@ export default function StorefrontBannersPage() {
       const savedSlides = localStorage.getItem('kss_hero_slides');
       if (savedSlides) {
         const parsed = JSON.parse(savedSlides);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length >= 5) {
           const migrated = parsed.map((s: HeroSlide) => ({
             ...s,
             image: migrateImageSrc(s.image),
@@ -110,6 +110,7 @@ export default function StorefrontBannersPage() {
           localStorage.setItem('kss_hero_slides', JSON.stringify(migrated));
         } else {
           setHeroSlides(DEFAULT_HERO_SLIDES);
+          localStorage.setItem('kss_hero_slides', JSON.stringify(DEFAULT_HERO_SLIDES));
         }
       } else {
         setHeroSlides(DEFAULT_HERO_SLIDES);

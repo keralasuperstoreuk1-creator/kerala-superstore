@@ -58,7 +58,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
       const saved = localStorage.getItem('kss_hero_slides');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length >= 5) {
           const migrated = parsed.map((s: HeroSlide) => ({
             ...s,
             image: migrateImageSrc(s.image),
@@ -66,6 +66,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
           setSlides(migrated);
         } else {
           setSlides(DEFAULT_HERO_SLIDES);
+          localStorage.setItem('kss_hero_slides', JSON.stringify(DEFAULT_HERO_SLIDES));
         }
       } else {
         setSlides(DEFAULT_HERO_SLIDES);
