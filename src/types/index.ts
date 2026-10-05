@@ -121,6 +121,9 @@ export interface OfferBannerConfig {
   badgeText: string;
   animationType: 'marquee' | 'pulse' | 'glow';
   linkTarget?: string;
+  text?: string;
+  linkUrl?: string;
+  linkText?: string;
 }
 
 export interface AIExtractedProduct {

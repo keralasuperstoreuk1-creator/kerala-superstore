@@ -13,7 +13,8 @@ import {
   ArrowRight,
   Clock,
   Tag,
-  Check
+  Check,
+  CheckCircle2
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStoreConfig } from '@/context/StoreConfigContext';

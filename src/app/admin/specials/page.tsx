@@ -107,6 +107,7 @@ export default function AdminSpecialsPage() {
 
   // Edit Existing Special Image Modal state
   const [activeEditSpecial, setActiveEditSpecial] = useState<DailySpecial | null>(null);
+  const [editImage, setEditImage] = useState<string>('');
   const [editImageTab, setEditImageTab] = useState<'upload' | 'preset'>('upload');
   const [editPresetUrl, setEditPresetUrl] = useState<string>('');
   const [editUploadedRaw, setEditUploadedRaw] = useState<string | null>(null);
@@ -249,7 +250,9 @@ export default function AdminSpecialsPage() {
     if (!activeEditSpecial) return;
 
     let finalImg = activeEditSpecial.imageUrl;
-    if (editImageTab === 'preset' && editPresetUrl) {
+    if (editImageTab === 'upload' && editImage) {
+      finalImg = editImage;
+    } else if (editImageTab === 'preset' && editPresetUrl) {
       finalImg = editPresetUrl;
     } else if (editImageOption === 'ai-packshot' && editAiCleanPackshot) {
       finalImg = editAiCleanPackshot;
