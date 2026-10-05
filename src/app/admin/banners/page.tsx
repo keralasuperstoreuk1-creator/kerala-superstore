@@ -142,9 +142,11 @@ export default function StorefrontBannersPage() {
     setTimeout(() => setSavedSuccess(null), 3500);
   };
 
-  // Dragging states for interactive image move in banner preview
+  // Dragging & Pinch states for interactive image move in banner preview
   const [isDragging, setIsDragging] = useState(false);
+  const [showSlideNudgePad, setShowSlideNudgePad] = useState(false);
   const dragStartRef = useRef<{ startX: number; startY: number; initX: number; initY: number } | null>(null);
+  const pinchStartRef = useRef<{ dist: number; initScale: number } | null>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!editingSlide) return;
@@ -177,38 +179,65 @@ export default function StorefrontBannersPage() {
     dragStartRef.current = null;
   };
 
-  // Touch support for mobile devices
+  // Full Touch & Pinch-to-zoom support for mobile devices
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!editingSlide || e.touches.length === 0) return;
-    const touch = e.touches[0];
-    setIsDragging(true);
-    dragStartRef.current = {
-      startX: touch.clientX,
-      startY: touch.clientY,
-      initX: editingSlide.imageX || 0,
-      initY: editingSlide.imageY || 0,
-    };
+    if (!editingSlide) return;
+    if (e.touches.length === 2) {
+      // 2 fingers = Pinch to zoom on phone screen
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      pinchStartRef.current = {
+        dist: dist > 0 ? dist : 1,
+        initScale: editingSlide.imageScale || 100,
+      };
+      setIsDragging(false);
+      dragStartRef.current = null;
+      return;
+    }
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      setIsDragging(true);
+      dragStartRef.current = {
+        startX: touch.clientX,
+        startY: touch.clientY,
+        initX: editingSlide.imageX || 0,
+        initY: editingSlide.imageY || 0,
+      };
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || !dragStartRef.current || !editingSlide || e.touches.length === 0) return;
-    const currentDrag = dragStartRef.current;
-    if (!currentDrag) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - currentDrag.startX;
-    const dy = touch.clientY - currentDrag.startY;
-    const nextX = Math.round(currentDrag.initX + dx);
-    const nextY = Math.round(currentDrag.initY + dy);
-    setEditingSlide((prev) => prev ? {
-      ...prev,
-      imageX: nextX,
-      imageY: nextY,
-    } : null);
+    if (!editingSlide) return;
+    if (e.touches.length === 2 && pinchStartRef.current) {
+      // Smooth Mobile Pinch Zoom
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const currentDist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      const factor = currentDist / pinchStartRef.current.dist;
+      const nextScale = Math.min(220, Math.max(40, Math.round(pinchStartRef.current.initScale * factor)));
+      setEditingSlide((prev) => prev ? { ...prev, imageScale: nextScale } : null);
+      return;
+    }
+    if (isDragging && dragStartRef.current && e.touches.length === 1) {
+      const currentDrag = dragStartRef.current;
+      const touch = e.touches[0];
+      const dx = touch.clientX - currentDrag.startX;
+      const dy = touch.clientY - currentDrag.startY;
+      const nextX = Math.round(currentDrag.initX + dx);
+      const nextY = Math.round(currentDrag.initY + dy);
+      setEditingSlide((prev) => prev ? {
+        ...prev,
+        imageX: nextX,
+        imageY: nextY,
+      } : null);
+    }
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
     dragStartRef.current = null;
+    pinchStartRef.current = null;
   };
 
   // Helper nudge functions for directional buttons
@@ -432,9 +461,11 @@ export default function StorefrontBannersPage() {
     }, true);
   };
 
-  // Dragging states for interactive image move on Spotlight Preview Card
+  // Dragging & Pinch states for interactive image move on Spotlight Preview Card
   const [isSpotlightDragging, setIsSpotlightDragging] = useState(false);
+  const [showSpotlightNudgePad, setShowSpotlightNudgePad] = useState(false);
   const spotlightDragStartRef = useRef<{ startX: number; startY: number; initX: number; initY: number } | null>(null);
+  const spotlightPinchStartRef = useRef<{ dist: number; initScale: number } | null>(null);
 
   const handleSpotlightMouseDown = (e: React.MouseEvent) => {
     setIsSpotlightDragging(true);
@@ -470,31 +501,58 @@ export default function StorefrontBannersPage() {
   };
 
   const handleSpotlightTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 0) return;
-    const touch = e.touches[0];
-    setIsSpotlightDragging(true);
-    spotlightDragStartRef.current = {
-      startX: touch.clientX,
-      startY: touch.clientY,
-      initX: spotlightPromo.imageX || 0,
-      initY: spotlightPromo.imageY || 0,
-    };
+    if (e.touches.length === 2) {
+      // 2-finger pinch to zoom on phone screen
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      spotlightPinchStartRef.current = {
+        dist: dist > 0 ? dist : 1,
+        initScale: spotlightPromo.imageScale || 100,
+      };
+      setIsSpotlightDragging(false);
+      spotlightDragStartRef.current = null;
+      return;
+    }
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      setIsSpotlightDragging(true);
+      spotlightDragStartRef.current = {
+        startX: touch.clientX,
+        startY: touch.clientY,
+        initX: spotlightPromo.imageX || 0,
+        initY: spotlightPromo.imageY || 0,
+      };
+    }
   };
 
   const handleSpotlightTouchMove = (e: React.TouchEvent) => {
-    if (!isSpotlightDragging || !spotlightDragStartRef.current || e.touches.length === 0) return;
-    const currentDrag = spotlightDragStartRef.current;
-    if (!currentDrag) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - currentDrag.startX;
-    const dy = touch.clientY - currentDrag.startY;
-    const nextX = Math.round(currentDrag.initX + dx);
-    const nextY = Math.round(currentDrag.initY + dy);
-    saveSpotlightPromo({
-      ...spotlightPromo,
-      imageX: nextX,
-      imageY: nextY,
-    }, false);
+    if (e.touches.length === 2 && spotlightPinchStartRef.current) {
+      // Smooth Pinch Zoom on Spotlight
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const currentDist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      const factor = currentDist / spotlightPinchStartRef.current.dist;
+      const nextScale = Math.min(250, Math.max(40, Math.round(spotlightPinchStartRef.current.initScale * factor)));
+      saveSpotlightPromo({
+        ...spotlightPromo,
+        imageScale: nextScale,
+      }, false);
+      return;
+    }
+    if (isSpotlightDragging && spotlightDragStartRef.current && e.touches.length === 1) {
+      const currentDrag = spotlightDragStartRef.current;
+      const touch = e.touches[0];
+      const dx = touch.clientX - currentDrag.startX;
+      const dy = touch.clientY - currentDrag.startY;
+      const nextX = Math.round(currentDrag.initX + dx);
+      const nextY = Math.round(currentDrag.initY + dy);
+      saveSpotlightPromo({
+        ...spotlightPromo,
+        imageX: nextX,
+        imageY: nextY,
+      }, false);
+    }
   };
 
   const handleSpotlightTouchEnd = () => {
@@ -503,6 +561,7 @@ export default function StorefrontBannersPage() {
       spotlightDragStartRef.current = null;
       showSuccess('Promo image position saved!');
     }
+    spotlightPinchStartRef.current = null;
   };
 
   const handleSpotlightFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -626,42 +685,42 @@ export default function StorefrontBannersPage() {
         </div>
       )}
 
-      {/* Navigation Tabs */}
-      <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-2xl border border-slate-200 shadow-2xs text-xs font-bold">
+      {/* Navigation Tabs - Horizontally Scrollable on Mobile */}
+      <div className="flex items-center gap-2 bg-white p-2 rounded-2xl border border-slate-200 shadow-2xs text-xs font-bold overflow-x-auto no-scrollbar whitespace-nowrap">
         <button
           onClick={() => setActiveTab('hero-slider')}
-          className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'hero-slider'
               ? 'bg-slate-900 text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
           <Sliders className="w-4 h-4 text-amber-400" />
-          <span>1. Hero Slider &amp; Spotlight Promo Card</span>
+          <span>1. Hero Slider &amp; Spotlight Promo</span>
         </button>
 
         <button
           onClick={() => setActiveTab('announcement')}
-          className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'announcement'
               ? 'bg-slate-900 text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
           <Flame className="w-4 h-4 text-rose-500" />
-          <span>2. Top Flash Announcement Bar</span>
+          <span>2. Flash Announcement Bar</span>
         </button>
 
         <button
           onClick={() => setActiveTab('categories')}
-          className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'categories'
               ? 'bg-slate-900 text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
           <Leaf className="w-4 h-4 text-emerald-400" />
-          <span>3. Shop by Categories &amp; Card Photos</span>
+          <span>3. Category Cards &amp; Photos</span>
         </button>
       </div>
 
@@ -889,7 +948,7 @@ export default function StorefrontBannersPage() {
                       </div>
 
                       {/* Interactive Drag & Pan Product Image Showcase */}
-                      <div className="relative w-full aspect-square max-h-56 mt-3 flex items-center justify-center overflow-hidden border border-dashed border-amber-300/40 rounded-xl bg-white/20 group cursor-grab active:cursor-grabbing">
+                      <div className="relative w-full aspect-square max-h-56 mt-3 flex items-center justify-center overflow-hidden border border-dashed border-amber-300/40 rounded-xl bg-white/20 group cursor-grab active:cursor-grabbing touch-none">
                         {spotlightPromo.image && (
                           <div
                             onMouseDown={handleSpotlightMouseDown}
@@ -898,8 +957,8 @@ export default function StorefrontBannersPage() {
                               transform: `translate(${spotlightPromo.imageX || 0}px, ${spotlightPromo.imageY || 0}px) scale(${(spotlightPromo.imageScale || 100) / 100})`,
                               cursor: isSpotlightDragging ? 'grabbing' : 'grab',
                             }}
-                            className={`relative w-44 h-44 sm:w-48 sm:h-48 transition-transform ${isSpotlightDragging ? 'duration-0' : 'duration-150'} select-none`}
-                            title="Click and drag to position photo!"
+                            className={`relative w-44 h-44 sm:w-48 sm:h-48 transition-transform ${isSpotlightDragging ? 'duration-0' : 'duration-150'} select-none touch-none`}
+                            title="Touch or Drag to position photo, Pinch to zoom!"
                           >
                             <Image
                               src={spotlightPromo.image}
@@ -918,29 +977,43 @@ export default function StorefrontBannersPage() {
                         )}
                       </div>
 
-                      {/* Interactive Floating On-Card Zoom & Reset Bar */}
+                      {/* Interactive Floating On-Card Zoom & Mobile Nudge Bar */}
                       <div 
                         onMouseDown={(e) => e.stopPropagation()}
                         onTouchStart={(e) => e.stopPropagation()}
                         className={`flex flex-wrap items-center justify-between gap-2 text-[10px] pt-2 border-t relative z-20 ${isDark ? 'border-white/15 text-white' : 'border-slate-200 text-slate-800'}`}
                       >
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold flex items-center gap-1 text-[10px]">
-                            <span>✋ Drag Photo</span>
+                            <span>✋ Touch/Drag</span>
                             <span className="opacity-40">•</span>
-                            <span>🖱️ Wheel Zoom</span>
+                            <span>🤏 Pinch</span>
                           </span>
                           <span className={`font-mono px-1.5 py-0.5 rounded text-[9px] font-bold border ${isDark ? 'bg-black/60 text-amber-300 border-white/10' : 'bg-white text-emerald-800 border-slate-200'}`}>
                             X: {spotlightPromo.imageX || 0}px | Y: {spotlightPromo.imageY || 0}px
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowSpotlightNudgePad(!showSpotlightNudgePad)}
+                            className={`px-2 py-0.5 rounded-md font-bold text-[9px] cursor-pointer transition-colors border ${
+                              showSpotlightNudgePad
+                                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-xs'
+                                : isDark
+                                ? 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                            }`}
+                            title="Toggle Directional Tap Buttons for Precise Mobile Adjustment"
+                          >
+                            🎯 Nudge Pad
+                          </button>
                         </div>
 
                         {/* Direct Zoom Controls */}
-                        <div className={`flex items-center gap-1 px-2 py-1 rounded-xl border backdrop-blur-md shadow-md ${isDark ? 'bg-black/80 border-white/20 text-white' : 'bg-white/90 border-slate-300 text-slate-900'}`}>
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border backdrop-blur-md shadow-md ${isDark ? 'bg-black/80 border-white/20 text-white' : 'bg-white/90 border-slate-300 text-slate-900'}`}>
                           <button
                             type="button"
                             onClick={() => zoomSpotlight(-10)}
-                            className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-xs cursor-pointer transition-colors ${isDark ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-800'}`}
+                            className={`w-6 h-6 rounded-md flex items-center justify-center font-black text-sm cursor-pointer active:scale-95 transition-transform ${isDark ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-800'}`}
                             title="Zoom Out (-10%)"
                           >
                             -
@@ -952,7 +1025,7 @@ export default function StorefrontBannersPage() {
                             step="5"
                             value={spotlightPromo.imageScale || 100}
                             onChange={(e) => saveSpotlightPromo({ ...spotlightPromo, imageScale: Number(e.target.value) }, false)}
-                            className="w-16 sm:w-20 accent-amber-500 cursor-pointer h-1.5"
+                            className="w-16 sm:w-20 accent-amber-500 cursor-pointer h-2"
                             title="Zoom Slider"
                           />
                           <span className="font-mono text-amber-500 font-black w-9 text-center text-[10px]">
@@ -961,7 +1034,7 @@ export default function StorefrontBannersPage() {
                           <button
                             type="button"
                             onClick={() => zoomSpotlight(10)}
-                            className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-xs cursor-pointer transition-colors ${isDark ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-800'}`}
+                            className={`w-6 h-6 rounded-md flex items-center justify-center font-black text-sm cursor-pointer active:scale-95 transition-transform ${isDark ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-800'}`}
                             title="Zoom In (+10%)"
                           >
                             +
@@ -969,7 +1042,7 @@ export default function StorefrontBannersPage() {
                           <button
                             type="button"
                             onClick={resetSpotlightPositionAndZoom}
-                            className="ml-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 text-[9px] font-bold border border-amber-500/30 cursor-pointer transition-colors"
+                            className="ml-0.5 px-2 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 text-[9px] font-bold border border-amber-500/30 cursor-pointer active:scale-95 transition-all"
                             title="Reset Position to Center & 100%"
                           >
                             <RotateCcw className="w-2.5 h-2.5 inline mr-0.5" />
@@ -977,6 +1050,63 @@ export default function StorefrontBannersPage() {
                           </button>
                         </div>
                       </div>
+
+                      {/* Optional Mobile Quick Nudge Directional Buttons */}
+                      {showSpotlightNudgePad && (
+                        <div 
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onTouchStart={(e) => e.stopPropagation()}
+                          className={`mt-2 p-2 rounded-xl border flex items-center justify-between gap-2 z-20 ${
+                            isDark ? 'bg-black/85 border-white/20 text-white' : 'bg-slate-100/95 border-slate-300 text-slate-900'
+                          }`}
+                        >
+                          <span className="text-[9px] font-bold text-amber-400">Tap to Nudge 5px:</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => nudgeSpotlight(-5, 0)}
+                              className="w-7 h-7 rounded-md bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-xs cursor-pointer active:scale-90"
+                              title="Move Left"
+                            >
+                              ◀
+                            </button>
+                            <div className="flex flex-col gap-0.5">
+                              <button
+                                type="button"
+                                onClick={() => nudgeSpotlight(0, -5)}
+                                className="w-7 h-3.5 rounded bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-[9px] cursor-pointer active:scale-90"
+                                title="Move Up"
+                              >
+                                ▲
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => nudgeSpotlight(0, 5)}
+                                className="w-7 h-3.5 rounded bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-[9px] cursor-pointer active:scale-90"
+                                title="Move Down"
+                              >
+                                ▼
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => nudgeSpotlight(5, 0)}
+                              className="w-7 h-7 rounded-md bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-xs cursor-pointer active:scale-90"
+                              title="Move Right"
+                            >
+                              ▶
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => saveSpotlightPromo({ ...spotlightPromo, imageX: 0, imageY: 0 }, false)}
+                              className="ml-1 px-2 py-1 rounded-md bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[9px] cursor-pointer active:scale-90"
+                              title="Center Position"
+                            >
+                              Center
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
@@ -1429,8 +1559,8 @@ export default function StorefrontBannersPage() {
       {/* SLIDE EDIT MODAL (FOR HERO BANNER SLIDES)                 */}
       {/* ========================================================= */}
       {editingSlide && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-xl w-full shadow-2xl border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto animate-fadeIn">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4">
+          <div className="bg-white rounded-3xl p-4 sm:p-6 max-w-xl w-full shadow-2xl border border-slate-200 space-y-4 max-h-[94vh] overflow-y-auto animate-fadeIn">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
@@ -1533,8 +1663,8 @@ export default function StorefrontBannersPage() {
                               transform: `translate(${editingSlide.imageX || 0}px, ${editingSlide.imageY || 0}px) scale(${(editingSlide.imageScale || 100) / 100})`,
                               cursor: isDragging ? 'grabbing' : 'grab',
                             }}
-                            className={`relative w-full h-full transition-transform ${isDragging ? 'duration-0' : 'duration-150'} select-none group`}
-                            title="Click and drag to position image!"
+                            className={`relative w-full h-full transition-transform ${isDragging ? 'duration-0' : 'duration-150'} select-none touch-none group`}
+                            title="Touch or Drag to position image, Pinch to zoom!"
                           >
                             <Image
                               src={currentImg}
@@ -1554,21 +1684,33 @@ export default function StorefrontBannersPage() {
                       </div>
                     </div>
 
-                    {/* Interactive Floating On-Banner Zoom & Reset Bar */}
+                    {/* Interactive Floating On-Banner Zoom & Mobile Nudge Bar */}
                     <div 
                       onMouseDown={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
                       className="flex flex-wrap items-center justify-between gap-2 text-[10px] pt-2 border-t border-white/15 text-white relative z-20"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-white/80 flex items-center gap-1 font-bold text-[10px]">
-                          <span>✋ Drag Image</span>
+                          <span>✋ Touch/Drag</span>
                           <span className="text-white/40">•</span>
-                          <span>🖱️ Wheel to Zoom</span>
+                          <span>🤏 Pinch</span>
                         </span>
                         <span className="font-mono bg-black/60 px-2 py-0.5 rounded text-amber-300 font-bold border border-white/10 text-[9px]">
                           X: {editingSlide.imageX || 0}px | Y: {editingSlide.imageY || 0}px
                         </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowSlideNudgePad(!showSlideNudgePad)}
+                          className={`px-2 py-0.5 rounded-md font-bold text-[9px] cursor-pointer transition-colors border ${
+                            showSlideNudgePad
+                              ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-xs'
+                              : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                          }`}
+                          title="Toggle Directional Tap Buttons for Precise Mobile Adjustment"
+                        >
+                          🎯 Nudge Pad
+                        </button>
                       </div>
 
                       {/* Integrated Zoom Controls right on the Preview */}
@@ -1576,7 +1718,7 @@ export default function StorefrontBannersPage() {
                         <button
                           type="button"
                           onClick={() => zoomImage(-10)}
-                          className="w-5 h-5 rounded-md bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-black text-xs cursor-pointer transition-colors"
+                          className="w-6 h-6 rounded-md bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-black text-sm cursor-pointer active:scale-95 transition-transform"
                           title="Zoom Out (-10%)"
                         >
                           -
@@ -1588,7 +1730,7 @@ export default function StorefrontBannersPage() {
                           step="5"
                           value={editingSlide.imageScale || 100}
                           onChange={(e) => setEditingSlide({ ...editingSlide, imageScale: Number(e.target.value) })}
-                          className="w-20 sm:w-28 accent-amber-400 cursor-pointer h-1.5"
+                          className="w-20 sm:w-28 accent-amber-400 cursor-pointer h-2"
                           title="Zoom Slider"
                         />
                         <span className="font-mono text-amber-300 font-black w-10 text-center text-[10px]">
@@ -1597,7 +1739,7 @@ export default function StorefrontBannersPage() {
                         <button
                           type="button"
                           onClick={() => zoomImage(10)}
-                          className="w-5 h-5 rounded-md bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-black text-xs cursor-pointer transition-colors"
+                          className="w-6 h-6 rounded-md bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-black text-sm cursor-pointer active:scale-95 transition-transform"
                           title="Zoom In (+10%)"
                         >
                           +
@@ -1605,7 +1747,7 @@ export default function StorefrontBannersPage() {
                         <button
                           type="button"
                           onClick={resetImagePositionAndZoom}
-                          className="ml-1 px-2 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 text-[9px] font-bold border border-amber-400/30 cursor-pointer transition-colors"
+                          className="ml-1 px-2 py-1 rounded-md bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 text-[9px] font-bold border border-amber-400/30 cursor-pointer active:scale-95 transition-all"
                           title="Reset Position to Center & 100%"
                         >
                           <RotateCcw className="w-2.5 h-2.5 inline mr-0.5" />
@@ -1613,6 +1755,61 @@ export default function StorefrontBannersPage() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Optional Mobile Quick Nudge Directional Buttons */}
+                    {showSlideNudgePad && (
+                      <div 
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        className="mt-2 p-2 rounded-xl border border-white/20 bg-black/85 text-white flex items-center justify-between gap-2 z-20"
+                      >
+                        <span className="text-[9px] font-bold text-amber-300">Tap to Nudge 5px:</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => nudgeImage(-5, 0)}
+                            className="w-7 h-7 rounded-md bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-xs cursor-pointer active:scale-90"
+                            title="Move Left"
+                          >
+                            ◀
+                          </button>
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => nudgeImage(0, -5)}
+                              className="w-7 h-3.5 rounded bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-[9px] cursor-pointer active:scale-90"
+                              title="Move Up"
+                            >
+                              ▲
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => nudgeImage(0, 5)}
+                              className="w-7 h-3.5 rounded bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-[9px] cursor-pointer active:scale-90"
+                              title="Move Down"
+                            >
+                              ▼
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => nudgeImage(5, 0)}
+                            className="w-7 h-7 rounded-md bg-white/20 hover:bg-white/30 flex items-center justify-center font-black text-xs cursor-pointer active:scale-90"
+                            title="Move Right"
+                          >
+                            ▶
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingSlide((prev) => prev ? { ...prev, imageX: 0, imageY: 0 } : null)}
+                            className="ml-1 px-2 py-1 rounded-md bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[9px] cursor-pointer active:scale-90"
+                            title="Center Position"
+                          >
+                            Center
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
@@ -1792,21 +1989,22 @@ export default function StorefrontBannersPage() {
                 </div>
               </div>
 
-              {/* Modal Action Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              {/* Modal Action Buttons - Sticky on Mobile for effortless Save without scrolling */}
+              <div className="sticky bottom-0 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 p-4 sm:p-5 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-between gap-2 z-30 rounded-b-3xl shadow-lg">
                 <button
                   type="button"
                   onClick={() => setEditingSlide(null)}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl font-bold cursor-pointer transition-colors"
+                  className="px-4 py-2.5 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl font-bold cursor-pointer transition-colors text-xs active:scale-95"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-xs cursor-pointer transition-all"
+                  className="px-6 py-2.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md cursor-pointer transition-all text-xs flex items-center gap-1.5 active:scale-95"
                 >
-                  Save Slide to Storefront
+                  <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                  <span>Save Slide to Storefront</span>
                 </button>
               </div>
             </form>
