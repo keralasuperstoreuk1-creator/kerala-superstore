@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Settings, 
@@ -19,12 +19,24 @@ import {
   ArrowRight,
   ExternalLink,
   ShieldCheck,
-  Clock
+  Clock,
+  KeyRound,
+  User,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  Lock
 } from 'lucide-react';
 import { useStoreConfig, SiteTheme, LogoSize, LogoStyle } from '@/context/StoreConfigContext';
 import { DeliveryZone } from '@/types';
+import { 
+  getAdminCredentials, 
+  saveAdminCredentials, 
+  DEFAULT_ADMIN_USERNAME, 
+  DEFAULT_ADMIN_PASSWORD 
+} from '@/lib/admin-auth';
 
-type SettingsTab = 'store' | 'delivery' | 'branding';
+type SettingsTab = 'store' | 'delivery' | 'branding' | 'security';
 
 export default function AdminSettingsPage() {
   const { 
@@ -52,6 +64,22 @@ export default function AdminSettingsPage() {
     whatsapp: config.whatsapp,
     announcement: config.announcement,
   });
+
+  // Admin Security & Credentials State
+  const [adminUser, setAdminUser] = useState(DEFAULT_ADMIN_USERNAME);
+  const [adminPass, setAdminPass] = useState(DEFAULT_ADMIN_PASSWORD);
+  const [confirmPass, setConfirmPass] = useState(DEFAULT_ADMIN_PASSWORD);
+  const [showSecurityPass, setShowSecurityPass] = useState(false);
+  const [securityError, setSecurityError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const creds = getAdminCredentials();
+    if (creds.username) setAdminUser(creds.username);
+    if (creds.password) {
+      setAdminPass(creds.password);
+      setConfirmPass(creds.password);
+    }
+  }, []);
 
   // Delivery Zones
   const [isAddingZone, setIsAddingZone] = useState(false);
@@ -121,6 +149,41 @@ export default function AdminSettingsPage() {
     showSuccess('Store details, branding & festive themes saved!');
   };
 
+  const handleSaveCredentials = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSecurityError(null);
+
+    if (!adminUser.trim()) {
+      setSecurityError('Username cannot be empty.');
+      return;
+    }
+
+    if (!adminPass.trim() || adminPass.length < 5) {
+      setSecurityError('Password must be at least 5 characters long.');
+      return;
+    }
+
+    if (adminPass !== confirmPass) {
+      setSecurityError('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    const saved = saveAdminCredentials(adminUser.trim(), adminPass.trim());
+    if (saved) {
+      showSuccess('Admin username and password updated successfully!');
+    } else {
+      setSecurityError('Failed to save credentials.');
+    }
+  };
+
+  const handleResetDefaultCredentials = () => {
+    setAdminUser(DEFAULT_ADMIN_USERNAME);
+    setAdminPass(DEFAULT_ADMIN_PASSWORD);
+    setConfirmPass(DEFAULT_ADMIN_PASSWORD);
+    saveAdminCredentials(DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD);
+    showSuccess(`Reset to default: ${DEFAULT_ADMIN_USERNAME} / ${DEFAULT_ADMIN_PASSWORD}`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header Row */}
@@ -132,10 +195,10 @@ export default function AdminSettingsPage() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Store &amp; UK Delivery Settings
+                Store &amp; Admin Settings
               </h1>
               <p className="text-xs text-slate-500">
-                Manchester Physical Store Address, WhatsApp Contact, UK Delivery Rates &amp; Storefront Themes.
+                Manchester Physical Store Address, UK Delivery Rates, Festive Themes &amp; Admin Password.
               </p>
             </div>
           </div>
@@ -196,7 +259,7 @@ export default function AdminSettingsPage() {
           }`}
         >
           <Store className="w-4 h-4 text-emerald-400" />
-          <span>1. Store Address &amp; Contact Details</span>
+          <span>1. Store Address &amp; Contact</span>
         </button>
 
         <button
@@ -208,7 +271,7 @@ export default function AdminSettingsPage() {
           }`}
         >
           <Truck className="w-4 h-4 text-cyan-400" />
-          <span>2. UK Delivery Zones &amp; Postcode Rates</span>
+          <span>2. UK Delivery Zones</span>
         </button>
 
         <button
@@ -220,7 +283,19 @@ export default function AdminSettingsPage() {
           }`}
         >
           <Palette className="w-4 h-4 text-amber-400" />
-          <span>3. Festive Themes &amp; Particle Animations</span>
+          <span>3. Festive Themes</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('security')}
+          className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+            activeTab === 'security'
+              ? 'bg-slate-900 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <KeyRound className="w-4 h-4 text-rose-400" />
+          <span>4. Admin Security &amp; Password</span>
         </button>
       </div>
 
@@ -598,6 +673,132 @@ export default function AdminSettingsPage() {
                 className="px-6 py-2.5 bg-gradient-to-r from-emerald-800 to-emerald-700 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
               >
                 Save Theme Preference
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 4: ADMIN SECURITY & CREDENTIALS                       */}
+      {/* ========================================================= */}
+      {activeTab === 'security' && (
+        <form onSubmit={handleSaveCredentials} className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
+                <KeyRound className="w-5 h-5 text-rose-600" />
+                <span>Admin Login Security &amp; Password Manager</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetDefaultCredentials}
+                className="text-xs text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset to Default</span>
+              </button>
+            </div>
+
+            {/* Error banner */}
+            {securityError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-semibold">
+                {securityError}
+              </div>
+            )}
+
+            {/* Quick Summary Banner */}
+            <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-start gap-3 text-xs">
+              <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-bold text-emerald-950">Current Default Credentials</div>
+                <div className="text-emerald-800 mt-0.5">
+                  Username: <strong className="font-mono bg-white px-2 py-0.5 rounded border border-emerald-300">{adminUser}</strong> &nbsp;|&nbsp; 
+                  Password: <strong className="font-mono bg-white px-2 py-0.5 rounded border border-emerald-300">{showSecurityPass ? adminPass : '••••••••••••'}</strong>
+                </div>
+                <p className="text-[11px] text-emerald-700 mt-1">
+                  You can change your username and password below. Your session will remain protected across all devices.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1.5">
+                  Admin Username or Email *
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={adminUser}
+                    onChange={(e) => setAdminUser(e.target.value)}
+                    placeholder="e.g. admin"
+                    className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:border-emerald-600 bg-slate-50 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1.5">
+                  New Password *
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showSecurityPass ? 'text' : 'password'}
+                    required
+                    value={adminPass}
+                    onChange={(e) => setAdminPass(e.target.value)}
+                    placeholder="Enter new password"
+                    className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:border-emerald-600 bg-slate-50 focus:bg-white font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecurityPass(!showSecurityPass)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showSecurityPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block font-semibold text-slate-700 mb-1.5">
+                  Confirm Password *
+                </label>
+                <div className="relative max-w-md">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Check className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showSecurityPass ? 'text' : 'password'}
+                    required
+                    value={confirmPass}
+                    onChange={(e) => setConfirmPass(e.target.value)}
+                    placeholder="Re-enter new password"
+                    className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:border-emerald-600 bg-slate-50 focus:bg-white font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <span className="text-[11px] text-slate-500">
+                Default: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700">admin / kerala2026@admin</code>
+              </span>
+              <button
+                type="submit"
+                className="px-6 py-2.5 bg-gradient-to-r from-emerald-800 to-emerald-700 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-2"
+              >
+                <KeyRound className="w-4 h-4" />
+                <span>Save Admin Credentials</span>
               </button>
             </div>
           </div>

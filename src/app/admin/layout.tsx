@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Sparkles, 
@@ -19,8 +19,12 @@ import {
   Sliders,
   Tag,
   Boxes,
-  Cloud
+  Cloud,
+  LogOut,
+  Lock,
+  UserCheck
 } from 'lucide-react';
+import { isUserAdminAuthenticated, clearAdminSession, getAdminCredentials } from '@/lib/admin-auth';
 
 export default function AdminLayout({
   children,
@@ -28,7 +32,51 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [currentUsername, setCurrentUsername] = useState<string>('admin');
+
+  useEffect(() => {
+    if (pathname === '/admin/login') {
+      setIsAuthenticated(true);
+      return;
+    }
+
+    const auth = isUserAdminAuthenticated();
+    setIsAuthenticated(auth);
+    if (!auth) {
+      router.replace('/admin/login');
+    } else {
+      const creds = getAdminCredentials();
+      setCurrentUsername(creds.username || 'admin');
+    }
+  }, [pathname, router]);
+
+  const handleLogout = () => {
+    clearAdminSession();
+    router.replace('/admin/login');
+  };
+
+  // If on login page, render full screen without sidebar
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
+
+  // Loading state while checking authentication
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
+        <div className="w-12 h-12 rounded-2xl border-4 border-amber-400/30 border-t-amber-400 animate-spin mb-4" />
+        <p className="text-sm font-bold text-slate-300">Verifying Admin Access...</p>
+      </div>
+    );
+  }
+
+  // If not authenticated (while redirecting)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const navItems = [
     { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -53,19 +101,28 @@ export default function AdminLayout({
           </div>
           <span className="font-bold text-sm">Admin Portal</span>
         </Link>
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-1.5 text-slate-300 hover:text-white"
-        >
-          {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="p-1.5 text-rose-400 hover:text-rose-300"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-1.5 text-slate-300 hover:text-white"
+          >
+            {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Sidebar Navigation */}
       <aside className={`fixed md:sticky top-0 z-40 h-screen w-64 bg-slate-900 text-slate-300 flex flex-col justify-between transition-transform duration-200 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
-        <div>
+        <div className="overflow-y-auto">
           {/* Logo & Store Info */}
           <div className="p-4 border-b border-slate-800">
             <Link href="/admin" className="flex items-center gap-3">
@@ -87,9 +144,29 @@ export default function AdminLayout({
             </Link>
           </div>
 
+          {/* Logged in User Bar */}
+          <div className="px-4 py-2.5 mx-3 my-2 bg-slate-800/80 border border-slate-700/60 rounded-xl flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-emerald-600/30 text-emerald-400 flex items-center justify-center font-bold text-[10px]">
+                <ShieldCheck className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <div className="font-bold text-white text-[11px] truncate max-w-[100px]">{currentUsername}</div>
+                <div className="text-[9px] text-emerald-400">Authenticated</div>
+              </div>
+            </div>
+            <Link
+              href="/admin/settings"
+              className="text-[10px] text-amber-400 hover:text-amber-300 font-semibold"
+              title="Change Password"
+            >
+              Pass
+            </Link>
+          </div>
+
           {/* Navigation Links */}
           <nav className="p-3 space-y-1">
-            <div className="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            <div className="px-3 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
               Management
             </div>
             {navItems.map((item) => {
@@ -100,7 +177,7 @@ export default function AdminLayout({
                   key={item.href}
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                     isActive
                       ? 'bg-emerald-800 text-white shadow-md'
                       : 'hover:bg-slate-800 hover:text-white text-slate-400'
@@ -126,19 +203,22 @@ export default function AdminLayout({
         </div>
 
         {/* Bottom Actions */}
-        <div className="p-4 border-t border-slate-800 space-y-3">
+        <div className="p-4 border-t border-slate-800 space-y-2 shrink-0">
           <Link
             href="/"
-            className="flex items-center justify-center gap-2 w-full py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition-all"
+            className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition-all"
           >
             <Store className="w-4 h-4 text-emerald-400" />
             <span>View Customer Store</span>
           </Link>
 
-          <div className="px-2 text-[11px] text-slate-500 flex items-center justify-between">
-            <span>Admin: Shop Owner</span>
-            <span className="text-emerald-400 font-semibold">UK £ (GBP)</span>
-          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl text-xs font-semibold transition-all cursor-pointer border border-rose-500/20"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out / Logout</span>
+          </button>
         </div>
       </aside>
 
@@ -151,10 +231,10 @@ export default function AdminLayout({
             <p className="text-xs text-slate-500">Kerala Superstore • 4 Wallbrook Drive, Manchester M9 8PX</p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span>Orders: Cash on Delivery Active</span>
+              <span>Orders: COD Active</span>
             </div>
 
             <Link
@@ -165,6 +245,15 @@ export default function AdminLayout({
               <Store className="w-3.5 h-3.5" />
               <span>Open Storefront</span>
             </Link>
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+              title="Logout from Admin"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
 
