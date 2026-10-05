@@ -918,12 +918,64 @@ export default function StorefrontBannersPage() {
                         )}
                       </div>
 
-                      {/* Position & Zoom indicator */}
-                      <div className={`flex items-center justify-between text-[10px] pt-2 border-t ${isDark ? 'border-white/10 text-white/70' : 'border-slate-200/80 text-slate-500'}`}>
-                        <span>💡 Drag image or use controls</span>
-                        <span className={`font-mono px-2 py-0.5 rounded font-bold border ${isDark ? 'bg-black/50 text-amber-300 border-white/10' : 'bg-white text-emerald-800 border-slate-200'}`}>
-                          Zoom: {spotlightPromo.imageScale || 100}% | X: {spotlightPromo.imageX || 0}px | Y: {spotlightPromo.imageY || 0}px
-                        </span>
+                      {/* Interactive Floating On-Card Zoom & Reset Bar */}
+                      <div 
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        className={`flex flex-wrap items-center justify-between gap-2 text-[10px] pt-2 border-t relative z-20 ${isDark ? 'border-white/15 text-white' : 'border-slate-200 text-slate-800'}`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold flex items-center gap-1 text-[10px]">
+                            <span>✋ Drag Photo</span>
+                            <span className="opacity-40">•</span>
+                            <span>🖱️ Wheel Zoom</span>
+                          </span>
+                          <span className={`font-mono px-1.5 py-0.5 rounded text-[9px] font-bold border ${isDark ? 'bg-black/60 text-amber-300 border-white/10' : 'bg-white text-emerald-800 border-slate-200'}`}>
+                            X: {spotlightPromo.imageX || 0}px | Y: {spotlightPromo.imageY || 0}px
+                          </span>
+                        </div>
+
+                        {/* Direct Zoom Controls */}
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded-xl border backdrop-blur-md shadow-md ${isDark ? 'bg-black/80 border-white/20 text-white' : 'bg-white/90 border-slate-300 text-slate-900'}`}>
+                          <button
+                            type="button"
+                            onClick={() => zoomSpotlight(-10)}
+                            className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-xs cursor-pointer transition-colors ${isDark ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-800'}`}
+                            title="Zoom Out (-10%)"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="range"
+                            min="40"
+                            max="220"
+                            step="5"
+                            value={spotlightPromo.imageScale || 100}
+                            onChange={(e) => saveSpotlightPromo({ ...spotlightPromo, imageScale: Number(e.target.value) }, false)}
+                            className="w-16 sm:w-20 accent-amber-500 cursor-pointer h-1.5"
+                            title="Zoom Slider"
+                          />
+                          <span className="font-mono text-amber-500 font-black w-9 text-center text-[10px]">
+                            {spotlightPromo.imageScale || 100}%
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => zoomSpotlight(10)}
+                            className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-xs cursor-pointer transition-colors ${isDark ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-800'}`}
+                            title="Zoom In (+10%)"
+                          >
+                            +
+                          </button>
+                          <button
+                            type="button"
+                            onClick={resetSpotlightPositionAndZoom}
+                            className="ml-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 text-[9px] font-bold border border-amber-500/30 cursor-pointer transition-colors"
+                            title="Reset Position to Center & 100%"
+                          >
+                            <RotateCcw className="w-2.5 h-2.5 inline mr-0.5" />
+                            Reset
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1121,173 +1173,7 @@ export default function StorefrontBannersPage() {
                   />
                 </div>
 
-                {/* 4. Zoom & Move Position Controls (Pan) */}
-                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-black text-slate-900 text-xs">
-                      <Move className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Promo Photo Zoom &amp; Move Position (Pan)</span>
-                    </div>
 
-                    <button
-                      type="button"
-                      onClick={resetSpotlightPositionAndZoom}
-                      className="px-2.5 py-1 text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-                      title="Reset Zoom to 100% and Center Photo"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Reset Position</span>
-                    </button>
-                  </div>
-
-                  {/* 1. Zoom Controls */}
-                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-                      <span className="flex items-center gap-1.5">
-                        <ZoomIn className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Zoom (Size Scale):</span>
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => zoomSpotlight(-10)}
-                          className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center font-black text-xs text-slate-800 cursor-pointer transition-colors"
-                          title="Zoom Out (-10%)"
-                        >
-                          -
-                        </button>
-                        <span className="font-mono text-amber-700 font-extrabold w-12 text-center text-xs">
-                          {spotlightPromo.imageScale || 100}%
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => zoomSpotlight(10)}
-                          className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center font-black text-xs text-slate-800 cursor-pointer transition-colors"
-                          title="Zoom In (+10%)"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                    <input
-                      type="range"
-                      min="40"
-                      max="220"
-                      step="5"
-                      value={spotlightPromo.imageScale || 100}
-                      onChange={(e) => saveSpotlightPromo({ ...spotlightPromo, imageScale: Number(e.target.value) }, false)}
-                      className="w-full accent-amber-500 cursor-pointer"
-                    />
-                  </div>
-
-                  {/* 2. Move Position Controls (D-Pad + X / Y Sliders) */}
-                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-                      <span className="flex items-center gap-1.5">
-                        <Move className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Move Position (X &amp; Y):</span>
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        X: <strong>{spotlightPromo.imageX || 0}px</strong> • Y: <strong>{spotlightPromo.imageY || 0}px</strong>
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                      {/* D-Pad 4-way Nudge Controls */}
-                      <div className="sm:col-span-5 flex flex-col items-center justify-center">
-                        <div className="grid grid-cols-3 gap-1 w-28 text-slate-700">
-                          <div />
-                          <button
-                            type="button"
-                            onClick={() => nudgeSpotlight(0, -10)}
-                            className="h-8 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-400 rounded-lg flex items-center justify-center font-bold text-xs cursor-pointer active:scale-90 transition-all shadow-2xs"
-                            title="Move Up 10px"
-                          >
-                            <ArrowUp className="w-4 h-4 text-amber-800" />
-                          </button>
-                          <div />
-
-                          <button
-                            type="button"
-                            onClick={() => nudgeSpotlight(-10, 0)}
-                            className="h-8 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-400 rounded-lg flex items-center justify-center font-bold text-xs cursor-pointer active:scale-90 transition-all shadow-2xs"
-                            title="Move Left 10px"
-                          >
-                            <ArrowLeft className="w-4 h-4 text-amber-800" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => saveSpotlightPromo({ ...spotlightPromo, imageX: 0, imageY: 0 }, false)}
-                            className="h-8 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg flex items-center justify-center font-bold text-[10px] cursor-pointer active:scale-90 transition-all shadow-2xs"
-                            title="Center 0,0"
-                          >
-                            <Crosshair className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => nudgeSpotlight(10, 0)}
-                            className="h-8 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-400 rounded-lg flex items-center justify-center font-bold text-xs cursor-pointer active:scale-90 transition-all shadow-2xs"
-                            title="Move Right 10px"
-                          >
-                            <ArrowRight className="w-4 h-4 text-amber-800" />
-                          </button>
-
-                          <div />
-                          <button
-                            type="button"
-                            onClick={() => nudgeSpotlight(0, 10)}
-                            className="h-8 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-400 rounded-lg flex items-center justify-center font-bold text-xs cursor-pointer active:scale-90 transition-all shadow-2xs"
-                            title="Move Down 10px"
-                          >
-                            <ArrowDown className="w-4 h-4 text-amber-800" />
-                          </button>
-                          <div />
-                        </div>
-                      </div>
-
-                      {/* X & Y Sliders */}
-                      <div className="sm:col-span-7 space-y-2">
-                        <div>
-                          <div className="flex justify-between text-[10px] font-semibold text-slate-600 mb-0.5">
-                            <span>Left / Right (X):</span>
-                            <span className="font-mono font-bold text-amber-700">{spotlightPromo.imageX || 0}px</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="-150"
-                            max="150"
-                            step="2"
-                            value={spotlightPromo.imageX || 0}
-                            onChange={(e) => saveSpotlightPromo({ ...spotlightPromo, imageX: Number(e.target.value) }, false)}
-                            className="w-full accent-amber-500 cursor-pointer"
-                          />
-                        </div>
-
-                        <div>
-                          <div className="flex justify-between text-[10px] font-semibold text-slate-600 mb-0.5">
-                            <span>Up / Down (Y):</span>
-                            <span className="font-mono font-bold text-amber-700">{spotlightPromo.imageY || 0}px</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="-150"
-                            max="150"
-                            step="2"
-                            value={spotlightPromo.imageY || 0}
-                            onChange={(e) => saveSpotlightPromo({ ...spotlightPromo, imageY: Number(e.target.value) }, false)}
-                            className="w-full accent-amber-500 cursor-pointer"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-[10px] text-slate-400 bg-amber-50/60 p-2 rounded-lg border border-amber-200/50 flex items-center gap-1.5">
-                      <span>💡 <strong>Tip:</strong> You can also drag the image directly inside the deal card preview on the left!</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -1668,12 +1554,64 @@ export default function StorefrontBannersPage() {
                       </div>
                     </div>
 
-                    {/* Position & Zoom indicator */}
-                    <div className="flex items-center justify-between text-[10px] pt-1.5 border-t border-white/10 text-white/70">
-                      <span>💡 Drag image above or use buttons below</span>
-                      <span className="font-mono bg-black/50 px-2 py-0.5 rounded text-amber-300 font-bold border border-white/10">
-                        Zoom: {editingSlide.imageScale || 100}% | X: {editingSlide.imageX || 0}px | Y: {editingSlide.imageY || 0}px
-                      </span>
+                    {/* Interactive Floating On-Banner Zoom & Reset Bar */}
+                    <div 
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      className="flex flex-wrap items-center justify-between gap-2 text-[10px] pt-2 border-t border-white/15 text-white relative z-20"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/80 flex items-center gap-1 font-bold text-[10px]">
+                          <span>✋ Drag Image</span>
+                          <span className="text-white/40">•</span>
+                          <span>🖱️ Wheel to Zoom</span>
+                        </span>
+                        <span className="font-mono bg-black/60 px-2 py-0.5 rounded text-amber-300 font-bold border border-white/10 text-[9px]">
+                          X: {editingSlide.imageX || 0}px | Y: {editingSlide.imageY || 0}px
+                        </span>
+                      </div>
+
+                      {/* Integrated Zoom Controls right on the Preview */}
+                      <div className="flex items-center gap-1.5 bg-black/80 px-2.5 py-1 rounded-xl border border-white/20 backdrop-blur-md shadow-lg">
+                        <button
+                          type="button"
+                          onClick={() => zoomImage(-10)}
+                          className="w-5 h-5 rounded-md bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-black text-xs cursor-pointer transition-colors"
+                          title="Zoom Out (-10%)"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="range"
+                          min="40"
+                          max="220"
+                          step="5"
+                          value={editingSlide.imageScale || 100}
+                          onChange={(e) => setEditingSlide({ ...editingSlide, imageScale: Number(e.target.value) })}
+                          className="w-20 sm:w-28 accent-amber-400 cursor-pointer h-1.5"
+                          title="Zoom Slider"
+                        />
+                        <span className="font-mono text-amber-300 font-black w-10 text-center text-[10px]">
+                          {editingSlide.imageScale || 100}%
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => zoomImage(10)}
+                          className="w-5 h-5 rounded-md bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-black text-xs cursor-pointer transition-colors"
+                          title="Zoom In (+10%)"
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          onClick={resetImagePositionAndZoom}
+                          className="ml-1 px-2 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 text-[9px] font-bold border border-amber-400/30 cursor-pointer transition-colors"
+                          title="Reset Position to Center & 100%"
+                        >
+                          <RotateCcw className="w-2.5 h-2.5 inline mr-0.5" />
+                          Reset
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1779,174 +1717,6 @@ export default function StorefrontBannersPage() {
                 defaultMode="transparent"
                 compact
               />
-
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-
-                {/* Image Zoom & Move Position Controls */}
-                <div className="pt-3 border-t border-slate-200/80 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-black text-slate-900 text-xs">
-                      <Move className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Image Zoom &amp; Move Position (Pan)</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={resetImagePositionAndZoom}
-                      className="px-2.5 py-1 text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-                      title="Reset Zoom to 100% and Center Image"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Reset Position</span>
-                    </button>
-                  </div>
-
-                  {/* 1. Zoom Controls */}
-                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-                      <span className="flex items-center gap-1.5">
-                        <ZoomIn className="w-3.5 h-3.5 text-emerald-700" />
-                        <span>Zoom (Size Scale):</span>
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => zoomImage(-10)}
-                          className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center font-black text-xs text-slate-800 cursor-pointer transition-colors"
-                          title="Zoom Out (-10%)"
-                        >
-                          -
-                        </button>
-                        <span className="font-mono text-emerald-700 font-extrabold w-12 text-center text-xs">
-                          {editingSlide.imageScale || 100}%
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => zoomImage(10)}
-                          className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center font-black text-xs text-slate-800 cursor-pointer transition-colors"
-                          title="Zoom In (+10%)"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                    <input
-                      type="range"
-                      min="40"
-                      max="220"
-                      step="5"
-                      value={editingSlide.imageScale || 100}
-                      onChange={(e) => setEditingSlide({ ...editingSlide, imageScale: Number(e.target.value) })}
-                      className="w-full accent-emerald-600 cursor-pointer"
-                    />
-                  </div>
-
-                  {/* 2. Move Position Controls (D-Pad + X / Y Sliders) */}
-                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-                      <span className="flex items-center gap-1.5">
-                        <Move className="w-3.5 h-3.5 text-emerald-700" />
-                        <span>Move Position (X &amp; Y):</span>
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        X: <strong>{editingSlide.imageX || 0}px</strong> • Y: <strong>{editingSlide.imageY || 0}px</strong>
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                      {/* D-Pad 4-way Nudge Controls */}
-                      <div className="sm:col-span-5 flex flex-col items-center justify-center">
-                        <div className="grid grid-cols-3 gap-1 w-28 text-slate-700">
-                          <div />
-                          <button
-                            type="button"
-                            onClick={() => nudgeImage(0, -10)}
-                            className="h-8 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-500 rounded-lg flex items-center justify-center font-bold text-xs cursor-pointer active:scale-90 transition-all shadow-2xs"
-                            title="Move Up 10px"
-                          >
-                            <ArrowUp className="w-4 h-4 text-emerald-800" />
-                          </button>
-                          <div />
-
-                          <button
-                            type="button"
-                            onClick={() => nudgeImage(-10, 0)}
-                            className="h-8 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-500 rounded-lg flex items-center justify-center font-bold text-xs cursor-pointer active:scale-90 transition-all shadow-2xs"
-                            title="Move Left 10px"
-                          >
-                            <ArrowLeft className="w-4 h-4 text-emerald-800" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setEditingSlide((prev) => prev ? { ...prev, imageX: 0, imageY: 0 } : null)}
-                            className="h-8 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg flex items-center justify-center text-[10px] font-bold cursor-pointer transition-all shadow-2xs"
-                            title="Center Position"
-                          >
-                            <Crosshair className="w-3.5 h-3.5 text-slate-700" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => nudgeImage(10, 0)}
-                            className="h-8 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-500 rounded-lg flex items-center justify-center font-bold text-xs cursor-pointer active:scale-90 transition-all shadow-2xs"
-                            title="Move Right 10px"
-                          >
-                            <ArrowRight className="w-4 h-4 text-emerald-800" />
-                          </button>
-
-                          <div />
-                          <button
-                            type="button"
-                            onClick={() => nudgeImage(0, 10)}
-                            className="h-8 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-500 rounded-lg flex items-center justify-center font-bold text-xs cursor-pointer active:scale-90 transition-all shadow-2xs"
-                            title="Move Down 10px"
-                          >
-                            <ArrowDown className="w-4 h-4 text-emerald-800" />
-                          </button>
-                          <div />
-                        </div>
-                        <span className="text-[9px] text-slate-400 mt-1 font-medium">Click arrows to nudge</span>
-                      </div>
-
-                      {/* Precision sliders */}
-                      <div className="sm:col-span-7 space-y-2 text-xs">
-                        <div>
-                          <div className="flex items-center justify-between text-[10px] font-semibold text-slate-600 mb-0.5">
-                            <span>Left ⬅️ ➡️ Right (X):</span>
-                            <span className="font-mono font-bold text-slate-800">{editingSlide.imageX || 0}px</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="-150"
-                            max="150"
-                            step="2"
-                            value={editingSlide.imageX || 0}
-                            onChange={(e) => setEditingSlide({ ...editingSlide, imageX: Number(e.target.value) })}
-                            className="w-full accent-emerald-600 cursor-pointer"
-                          />
-                        </div>
-
-                        <div>
-                          <div className="flex items-center justify-between text-[10px] font-semibold text-slate-600 mb-0.5">
-                            <span>Up ⬆️ ⬇️ Down (Y):</span>
-                            <span className="font-mono font-bold text-slate-800">{editingSlide.imageY || 0}px</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="-150"
-                            max="150"
-                            step="2"
-                            value={editingSlide.imageY || 0}
-                            onChange={(e) => setEditingSlide({ ...editingSlide, imageY: Number(e.target.value) })}
-                            className="w-full accent-emerald-600 cursor-pointer"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {/* Text Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
