@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 120" width="100%" height="100%">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#022c22" />
+    </linearGradient>
+  </defs>
+
+  <!-- Logo Mark -->
+  <g transform="translate(10, 10)">
+    <rect width="100" height="100" rx="24" fill="url(#greenGrad)" stroke="#10b981" stroke-width="2" />
+    <!-- Golden Kerala Spices Lamp / Leaf Motif -->
+    <circle cx="50" cy="50" r="34" fill="none" stroke="url(#goldGrad)" stroke-width="3" stroke-dasharray="6 3" />
+    <path d="M50 25 C58 35 68 45 68 55 C68 66 60 74 50 74 C40 74 32 66 32 55 C32 45 42 35 50 25 Z" fill="url(#goldGrad)" />
+    <!-- Star accent -->
+    <polygon points="50,18 52,22 56,22 53,24 54,28 50,25 46,28 47,24 44,22 48,22" fill="#fef08a" />
+    <!-- UK crown hint -->
+    <text x="50" y="58" font-size="16" text-anchor="middle" fill="#022c22" font-weight="900">KSS</text>
+  </g>
+
+  <!-- Typography -->
+  <g transform="translate(125, 20)">
+    <text x="0" y="34" font-family="'Segoe UI', 'Inter', -apple-system, sans-serif" font-size="28" font-weight="900" fill="#064e3b" letter-spacing="1">KERALA</text>
+    <text x="125" y="34" font-family="'Segoe UI', 'Inter', -apple-system, sans-serif" font-size="28" font-weight="900" fill="#d97706" letter-spacing="1">SUPER STORE</text>
+    
+    <rect x="0" y="44" width="340" height="2" fill="#e2e8f0" />
+    
+    <!-- Tagline & UK Badge -->
+    <g transform="translate(0, 68)">
+      <rect width="40" height="20" rx="4" fill="#1e3a8a" />
+      <text x="20" y="14" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">UK 🇬🇧</text>
+      
+      <text x="48" y="14" font-family="'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="#64748b" letter-spacing="0.5">AUTHENTIC GROCERY &amp; SPICES</text>
+    </g>
+  </g>
+</svg>

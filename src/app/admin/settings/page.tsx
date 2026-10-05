@@ -1,0 +1,608 @@
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { 
+  Settings, 
+  Truck, 
+  MapPin, 
+  Phone, 
+  Mail, 
+  CheckCircle2, 
+  Palette, 
+  Sliders,
+  Plus,
+  Trash2,
+  Search,
+  Check,
+  Store,
+  ArrowRight,
+  ExternalLink,
+  ShieldCheck,
+  Clock
+} from 'lucide-react';
+import { useStoreConfig, SiteTheme, LogoSize, LogoStyle } from '@/context/StoreConfigContext';
+import { DeliveryZone } from '@/types';
+
+type SettingsTab = 'store' | 'delivery' | 'branding';
+
+export default function AdminSettingsPage() {
+  const { 
+    config, 
+    updateConfig, 
+    addDeliveryZone, 
+    updateDeliveryZone, 
+    deleteDeliveryZone,
+    getDeliveryZoneForPostcode
+  } = useStoreConfig();
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>('store');
+  const [savedSuccess, setSavedSuccess] = useState<string | null>(null);
+
+  // Form local state for delivery & store
+  const [theme, setSelectedTheme] = useState<SiteTheme>(config.theme);
+  const [logoSize, setLogoSize] = useState<LogoSize>(config.logoSize);
+  const [logoStyle, setLogoStyle] = useState<LogoStyle>(config.logoStyle);
+  const [showStoreTitle, setShowStoreTitle] = useState<boolean>(config.showStoreTitle);
+
+  const [storeDetails, setStoreDetails] = useState({
+    address: config.address,
+    postcode: config.postcode,
+    phone: config.phone,
+    whatsapp: config.whatsapp,
+    announcement: config.announcement,
+  });
+
+  // Delivery Zones
+  const [isAddingZone, setIsAddingZone] = useState(false);
+  const [newZone, setNewZone] = useState({
+    name: '',
+    postcodePrefixes: '',
+    charge: 3.99,
+    freeThreshold: 45.00,
+    estimatedTime: '1 - 2 Business Days',
+    enabled: true,
+  });
+
+  const [testPostcode, setTestPostcode] = useState('M9 8PX');
+  const [testResult, setTestResult] = useState<DeliveryZone | null>(null);
+
+  const showSuccess = (msg: string) => {
+    setSavedSuccess(msg);
+    setTimeout(() => setSavedSuccess(null), 3500);
+  };
+
+  const handleTestPostcode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testPostcode.trim()) return;
+    const match = getDeliveryZoneForPostcode(testPostcode);
+    setTestResult(match);
+  };
+
+  const handleAddZoneSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newZone.name.trim() || !newZone.postcodePrefixes.trim()) return;
+
+    const prefixes = newZone.postcodePrefixes
+      .split(',')
+      .map((p) => p.trim().toUpperCase())
+      .filter(Boolean);
+
+    addDeliveryZone({
+      name: newZone.name.trim(),
+      postcodePrefixes: prefixes,
+      charge: Number(newZone.charge),
+      freeThreshold: Number(newZone.freeThreshold),
+      estimatedTime: newZone.estimatedTime.trim(),
+      enabled: newZone.enabled,
+    });
+
+    setIsAddingZone(false);
+    setNewZone({
+      name: '',
+      postcodePrefixes: '',
+      charge: 3.99,
+      freeThreshold: 45.00,
+      estimatedTime: '1 - 2 Business Days',
+      enabled: true,
+    });
+    showSuccess('Delivery zone added successfully!');
+  };
+
+  const handleSaveStoreConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateConfig({
+      theme,
+      logoSize,
+      logoStyle,
+      showStoreTitle,
+      ...storeDetails,
+    });
+    showSuccess('Store details, branding & festive themes saved!');
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Top Header Row */}
+      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold">
+              <Settings className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Store &amp; UK Delivery Settings
+              </h1>
+              <p className="text-xs text-slate-500">
+                Manchester Physical Store Address, WhatsApp Contact, UK Delivery Rates &amp; Storefront Themes.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/banners"
+            className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs shadow-sm transition-all flex items-center gap-2"
+          >
+            <Sliders className="w-4 h-4" />
+            <span>Storefront &amp; Banner Customizer</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Direct Callout Card for Separate Storefront Customizer */}
+      <div className="p-4 bg-gradient-to-r from-amber-50 via-emerald-50 to-amber-50 border border-amber-200/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold shrink-0">
+            <Sliders className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="font-black text-slate-900">
+              Want to customize your homepage banners, promotional slides or category photos?
+            </div>
+            <div className="text-[11px] text-slate-600">
+              We moved <strong>Storefront &amp; Banner Customizer</strong> to its own dedicated section in the sidebar menu!
+            </div>
+          </div>
+        </div>
+        <Link
+          href="/admin/banners"
+          className="shrink-0 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+        >
+          <span>Open Customizer</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+
+      {/* Global Toast Notification */}
+      {savedSuccess && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-2.5 text-xs font-bold shadow-xs animate-fadeIn">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <span>{savedSuccess}</span>
+        </div>
+      )}
+
+      {/* Navigation Tabs */}
+      <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-2xl border border-slate-200 shadow-2xs text-xs font-bold">
+        <button
+          onClick={() => setActiveTab('store')}
+          className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+            activeTab === 'store'
+              ? 'bg-slate-900 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Store className="w-4 h-4 text-emerald-400" />
+          <span>1. Store Address &amp; Contact Details</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('delivery')}
+          className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+            activeTab === 'delivery'
+              ? 'bg-slate-900 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Truck className="w-4 h-4 text-cyan-400" />
+          <span>2. UK Delivery Zones &amp; Postcode Rates</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('branding')}
+          className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+            activeTab === 'branding'
+              ? 'bg-slate-900 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Palette className="w-4 h-4 text-amber-400" />
+          <span>3. Festive Themes &amp; Particle Animations</span>
+        </button>
+      </div>
+
+      {/* ========================================================= */}
+      {/* TAB 1: STORE ADDRESS & CONTACT DETAILS                    */}
+      {/* ========================================================= */}
+      {activeTab === 'store' && (
+        <form onSubmit={handleSaveStoreConfig} className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 font-bold text-sm text-slate-900 pb-3 border-b border-slate-100">
+              <Store className="w-5 h-5 text-emerald-700" />
+              <span>Physical Store Address &amp; Customer Contact</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Manchester Address</label>
+                <input
+                  type="text"
+                  value={storeDetails.address}
+                  onChange={(e) => setStoreDetails({ ...storeDetails, address: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-600 bg-slate-50 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Postcode</label>
+                <input
+                  type="text"
+                  value={storeDetails.postcode}
+                  onChange={(e) => setStoreDetails({ ...storeDetails, postcode: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold uppercase outline-none focus:border-emerald-600 bg-slate-50 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">WhatsApp Customer Support</label>
+                <input
+                  type="text"
+                  value={storeDetails.whatsapp}
+                  onChange={(e) => setStoreDetails({ ...storeDetails, whatsapp: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-600 bg-slate-50 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Phone Number</label>
+                <input
+                  type="text"
+                  value={storeDetails.phone}
+                  onChange={(e) => setStoreDetails({ ...storeDetails, phone: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-600 bg-slate-50 focus:bg-white"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block font-semibold text-slate-700 mb-1">Top Announcement Marquee</label>
+                <input
+                  type="text"
+                  value={storeDetails.announcement}
+                  onChange={(e) => setStoreDetails({ ...storeDetails, announcement: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-600 bg-slate-50 focus:bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
+                type="submit"
+                className="px-6 py-2.5 bg-gradient-to-r from-emerald-800 to-emerald-700 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
+              >
+                Save Store Address &amp; Contact
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 2: UK DELIVERY ZONES & POSTCODES                      */}
+      {/* ========================================================= */}
+      {activeTab === 'delivery' && (
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
+                <Truck className="w-5 h-5 text-emerald-700" />
+                <span>Area-Based UK Delivery &amp; Postcode Rates</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Configure delivery rates for Local Manchester, Greater Manchester, London, and UK Mainland.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsAddingZone(true)}
+              className="px-3.5 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Delivery Area</span>
+            </button>
+          </div>
+
+          {/* Zones List */}
+          <div className="space-y-3">
+            {config.deliveryZones.map((zone) => (
+              <div
+                key={zone.id}
+                className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all text-xs"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-slate-900 text-sm">{zone.name}</h4>
+                      {zone.enabled ? (
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          Disabled
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-slate-500 text-[11px] mt-1">
+                      Postcode Prefixes: <strong className="text-slate-700">{zone.postcodePrefixes.join(', ')}</strong>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="font-black text-slate-900 text-sm">
+                        £{zone.charge.toFixed(2)}
+                      </div>
+                      <div className="text-[11px] text-emerald-700 font-semibold">
+                        Free over £{zone.freeThreshold.toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 pl-2 border-l border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => updateDeliveryZone(zone.id, { enabled: !zone.enabled })}
+                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer"
+                      >
+                        {zone.enabled ? 'Disable' : 'Enable'}
+                      </button>
+                      {config.deliveryZones.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => deleteDeliveryZone(zone.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer transition-colors"
+                          title="Delete Zone"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <span>Estimated Time: <strong>{zone.estimatedTime}</strong></span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add Zone Form */}
+          {isAddingZone && (
+            <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-3 animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <h4 className="font-black text-xs text-emerald-950">Add New Area Delivery Zone</h4>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingZone(false)}
+                  className="text-xs text-slate-500 hover:text-slate-800"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Area Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Birmingham & West Midlands"
+                    value={newZone.name}
+                    onChange={(e) => setNewZone({ ...newZone, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-medium outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Postcode Prefixes (comma separated) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. B, CV, WS, WV or M1, M2"
+                    value={newZone.postcodePrefixes}
+                    onChange={(e) => setNewZone({ ...newZone, postcodePrefixes: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-medium outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Delivery Charge (£) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={newZone.charge}
+                    onChange={(e) => setNewZone({ ...newZone, charge: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-bold outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Free Delivery Threshold (£) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={newZone.freeThreshold}
+                    onChange={(e) => setNewZone({ ...newZone, freeThreshold: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-bold outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-slate-700 mb-1">Estimated Delivery Time *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 1 - 2 Business Days or Same Day"
+                    value={newZone.estimatedTime}
+                    onChange={(e) => setNewZone({ ...newZone, estimatedTime: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-medium outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddZoneSubmit}
+                className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+              >
+                Save Delivery Zone
+              </button>
+            </div>
+          )}
+
+          {/* Live Postcode Tester */}
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs">
+            <div className="font-bold text-slate-800 flex items-center gap-1.5">
+              <Search className="w-4 h-4 text-emerald-700" />
+              <span>Test UK Postcode Matching</span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={testPostcode}
+                onChange={(e) => {
+                  setTestPostcode(e.target.value);
+                  setTestResult(null);
+                }}
+                placeholder="Enter UK Postcode (e.g. M9 8PX or SW1A 1AA)"
+                className="px-3 py-2 border border-slate-300 rounded-xl uppercase font-bold text-xs bg-white outline-none focus:border-emerald-600 flex-1 max-w-xs"
+              />
+              <button
+                type="button"
+                onClick={handleTestPostcode}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold cursor-pointer transition-colors"
+              >
+                Test Match
+              </button>
+            </div>
+
+            {testResult && (
+              <div className="p-3 bg-white border border-emerald-200 rounded-xl space-y-1 text-[11px] animate-fadeIn">
+                <div className="font-bold text-emerald-800">Matched Zone: {testResult.name}</div>
+                <div className="text-slate-600">
+                  Standard Delivery: <strong>£{testResult.charge.toFixed(2)}</strong> (Free over £{testResult.freeThreshold})
+                </div>
+                <div className="text-slate-500">Estimated Delivery: {testResult.estimatedTime}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 3: FESTIVE THEMES & BRANDING                          */}
+      {/* ========================================================= */}
+      {activeTab === 'branding' && (
+        <form onSubmit={handleSaveStoreConfig} className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
+                <Palette className="w-5 h-5 text-amber-500" />
+                <span>Festive Themes &amp; Particle Animations</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div
+                onClick={() => setSelectedTheme('default')}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                  theme === 'default'
+                    ? 'border-emerald-600 bg-emerald-50/70 shadow-md ring-2 ring-emerald-600/20'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xl">🌿</span>
+                  {theme === 'default' && (
+                    <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <h4 className="font-black text-xs text-slate-900">Emerald Classic</h4>
+                <p className="text-[11px] text-slate-500 mt-1">Lush Kerala emerald &amp; spice gold.</p>
+              </div>
+
+              <div
+                onClick={() => setSelectedTheme('onam')}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                  theme === 'onam'
+                    ? 'border-amber-500 bg-amber-50/80 shadow-md ring-2 ring-amber-500/20'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xl">🌼</span>
+                  {theme === 'onam' && (
+                    <span className="bg-amber-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <h4 className="font-black text-xs text-slate-900">Onam Special</h4>
+                <p className="text-[11px] text-slate-500 mt-1">Gold with falling flower petals animation!</p>
+              </div>
+
+              <div
+                onClick={() => setSelectedTheme('christmas')}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                  theme === 'christmas'
+                    ? 'border-rose-600 bg-rose-50/80 shadow-md ring-2 ring-rose-600/20'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xl">❄️</span>
+                  {theme === 'christmas' && (
+                    <span className="bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <h4 className="font-black text-xs text-slate-900">Christmas &amp; New Year</h4>
+                <p className="text-[11px] text-slate-500 mt-1">Holiday crimson with falling snowflakes animation!</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
+                type="submit"
+                className="px-6 py-2.5 bg-gradient-to-r from-emerald-800 to-emerald-700 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
+              >
+                Save Theme Preference
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}

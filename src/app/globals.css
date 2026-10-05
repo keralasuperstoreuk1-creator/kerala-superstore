@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fcfcfb;
+  --foreground: #0f172a;
+  --kerala-green-950: #022c22;
+  --kerala-green-900: #064e3b;
+  --kerala-green-800: #065f46;
+  --kerala-green-700: #047857;
+  --kerala-green-600: #059669;
+  --kerala-green-500: #10b981;
+  --kerala-green-100: #d1fae5;
+  --kerala-green-50: #ecfdf5;
+
+  --kerala-gold-600: #d97706;
+  --kerala-gold-500: #f59e0b;
+  --kerala-gold-400: #fbbf24;
+  --kerala-gold-100: #fef3c7;
+  --kerala-gold-50: #fffbeb;
+}
+
+@theme inline {
+  --color-kerala-950: var(--kerala-green-950);
+  --color-kerala-900: var(--kerala-green-900);
+  --color-kerala-800: var(--kerala-green-800);
+  --color-kerala-700: var(--kerala-green-700);
+  --color-kerala-600: var(--kerala-green-600);
+  --color-kerala-500: var(--kerala-green-500);
+  --color-kerala-100: var(--kerala-green-100);
+  --color-kerala-50: var(--kerala-green-50);
+
+  --color-gold-600: var(--kerala-gold-600);
+  --color-gold-500: var(--kerala-gold-500);
+  --color-gold-400: var(--kerala-gold-400);
+  --color-gold-100: var(--kerala-gold-100);
+  --color-gold-50: var(--kerala-gold-50);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.011em;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-heading), var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: -0.025em;
+}
+
+/* Glassmorphism helpers */
+.glass-header {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* Smooth custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Subtle pulse animation for delivery & badges */
+@keyframes softPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.02); }
+}
+.animate-soft-pulse {
+  animation: softPulse 2.5s infinite ease-in-out;
+}
+
+/* Onam Falling Petals Animation */
+@keyframes onamPetal {
+  0% {
+    transform: translateY(-20px) rotate(0deg) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(105vh) rotate(480deg) translateX(60px);
+    opacity: 0;
+  }
+}
+.animate-onam-petal {
+  animation: onamPetal linear infinite;
+}
+
+/* Christmas Snow Fall Animation */
+@keyframes snowFall {
+  0% {
+    transform: translateY(-20px) translateX(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(105vh) translateX(30px);
+    opacity: 0;
+  }
+}
+.animate-snow-fall {
+  animation: snowFall linear infinite;
+}
+
+/* Offer Marquee & Shimmer Animations */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.animate-shimmer {
+  animation: shimmer 2.5s infinite linear;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 25s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes fireGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8)) drop-shadow(0 0 12px rgba(220, 38, 38, 0.4));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(245, 158, 11, 1)) drop-shadow(0 0 20px rgba(239, 68, 68, 0.7));
+    transform: scale(1.04);
+  }
+}
+.animate-fire-glow {
+  animation: fireGlow 1.8s infinite ease-in-out;
+}
+
+/* Floating 3D Micro-Animations */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1.5deg);
+  }
+}
+.animate-float-slow {
+  animation: floatSlow 5s ease-in-out infinite;
+}
+
+@keyframes floatReverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(10px) rotate(-1.5deg);
+  }
+}
+.animate-float-reverse {
+  animation: floatReverse 6s ease-in-out infinite;
+}
+
+@keyframes glowOrb {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.15) translate(20px, -20px);
+    opacity: 0.85;
+  }
+}
+.animate-glow-orb {
+  animation: glowOrb 8s ease-in-out infinite alternate;
+}
+
+@keyframes marqueeBrands {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee-brands {
+  display: flex;
+  width: max-content;
+  animation: marqueeBrands 30s linear infinite;
+}
+.animate-marquee-brands:hover {
+  animation-play-state: paused;
+}
+
+/* Continuous Smooth Gliding Offers Track */
+@keyframes offerGlide {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+.animate-offer-glide {
+  display: flex;
+  width: max-content;
+  animation: offerGlide 38s linear infinite;
+}
+.animate-offer-glide:hover {
+  animation-play-state: paused;
+}
+.pause-animation {
+  animation-play-state: paused !important;
+}
+
+/* Subtle Splash Screen Keyframes */
+@keyframes logoPulseScale {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.4));
+  }
+  50% {
+    transform: scale(1.03);
+    filter: drop-shadow(0 0 25px rgba(245, 158, 11, 0.8)) drop-shadow(0 0 45px rgba(16, 185, 129, 0.5));
+  }
+}
+.animate-logo-pulse-scale {
+  animation: logoPulseScale 3s infinite ease-in-out;
+}
+
+
+

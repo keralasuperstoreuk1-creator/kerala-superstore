@@ -1,0 +1,24 @@
+{
+  "name": "Kerala Superstore Manchester",
+  "short_name": "Kerala Store",
+  "description": "Authentic Kerala Groceries & Spices Delivered UK-Wide. Manchester Hub at 4 Wallbrook Drive M9 8PX.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#022c22",
+  "theme_color": "#064e3b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/branding/kerala-superstore-round-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/branding/kerala-superstore-round-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
