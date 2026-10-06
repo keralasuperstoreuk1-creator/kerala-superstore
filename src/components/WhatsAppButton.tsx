@@ -16,7 +16,7 @@ export const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = "w-
 
 export const WhatsAppButton: React.FC = () => {
   return (
-    <aside aria-label="WhatsApp quick chat" className="fixed bottom-6 right-6 z-40 flex items-center group">
+    <aside aria-label="WhatsApp quick chat" className="fixed bottom-20 sm:bottom-6 right-3.5 sm:right-6 z-40 flex items-center group">
       <span className="hidden sm:block mr-2 px-3 py-1.5 bg-slate-950/95 text-white text-xs font-bold rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-all border border-emerald-500/30 whitespace-nowrap">
         💬 Chat on WhatsApp (+44 7749 132122)
       </span>
@@ -24,13 +24,13 @@ export const WhatsAppButton: React.FC = () => {
         href={`https://wa.me/447749132122?text=${encodeURIComponent("Hello Kerala Superstore Manchester! I'm on your website and would like some assistance with an order.")}`}
         target="_blank"
         rel="noreferrer"
-        className="w-14 h-14 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all relative border-2 border-white ring-4 ring-emerald-500/20"
+        className="w-11 h-11 sm:w-12 sm:h-12 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all relative border-2 border-white ring-2 ring-emerald-500/30 cursor-pointer"
         aria-label="Contact us on WhatsApp"
         title="Chat with Kerala Superstore on WhatsApp"
       >
-        <WhatsAppIcon className="w-8 h-8 text-white fill-current" />
-        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-400 rounded-full border-2 border-white animate-ping" />
-        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-400 rounded-full border-2 border-white" />
+        <WhatsAppIcon className="w-6 h-6 sm:w-6.5 sm:h-6.5 text-white fill-current" />
+        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-amber-400 rounded-full border-2 border-white animate-ping" />
+        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-amber-400 rounded-full border-2 border-white" />
       </a>
     </aside>
   );

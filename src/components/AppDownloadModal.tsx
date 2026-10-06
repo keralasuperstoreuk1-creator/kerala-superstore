@@ -211,10 +211,10 @@ export const AppDownloadModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleIOSShareClick}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 rounded-xl font-black text-xs shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 rounded-xl font-black text-xs shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
                 >
-                  <Share2 className="w-4 h-4" />
-                  <span>Tap to Open Share Menu</span>
+                  <AppleIcon className="w-4 h-4" />
+                  <span>📲 Add to Home Screen</span>
                 </button>
               </div>
 
