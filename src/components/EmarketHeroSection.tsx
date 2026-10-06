@@ -52,13 +52,13 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
   const [categoriesList, setCategoriesList] = useState<Category[]>(CATEGORIES);
   const [activeSlide, setActiveSlide] = useState(0);
 
-  // Sync custom slides, promo card & categories from localStorage (Admin managed)
+  // Sync custom slides, promo card & categories from localStorage & Cloudflare R2 Cloud
   const loadCustomData = () => {
     try {
       const saved = localStorage.getItem('kss_hero_slides');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 5) {
+        if (Array.isArray(parsed) && parsed.length >= 1) {
           const migrated = parsed.map((s: HeroSlide) => ({
             ...s,
             image: migrateImageSrc(s.image),
@@ -66,7 +66,6 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
           setSlides(migrated);
         } else {
           setSlides(DEFAULT_HERO_SLIDES);
-          localStorage.setItem('kss_hero_slides', JSON.stringify(DEFAULT_HERO_SLIDES));
         }
       } else {
         setSlides(DEFAULT_HERO_SLIDES);
@@ -102,8 +101,40 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
     } catch {}
   };
 
+  // Fetch live global configuration from Cloudflare R2 Cloud
+  const fetchCloudConfig = async () => {
+    try {
+      const res = await fetch('/api/store/config');
+      const data = await res.json();
+      if (data.success) {
+        if (Array.isArray(data.heroSlides) && data.heroSlides.length > 0) {
+          const migrated = data.heroSlides.map((s: HeroSlide) => ({
+            ...s,
+            image: migrateImageSrc(s.image),
+          }));
+          setSlides(migrated);
+          try { localStorage.setItem('kss_hero_slides', JSON.stringify(migrated)); } catch {}
+        }
+        if (data.spotlightPromo) {
+          const migratedPromo = {
+            ...data.spotlightPromo,
+            image: migrateImageSrc(data.spotlightPromo.image),
+          };
+          setSpotlightPromo(migratedPromo);
+          try { localStorage.setItem('kss_spotlight_promo', JSON.stringify(migratedPromo)); } catch {}
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch cloud config, using local cache:', e);
+    }
+  };
+
   useEffect(() => {
+    // 1. Load immediately from local cache for 0ms initial render
     loadCustomData();
+
+    // 2. Fetch live latest from Cloudflare R2 cloud (syncs across all computers & devices)
+    fetchCloudConfig();
 
     const handleUpdate = () => loadCustomData();
     window.addEventListener('storage', handleUpdate);

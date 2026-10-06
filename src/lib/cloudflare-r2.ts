@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 
 // Helper to check if R2 credentials are present
 export function isR2Configured(): boolean {
@@ -90,3 +90,58 @@ export async function uploadToR2(
     sizeBytes: fileBuffer.length,
   };
 }
+
+/**
+ * Save JSON configuration directly to Cloudflare R2 (Global persistence across all devices)
+ */
+export async function saveJsonToR2(key: string, data: any): Promise<boolean> {
+  if (!isR2Configured()) return false;
+  try {
+    const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME?.trim();
+    const client = getR2Client();
+    const jsonStr = JSON.stringify(data, null, 2);
+    
+    await client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: Buffer.from(jsonStr, 'utf-8'),
+        ContentType: 'application/json',
+        CacheControl: 'no-cache, no-store, must-revalidate',
+      })
+    );
+    return true;
+  } catch (err) {
+    console.error(`Failed to save JSON to R2 (${key}):`, err);
+    return false;
+  }
+}
+
+/**
+ * Fetch JSON configuration directly from Cloudflare R2
+ */
+export async function getJsonFromR2<T = any>(key: string): Promise<T | null> {
+  if (!isR2Configured()) return null;
+  try {
+    const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME?.trim();
+    const client = getR2Client();
+
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      })
+    );
+
+    if (!response.Body) return null;
+    const bodyString = await response.Body.transformToString();
+    return JSON.parse(bodyString) as T;
+  } catch (err: any) {
+    // NoSuchKey is normal when initializing for the first time
+    if (err.name !== 'NoSuchKey') {
+      console.warn(`Could not read ${key} from R2:`, err.message);
+    }
+    return null;
+  }
+}
+

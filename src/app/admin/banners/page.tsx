@@ -90,7 +90,24 @@ export default function StorefrontBannersPage() {
   const [spotlightProgress, setSpotlightProgress] = useState<string>('');
   const spotlightFileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Load from localStorage
+  // Cloud sync helper
+  const syncToCloud = async (payload: {
+    heroSlides?: HeroSlide[];
+    spotlightPromo?: SpotlightPromoConfig;
+    categoryImages?: Record<string, string>;
+  }) => {
+    try {
+      await fetch('/api/store/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      console.warn('Cloud sync error (fallback to local):', e);
+    }
+  };
+
+  // Load from localStorage and sync with live Cloudflare R2 Cloud
   useEffect(() => {
     try {
       const saved = localStorage.getItem('kss_category_images');
@@ -101,16 +118,14 @@ export default function StorefrontBannersPage() {
       const savedSlides = localStorage.getItem('kss_hero_slides');
       if (savedSlides) {
         const parsed = JSON.parse(savedSlides);
-        if (Array.isArray(parsed) && parsed.length >= 5) {
+        if (Array.isArray(parsed) && parsed.length >= 1) {
           const migrated = parsed.map((s: HeroSlide) => ({
             ...s,
             image: migrateImageSrc(s.image),
           }));
           setHeroSlides(migrated);
-          localStorage.setItem('kss_hero_slides', JSON.stringify(migrated));
         } else {
           setHeroSlides(DEFAULT_HERO_SLIDES);
-          localStorage.setItem('kss_hero_slides', JSON.stringify(DEFAULT_HERO_SLIDES));
         }
       } else {
         setHeroSlides(DEFAULT_HERO_SLIDES);
@@ -128,13 +143,41 @@ export default function StorefrontBannersPage() {
           image: migrateImageSrc(parsed.image),
         };
         setSpotlightPromo(migrated);
-        localStorage.setItem('kss_spotlight_promo', JSON.stringify(migrated));
       } else {
         setSpotlightPromo(DEFAULT_SPOTLIGHT_PROMO);
       }
     } catch {
       setSpotlightPromo(DEFAULT_SPOTLIGHT_PROMO);
     }
+
+    // Fetch live configuration from Cloudflare R2 cloud (syncs across all computers & devices)
+    fetch('/api/store/config')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          if (Array.isArray(data.heroSlides) && data.heroSlides.length > 0) {
+            const migrated = data.heroSlides.map((s: HeroSlide) => ({
+              ...s,
+              image: migrateImageSrc(s.image),
+            }));
+            setHeroSlides(migrated);
+            try { localStorage.setItem('kss_hero_slides', JSON.stringify(migrated)); } catch {}
+          }
+          if (data.spotlightPromo) {
+            const migratedPromo = {
+              ...data.spotlightPromo,
+              image: migrateImageSrc(data.spotlightPromo.image),
+            };
+            setSpotlightPromo(migratedPromo);
+            try { localStorage.setItem('kss_spotlight_promo', JSON.stringify(migratedPromo)); } catch {}
+          }
+          if (data.categoryImages && Object.keys(data.categoryImages).length > 0) {
+            setCategoryImages(data.categoryImages);
+            try { localStorage.setItem('kss_category_images', JSON.stringify(data.categoryImages)); } catch {}
+          }
+        }
+      })
+      .catch((e) => console.warn('Could not fetch cloud config:', e));
   }, []);
 
   const showSuccess = (msg: string) => {
@@ -301,6 +344,8 @@ export default function StorefrontBannersPage() {
       localStorage.setItem('kss_hero_slides', JSON.stringify(slides));
       window.dispatchEvent(new Event('kss_hero_slides_updated'));
     } catch {}
+    // Global Cloudflare R2 sync across all devices & customer computers
+    syncToCloud({ heroSlides: slides });
     showSuccess('Hero banner slides updated! Live on customer storefront.');
   };
 
@@ -430,6 +475,7 @@ export default function StorefrontBannersPage() {
       window.dispatchEvent(new Event('kss_spotlight_promo_updated'));
     } catch {}
     if (notify) {
+      syncToCloud({ spotlightPromo: promo });
       showSuccess('Right spotlight promo card updated! Live on customer storefront.');
     }
   };
@@ -623,6 +669,7 @@ export default function StorefrontBannersPage() {
       setCategoryImages(updated);
       localStorage.setItem('kss_category_images', JSON.stringify(updated));
       window.dispatchEvent(new Event('kss_category_images_updated'));
+      syncToCloud({ categoryImages: updated });
       showSuccess('Category image updated with uploaded photo!');
     };
     reader.readAsDataURL(file);
@@ -634,6 +681,7 @@ export default function StorefrontBannersPage() {
     setCategoryImages(updated);
     localStorage.setItem('kss_category_images', JSON.stringify(updated));
     window.dispatchEvent(new Event('kss_category_images_updated'));
+    syncToCloud({ categoryImages: updated });
     showSuccess('Reset category image to default.');
   };
 
