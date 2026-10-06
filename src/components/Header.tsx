@@ -41,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { totalItems, setIsCartOpen } = useCart();
   const { config } = useStoreConfig();
   const { unreadCount, setIsNotificationModalOpen } = useSpecialsNotification();
-  const { isIOS, isAndroid, installApp, openModal } = useAppDownload();
+  const { isIOS, isAndroid, deferredPrompt, triggerInstall, installApp, openModal } = useAppDownload();
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -50,7 +50,11 @@ export const Header: React.FC<HeaderProps> = ({
     if (isIOS) {
       openModal('ios');
     } else if (isAndroid) {
-      installApp();
+      if (deferredPrompt) {
+        triggerInstall();
+      } else {
+        openModal('android');
+      }
     } else {
       openModal();
     }
