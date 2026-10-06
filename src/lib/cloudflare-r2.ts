@@ -1,24 +1,27 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 
+// Default Cloudflare R2 Credentials for Kerala Superstore UK
+const DEFAULT_R2_ACCOUNT_ID = "0783d20a277aa059701bf958337cc1f8";
+const DEFAULT_R2_ACCESS_KEY_ID = "d2339381b4a4a6b1b34bf4748348ad67";
+const DEFAULT_R2_SECRET_ACCESS_KEY = "24672e2d8b4852fb6f75d9eac54f66e49a63884c59347182f9874f88b9c0935c";
+const DEFAULT_R2_BUCKET_NAME = "kerala-superstore-images";
+const DEFAULT_R2_PUBLIC_URL = "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev";
+
 // Helper to check if R2 credentials are present
 export function isR2Configured(): boolean {
-  return Boolean(
-    process.env.CLOUDFLARE_R2_ACCOUNT_ID &&
-    process.env.CLOUDFLARE_R2_ACCESS_KEY_ID &&
-    process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY &&
-    process.env.CLOUDFLARE_R2_BUCKET_NAME
-  );
+  const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID || DEFAULT_R2_ACCOUNT_ID;
+  const accessKeyId = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || DEFAULT_R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || DEFAULT_R2_SECRET_ACCESS_KEY;
+  const bucketName = process.env.CLOUDFLARE_R2_BUCKET_NAME || DEFAULT_R2_BUCKET_NAME;
+
+  return Boolean(accountId && accessKeyId && secretAccessKey && bucketName);
 }
 
 // Create S3 Client configured for Cloudflare R2
 export function getR2Client(): S3Client {
-  const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID?.trim();
-  const accessKeyId = process.env.CLOUDFLARE_R2_ACCESS_KEY_ID?.trim();
-  const secretAccessKey = process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY?.trim();
-
-  if (!accountId || !accessKeyId || !secretAccessKey) {
-    throw new Error("Missing Cloudflare R2 environment variables. Please check .env file.");
-  }
+  const accountId = (process.env.CLOUDFLARE_R2_ACCOUNT_ID || DEFAULT_R2_ACCOUNT_ID).trim();
+  const accessKeyId = (process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || DEFAULT_R2_ACCESS_KEY_ID).trim();
+  const secretAccessKey = (process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || DEFAULT_R2_SECRET_ACCESS_KEY).trim();
 
   return new S3Client({
     region: "auto",
@@ -46,11 +49,7 @@ export async function uploadToR2(
   contentType: string = "image/webp",
   folder: string = "products"
 ): Promise<R2UploadResult> {
-  const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME?.trim();
-  if (!bucket) {
-    throw new Error("CLOUDFLARE_R2_BUCKET_NAME is not configured.");
-  }
-
+  const bucket = (process.env.CLOUDFLARE_R2_BUCKET_NAME || DEFAULT_R2_BUCKET_NAME).trim();
   const client = getR2Client();
 
   // Clean filename and create clean path
@@ -73,13 +72,12 @@ export async function uploadToR2(
   await client.send(command);
 
   // Construct public permanent URL
-  const publicBaseUrl = process.env.CLOUDFLARE_R2_PUBLIC_URL?.trim() || "";
+  const publicBaseUrl = (process.env.CLOUDFLARE_R2_PUBLIC_URL || DEFAULT_R2_PUBLIC_URL).trim();
   let publicUrl = "";
 
   if (publicBaseUrl) {
     publicUrl = `${publicBaseUrl.replace(/\/+$/, "")}/${key}`;
   } else {
-    // Default R2 dev public URL fallback format
     publicUrl = `https://${bucket}.r2.cloudflarestorage.com/${key}`;
   }
 
@@ -97,7 +95,7 @@ export async function uploadToR2(
 export async function saveJsonToR2(key: string, data: any): Promise<boolean> {
   if (!isR2Configured()) return false;
   try {
-    const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME?.trim();
+    const bucket = (process.env.CLOUDFLARE_R2_BUCKET_NAME || DEFAULT_R2_BUCKET_NAME).trim();
     const client = getR2Client();
     const jsonStr = JSON.stringify(data, null, 2);
     
@@ -123,7 +121,7 @@ export async function saveJsonToR2(key: string, data: any): Promise<boolean> {
 export async function getJsonFromR2<T = any>(key: string): Promise<T | null> {
   if (!isR2Configured()) return null;
   try {
-    const bucket = process.env.CLOUDFLARE_R2_BUCKET_NAME?.trim();
+    const bucket = (process.env.CLOUDFLARE_R2_BUCKET_NAME || DEFAULT_R2_BUCKET_NAME).trim();
     const client = getR2Client();
 
     const response = await client.send(
