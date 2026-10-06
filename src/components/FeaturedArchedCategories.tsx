@@ -146,31 +146,28 @@ export const FeaturedArchedCategories: React.FC<FeaturedArchedCategoriesProps> =
               onClick={() => onSelectCategory(isSelected ? null : item.slug)}
               className="group cursor-pointer flex flex-col items-center text-center transition-all w-full max-w-[120px] sm:max-w-none active:scale-95"
             >
-              {/* Perfect Round Circle Card with Seamless Studio Blending */}
+              {/* 100% True Geometric Circle - Edge-to-Edge with Zero Squircle or Corner Artifacts */}
               <div 
-                className={`w-22 h-22 sm:w-28 sm:h-28 md:w-34 md:h-34 rounded-full bg-gradient-to-b from-slate-50/80 via-white to-slate-50/60 border-2 relative overflow-hidden transition-all duration-300 shadow-xs group-hover:shadow-xl group-hover:-translate-y-1.5 flex items-center justify-center p-2 sm:p-3 ${
+                className={`w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-2 sm:border-3 relative overflow-hidden transition-all duration-300 shadow-xs group-hover:shadow-xl group-hover:-translate-y-1.5 shrink-0 aspect-square bg-slate-100 ${
                   isSelected 
-                    ? 'border-emerald-600 ring-4 ring-emerald-500/25 scale-105 shadow-md' 
+                    ? 'border-emerald-600 ring-4 ring-emerald-500/30 scale-105 shadow-md' 
                     : 'border-slate-200/90 hover:border-emerald-500'
                 }`}
               >
-                {/* 100% Round Inner Container with mix-blend-multiply to remove any square box artifact */}
-                <div className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-white">
-                  <Image
-                    src={activeImageUrl}
-                    alt={item.name}
-                    fill
-                    className="object-contain p-1.5 mix-blend-multiply drop-shadow-xs group-hover:scale-110 transition-transform duration-300 ease-out"
-                    sizes="(max-width: 640px) 30vw, (max-width: 1024px) 20vw, 16vw"
-                    onError={() => handleImageError(item.slug)}
-                    unoptimized={isExternal}
-                    priority={index < 4}
-                  />
-                </div>
+                <Image
+                  src={activeImageUrl}
+                  alt={item.name}
+                  fill
+                  className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                  sizes="(max-width: 640px) 30vw, (max-width: 1024px) 20vw, 16vw"
+                  onError={() => handleImageError(item.slug)}
+                  unoptimized={isExternal}
+                  priority={index < 4}
+                />
 
                 {/* Selected badge overlay */}
                 {isSelected && (
-                  <div className="absolute inset-0 bg-emerald-600/15 rounded-full flex items-center justify-center pointer-events-none">
+                  <div className="absolute inset-0 bg-emerald-600/20 rounded-full flex items-center justify-center pointer-events-none">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-ping" />
                   </div>
                 )}

@@ -1500,16 +1500,14 @@ export default function StorefrontBannersPage() {
 
                   {/* Circular Card Preview */}
                   <div className="flex justify-center py-2">
-                    <div className="w-24 h-24 rounded-full bg-white border-2 border-slate-200 shadow-xs relative overflow-hidden flex items-center justify-center p-2">
-                      <div className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-white">
-                        <Image
-                          src={currentImg}
-                          alt={cat.name}
-                          fill
-                          className="object-contain"
-                          unoptimized
-                        />
-                      </div>
+                    <div className="w-24 h-24 rounded-full bg-slate-100 border-2 border-slate-200 shadow-xs relative overflow-hidden aspect-square">
+                      <Image
+                        src={currentImg}
+                        alt={cat.name}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
                     </div>
                   </div>
 
