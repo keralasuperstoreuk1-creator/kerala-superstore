@@ -206,7 +206,15 @@ export default function AiImageStudioUpload({
       setProgressPct(100);
       setProgressText('✅ Ready!');
 
+      // Immediate callback for instant UI update
       onImageChange(chosenUrl, chosenMode);
+
+      // Async background upload to Cloudflare R2 for permanent cloud CDN URL
+      uploadToCloudR2(chosenUrl, chosenMode).then((r2Url) => {
+        if (r2Url && r2Url !== chosenUrl) {
+          onImageChange(r2Url, chosenMode);
+        }
+      });
 
     } catch (err) {
       clearInterval(interval);
@@ -220,6 +228,11 @@ export default function AiImageStudioUpload({
         setProcessSuccess(true);
         setActiveMode('packshot');
         onImageChange(fallback.packshot, 'packshot');
+        uploadToCloudR2(fallback.packshot, 'packshot').then((r2Url) => {
+          if (r2Url && r2Url !== fallback.packshot) {
+            onImageChange(r2Url, 'packshot');
+          }
+        });
       } catch {
         setProcessError(true);
         setActiveMode('original');
@@ -229,6 +242,29 @@ export default function AiImageStudioUpload({
       setIsProcessing(false);
     }
   }, [onImageChange, defaultMode]);
+
+  // Helper to upload base64 images directly to Cloudflare R2
+  const uploadToCloudR2 = async (dataUrl: string, modeName = 'product'): Promise<string> => {
+    if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
+    try {
+      const res = await fetch('/api/admin/upload-r2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dataUrl,
+          folder: 'products',
+          fileName: `${modeName}-${Date.now()}.png`,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        return data.url;
+      }
+    } catch (e) {
+      console.warn('R2 auto-upload fallback to local data URL:', e);
+    }
+    return dataUrl;
+  };
 
   // Handle File Upload from disk or camera
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -271,12 +307,21 @@ export default function AiImageStudioUpload({
   // Handle Mode Change
   const handleSelectMode = (mode: ImageStudioMode) => {
     setActiveMode(mode);
+    let target = '';
     if (mode === 'packshot' && aiPackshotSrc) {
-      onImageChange(aiPackshotSrc, 'packshot');
+      target = aiPackshotSrc;
     } else if (mode === 'transparent' && aiTransparentSrc) {
-      onImageChange(aiTransparentSrc, 'transparent');
+      target = aiTransparentSrc;
     } else if (rawImageSrc) {
-      onImageChange(rawImageSrc, 'original');
+      target = rawImageSrc;
+    }
+    if (target) {
+      onImageChange(target, mode);
+      uploadToCloudR2(target, mode).then((r2Url) => {
+        if (r2Url && r2Url !== target) {
+          onImageChange(r2Url, mode);
+        }
+      });
     }
   };
 
