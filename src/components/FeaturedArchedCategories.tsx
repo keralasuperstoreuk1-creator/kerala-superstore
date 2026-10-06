@@ -111,19 +111,19 @@ export const FeaturedArchedCategories: React.FC<FeaturedArchedCategoriesProps> =
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 py-8 sm:py-10">
+    <section className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-10 overflow-hidden">
       {/* Header with script accent */}
-      <div className="text-center space-y-1 mb-8">
-        <span className="text-sm font-serif italic text-[#5ea813] font-bold tracking-wide">
+      <div className="text-center space-y-1 mb-6 sm:mb-8">
+        <span className="text-xs sm:text-sm font-serif italic text-emerald-700 font-bold tracking-wide">
           Our Specialities
         </span>
-        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+        <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
           Featured Categories
         </h2>
       </div>
 
-      {/* Circular (Round) Cards Grid with Pure White Backgrounds */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 sm:gap-6">
+      {/* Perfectly Circular (Round) Cards Grid */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-6 justify-items-center">
         {categoryConfig.map((item, index) => {
           const isSelected = selectedCategory === item.slug;
           
@@ -144,24 +144,24 @@ export const FeaturedArchedCategories: React.FC<FeaturedArchedCategoriesProps> =
             <div
               key={item.id}
               onClick={() => onSelectCategory(isSelected ? null : item.slug)}
-              className="group cursor-pointer flex flex-col items-center text-center transition-all"
+              className="group cursor-pointer flex flex-col items-center text-center transition-all w-full max-w-[120px] sm:max-w-none active:scale-95"
             >
-              {/* Perfect Round Circle Card with Pure White Background */}
+              {/* Perfect Round Circle Card with Seamless Studio Blending */}
               <div 
-                className={`w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full bg-white border-2 relative overflow-hidden transition-all duration-300 shadow-xs group-hover:shadow-xl group-hover:-translate-y-1.5 flex items-center justify-center p-2.5 sm:p-3.5 ${
+                className={`w-22 h-22 sm:w-28 sm:h-28 md:w-34 md:h-34 rounded-full bg-gradient-to-b from-slate-50/80 via-white to-slate-50/60 border-2 relative overflow-hidden transition-all duration-300 shadow-xs group-hover:shadow-xl group-hover:-translate-y-1.5 flex items-center justify-center p-2 sm:p-3 ${
                   isSelected 
-                    ? 'border-[#5ea813] ring-4 ring-[#5ea813]/25 scale-105' 
-                    : 'border-slate-200/90 hover:border-[#5ea813]'
+                    ? 'border-emerald-600 ring-4 ring-emerald-500/25 scale-105 shadow-md' 
+                    : 'border-slate-200/90 hover:border-emerald-500'
                 }`}
               >
-                {/* Item with clean pure white background */}
+                {/* 100% Round Inner Container with mix-blend-multiply to remove any square box artifact */}
                 <div className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-white">
                   <Image
                     src={activeImageUrl}
                     alt={item.name}
                     fill
-                    className="object-contain p-1 group-hover:scale-110 transition-transform duration-300 ease-out"
-                    sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 16vw"
+                    className="object-contain p-1.5 mix-blend-multiply drop-shadow-xs group-hover:scale-110 transition-transform duration-300 ease-out"
+                    sizes="(max-width: 640px) 30vw, (max-width: 1024px) 20vw, 16vw"
                     onError={() => handleImageError(item.slug)}
                     unoptimized={isExternal}
                     priority={index < 4}
@@ -170,16 +170,16 @@ export const FeaturedArchedCategories: React.FC<FeaturedArchedCategoriesProps> =
 
                 {/* Selected badge overlay */}
                 {isSelected && (
-                  <div className="absolute inset-0 bg-[#5ea813]/15 rounded-full flex items-center justify-center pointer-events-none">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#5ea813] animate-ping" />
+                  <div className="absolute inset-0 bg-emerald-600/15 rounded-full flex items-center justify-center pointer-events-none">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-ping" />
                   </div>
                 )}
               </div>
 
               {/* Category Name Below the Circle */}
-              <div className="mt-3 space-y-0.5 max-w-[110px] sm:max-w-none">
-                <span className={`text-xs sm:text-sm font-black transition-colors block leading-tight ${
-                  isSelected ? 'text-[#5ea813]' : 'text-slate-800 group-hover:text-[#5ea813]'
+              <div className="mt-2.5 space-y-0.5 w-full">
+                <span className={`text-xs sm:text-sm font-black transition-colors block leading-tight truncate ${
+                  isSelected ? 'text-emerald-800' : 'text-slate-800 group-hover:text-emerald-700'
                 }`}>
                   {item.name}
                 </span>

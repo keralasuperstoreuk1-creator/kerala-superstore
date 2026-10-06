@@ -118,59 +118,153 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Main Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
-        {/* Customer Luxury Emblem with Admin Adjustable Sizing */}
-        <Link href="/" className="shrink-0 flex items-center gap-2.5 sm:gap-3 group">
-          <LuxuryStoreLogo size={config.logoSize} />
-          {config.showStoreTitle && (
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className={`font-black text-xl tracking-tight leading-none ${
-                  config.theme === 'christmas' ? 'text-rose-700' : 'text-emerald-800'
-                }`}>
-                  Kerala
-                </span>
-                <span className="font-black text-xl text-slate-900 tracking-wider leading-none">
-                  SUPERSTORE
-                </span>
-                <span className="hidden sm:inline-block px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider shadow-2xs">
-                  UK
-                </span>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
+          {/* Customer Luxury Emblem with Admin Adjustable Sizing */}
+          <Link href="/" className="shrink-0 flex items-center gap-2 sm:gap-3 group max-w-[55%] sm:max-w-none">
+            <LuxuryStoreLogo size={config.logoSize} />
+            {config.showStoreTitle && (
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className={`font-black text-lg sm:text-xl tracking-tight leading-none ${
+                    config.theme === 'christmas' ? 'text-rose-700' : 'text-emerald-800'
+                  }`}>
+                    Kerala
+                  </span>
+                  <span className="font-black text-lg sm:text-xl text-slate-900 tracking-wider leading-none truncate">
+                    SUPERSTORE
+                  </span>
+                  <span className="hidden sm:inline-block px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider shadow-2xs">
+                    UK
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-[9px] sm:text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+                  <span className="text-emerald-800 font-bold shrink-0">Manchester</span>
+                  <span>•</span>
+                  <span className="text-slate-500 truncate">M9 8PX</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold mt-0.5">
-                <span className="text-emerald-800 font-bold">Manchester Hub</span>
-                <span>•</span>
-                <span className="text-slate-500">4 Wallbrook Dr, M9 8PX</span>
-              </div>
+            )}
+          </Link>
+
+          {/* Postcode & Delivery Location Selector (Desktop) */}
+          <button
+            onClick={onOpenPostcodeModal}
+            className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 transition-all text-left text-xs shrink-0"
+          >
+            <MapPin className="w-4 h-4 text-emerald-700 shrink-0" />
+            <div>
+              <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Deliver To</div>
+              <div className="font-bold text-slate-800 truncate max-w-[120px]">{currentPostcode}</div>
             </div>
-          )}
-        </Link>
+            <ChevronDown className="w-3 h-3 text-slate-400" />
+          </button>
 
-        {/* Postcode & Delivery Location Selector */}
-        <button
-          onClick={onOpenPostcodeModal}
-          className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 transition-all text-left text-xs"
-        >
-          <MapPin className="w-4 h-4 text-emerald-700 shrink-0" />
-          <div>
-            <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Deliver To</div>
-            <div className="font-bold text-slate-800 truncate max-w-[130px]">{currentPostcode}</div>
+          {/* Desktop Search Bar (Hidden on Mobile, rendered below on Mobile) */}
+          <div className="hidden md:flex flex-1 max-w-xl relative">
+            <div className="relative flex items-center w-full">
+              <input
+                type="text"
+                placeholder="Search Palakkadan Matta Rice, Sambar Masala, Banana Chips..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="w-full pl-10 pr-20 py-2.5 rounded-full border border-slate-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none text-xs sm:text-sm transition-all shadow-xs bg-slate-50/50 focus:bg-white"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5" />
+              <button className={`absolute right-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white transition-all ${
+                config.theme === 'christmas'
+                  ? 'bg-rose-700 hover:bg-rose-800'
+                  : config.theme === 'onam'
+                  ? 'bg-amber-600 hover:bg-amber-700'
+                  : 'bg-emerald-800 hover:bg-emerald-700'
+              }`}>
+                Search
+              </button>
+            </div>
           </div>
-          <ChevronDown className="w-3 h-3 text-slate-400" />
-        </button>
 
-        {/* Modern Search Bar */}
-        <div className="flex-1 max-w-xl relative">
-          <div className="relative flex items-center">
+          {/* Action Buttons: App Download, Specials Bell, Cart, Mobile Menu */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Official App Download Button (Tablet/Desktop) */}
+            <button
+              onClick={() => openModal()}
+              className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-amber-500/10 hover:border-amber-500 hover:bg-amber-50 text-slate-800 transition-all text-xs font-bold shadow-2xs group cursor-pointer active:scale-95"
+              title="Download Kerala Superstore App (Android & iPhone)"
+            >
+              <div className="flex items-center -space-x-1">
+                <AndroidIcon className="w-3.5 h-3.5 text-emerald-700" />
+                <AppleIcon className="w-3.5 h-3.5 text-slate-800" />
+              </div>
+              <span className="font-extrabold text-slate-900 group-hover:text-emerald-950">App</span>
+              <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                Free
+              </span>
+            </button>
+
+            {/* Daily Specials & Biriyani Alerts Notification Bell */}
+            <button
+              onClick={() => setIsNotificationModalOpen(true)}
+              className="relative p-2 sm:p-2.5 rounded-xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 transition-all text-slate-700 cursor-pointer group active:scale-95"
+              title="Store Alerts & Kitchen Specials"
+            >
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800 group-hover:text-amber-600 transition-colors" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-black text-[9px] sm:text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shadow-xs animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Shopping Cart Button */}
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-xs transition-all cursor-pointer relative text-white active:scale-95 ${
+                config.theme === 'christmas'
+                  ? 'bg-rose-700 hover:bg-rose-800'
+                  : config.theme === 'onam'
+                  ? 'bg-amber-600 hover:bg-amber-700'
+                  : 'bg-emerald-800 hover:bg-emerald-700'
+              }`}
+            >
+              <div className="relative">
+                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-amber-400 text-slate-950 font-black text-[10px] sm:text-xs w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shadow-xs">
+                    {totalItems}
+                  </span>
+                )}
+              </div>
+              <div className="hidden sm:block text-left">
+                <div className="text-[10px] text-emerald-200 font-semibold uppercase leading-tight">My Basket</div>
+                <div className="text-xs font-bold leading-tight">
+                  {totalItems} {totalItems === 1 ? 'item' : 'items'}
+                </div>
+              </div>
+            </button>
+
+            {/* Mobile hamburger menu */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 active:scale-95"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Dedicated Full-Width App-Style Search Bar */}
+        <div className="block md:hidden pt-2 pb-0.5">
+          <div className="relative flex items-center w-full">
             <input
               type="text"
-              placeholder="Search Palakkadan Matta Rice, Sambar Masala, Banana Chips, Frozen Kappa..."
+              placeholder="Search Matta Rice, Masalas, Snacks, Kappa..."
               value={searchQuery}
               onChange={handleSearchChange}
-              className="w-full pl-10 pr-20 py-2.5 rounded-full border border-slate-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none text-xs sm:text-sm transition-all shadow-xs bg-slate-50/50 focus:bg-white"
+              className="w-full pl-9 pr-18 py-2 rounded-full border border-slate-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none text-xs transition-all shadow-xs bg-slate-50/70 focus:bg-white"
             />
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5" />
-            <button className={`absolute right-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white transition-all ${
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3" />
+            <button className={`absolute right-1 px-3 py-1 rounded-full text-[11px] font-bold text-white transition-all ${
               config.theme === 'christmas'
                 ? 'bg-rose-700 hover:bg-rose-800'
                 : config.theme === 'onam'
@@ -180,74 +274,6 @@ export const Header: React.FC<HeaderProps> = ({
               Search
             </button>
           </div>
-        </div>
-
-        {/* Action Buttons: App Download, Notification Bell & Basket Button */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* Official App Download Button */}
-          <button
-            onClick={() => openModal()}
-            className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-amber-500/10 hover:border-amber-500 hover:bg-amber-50 text-slate-800 transition-all text-xs font-bold shadow-2xs group cursor-pointer active:scale-95"
-            title="Download Kerala Superstore App (Android & iPhone)"
-          >
-            <div className="flex items-center -space-x-1">
-              <AndroidIcon className="w-3.5 h-3.5 text-emerald-700" />
-              <AppleIcon className="w-3.5 h-3.5 text-slate-800" />
-            </div>
-            <span className="font-extrabold text-slate-900 group-hover:text-emerald-950">App</span>
-            <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-              Free
-            </span>
-          </button>
-
-          {/* Daily Specials & Biriyani Alerts Notification Bell */}
-          <button
-            onClick={() => setIsNotificationModalOpen(true)}
-            className="relative p-2.5 rounded-xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 transition-all text-slate-700 cursor-pointer group"
-            title="Store Alerts & Kitchen Specials"
-          >
-            <Bell className="w-5 h-5 text-slate-800 group-hover:text-amber-600 transition-colors" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-black text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-xs animate-pulse">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setIsCartOpen(true)}
-            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer relative text-white ${
-              config.theme === 'christmas'
-                ? 'bg-rose-700 hover:bg-rose-800'
-                : config.theme === 'onam'
-                ? 'bg-amber-600 hover:bg-amber-700'
-                : 'bg-emerald-800 hover:bg-emerald-700'
-            }`}
-          >
-            <div className="relative">
-              <ShoppingCart className="w-5 h-5" />
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-amber-400 text-slate-950 font-black text-xs w-5 h-5 rounded-full flex items-center justify-center shadow-xs">
-                  {totalItems}
-                </span>
-              )}
-            </div>
-            <div className="hidden sm:block text-left">
-              <div className="text-[10px] text-emerald-200 font-semibold uppercase leading-tight">My Basket</div>
-              <div className="text-xs font-bold leading-tight">
-                {totalItems} {totalItems === 1 ? 'item' : 'items'}
-              </div>
-            </div>
-          </button>
-
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50"
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
       </div>
 
