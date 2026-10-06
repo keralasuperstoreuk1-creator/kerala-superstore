@@ -242,22 +242,8 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
               {/* Subtle background glow effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent pointer-events-none" />
 
-              {/* Top Seal Badge (100% Natural) - Neatly pinned to top right */}
-              <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 pointer-events-none">
-                <div className={`w-13 h-13 sm:w-15 sm:h-15 rounded-full border-2 border-dashed p-0.5 sm:p-1 backdrop-blur-xs shadow-2xs flex items-center justify-center text-center ${
-                  isDark ? 'border-emerald-300/80 bg-emerald-950/60 text-emerald-300' : 'border-[#5ea813] bg-white/90 text-[#5ea813]'
-                }`}>
-                  <div className={`w-full h-full rounded-full flex flex-col items-center justify-center ${
-                    isDark ? 'bg-emerald-400/10' : 'bg-[#5ea813]/10'
-                  }`}>
-                    <span className="text-[9px] sm:text-[10px] font-black leading-none uppercase">100%</span>
-                    <span className="text-[7px] sm:text-[8px] font-extrabold tracking-widest leading-none mt-0.5">NATURAL</span>
-                  </div>
-                </div>
-              </div>
-
               {/* Top Category Badge */}
-              <div className="relative z-10 pr-16 sm:pr-20 shrink-0">
+              <div className="relative z-10 pr-4 shrink-0">
                 <span className={`inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
                   isDark 
                     ? 'text-emerald-300 bg-emerald-900/60 border border-emerald-400/30' 
