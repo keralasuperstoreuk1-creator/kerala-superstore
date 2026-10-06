@@ -188,22 +188,22 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         
         {/* COLUMN 1: Vertical "Shop by Categories" Sidebar (Desktop) */}
-        <div className="hidden lg:flex lg:col-span-3 flex-col bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+        <div className="hidden lg:flex lg:col-span-3 flex-col bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden h-[420px] sm:h-[450px] lg:h-[460px]">
           {/* Header */}
-          <div className="bg-[#5ea813] text-white px-4 py-3 flex items-center justify-between font-black text-xs uppercase tracking-wider">
+          <div className="bg-[#5ea813] text-white px-4 py-3 flex items-center justify-between font-black text-xs uppercase tracking-wider shrink-0">
             <span>SHOP BY CATEGORIES</span>
             <span className="text-white/80 text-xs font-mono">☰</span>
           </div>
 
           {/* Category List */}
-          <div className="flex-1 divide-y divide-slate-100 flex flex-col justify-between py-1">
+          <div className="flex-1 divide-y divide-slate-100 flex flex-col justify-between py-1 overflow-hidden">
             {categoriesList.slice(0, 8).map((cat) => {
               const isSelected = selectedCategory === cat.slug;
               return (
                 <button
                   key={cat.id}
                   onClick={() => onSelectCategory(cat.slug)}
-                  className={`w-full px-4 py-2.5 flex items-center justify-between text-xs font-semibold text-left transition-colors cursor-pointer group ${
+                  className={`w-full px-4 py-2 flex items-center justify-between text-xs font-semibold text-left transition-colors cursor-pointer group ${
                     isSelected 
                       ? 'bg-emerald-50 text-emerald-800 font-bold' 
                       : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-700'
@@ -222,13 +222,13 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
           {/* Bottom All View */}
           <button
             onClick={() => onSelectCategory(null)}
-            className="p-3 text-center text-xs font-bold text-emerald-700 bg-slate-50 hover:bg-emerald-50 border-t border-slate-100 transition-colors cursor-pointer"
+            className="p-2.5 text-center text-xs font-bold text-emerald-700 bg-slate-50 hover:bg-emerald-50 border-t border-slate-100 transition-colors cursor-pointer shrink-0"
           >
             View All Categories ({categoriesList.length}) →
           </button>
         </div>
 
-        {/* COLUMN 2: Center Main E-Market Banner Slider */}
+        {/* COLUMN 2: Center Main E-Market Banner Slider (UNIFORM EXACT SAME SIZE FOR ALL SLIDES) */}
         {(() => {
           const bgCol = currentSlide.bgColor || '#064e3b';
           const isDark = currentSlide.textColor === 'light' || (!currentSlide.textColor && bgCol !== '#ffffff');
@@ -237,14 +237,14 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
           return (
             <div 
               style={{ backgroundColor: bgCol }}
-              className={`lg:col-span-6 rounded-3xl border border-slate-200/40 shadow-md overflow-hidden p-5 sm:p-7 flex flex-col justify-between relative min-h-[380px] sm:min-h-[440px] group transition-colors duration-500`}
+              className={`lg:col-span-6 rounded-3xl border border-slate-200/40 shadow-md overflow-hidden p-5 sm:p-7 flex flex-col justify-between relative h-[420px] sm:h-[450px] lg:h-[460px] group transition-colors duration-500`}
             >
               {/* Subtle background glow effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent pointer-events-none" />
 
               {/* Top Seal Badge (100% Natural) - Neatly pinned to top right */}
               <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 pointer-events-none">
-                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-dashed p-0.5 sm:p-1 backdrop-blur-xs shadow-2xs flex items-center justify-center text-center ${
+                <div className={`w-13 h-13 sm:w-15 sm:h-15 rounded-full border-2 border-dashed p-0.5 sm:p-1 backdrop-blur-xs shadow-2xs flex items-center justify-center text-center ${
                   isDark ? 'border-emerald-300/80 bg-emerald-950/60 text-emerald-300' : 'border-[#5ea813] bg-white/90 text-[#5ea813]'
                 }`}>
                   <div className={`w-full h-full rounded-full flex flex-col items-center justify-center ${
@@ -257,7 +257,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
               </div>
 
               {/* Top Category Badge */}
-              <div className="relative z-10 pr-16 sm:pr-20">
+              <div className="relative z-10 pr-16 sm:pr-20 shrink-0">
                 <span className={`inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
                   isDark 
                     ? 'text-emerald-300 bg-emerald-900/60 border border-emerald-400/30' 
@@ -269,11 +269,11 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
               </div>
 
               {/* 2-Column Split: Content on Left, Crisp Product Photo on Right */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center my-auto py-2 relative z-10">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4 items-center my-auto py-1 relative z-10 flex-1 min-h-0">
                 
                 {/* Left Content Column (Headline, Offer Tag, Desc, CTA) */}
-                <div className="sm:col-span-7 space-y-3 text-left">
-                  <h2 className={`text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-[1.12] ${
+                <div className="sm:col-span-7 space-y-2 sm:space-y-2.5 text-left min-w-0">
+                  <h2 className={`text-xl sm:text-2xl lg:text-3xl font-black tracking-tight leading-[1.14] line-clamp-2 sm:line-clamp-3 ${
                     isDark ? 'text-white' : 'text-slate-900'
                   }`}>
                     {currentSlide.titleMain} <span className={isDark ? 'text-amber-400' : 'text-[#f97316]'}>{currentSlide.sub}</span> <br />
@@ -283,7 +283,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
                   {/* Offer Tagline (e.g. SALE UP TO 48% OFF) */}
                   {currentSlide.offerTag && (
                     <div className="flex items-center gap-2 pt-0.5">
-                      <div className={`border-l-2 pl-2 text-xs font-black uppercase tracking-wider ${
+                      <div className={`border-l-2 pl-2 text-[11px] sm:text-xs font-black uppercase tracking-wider ${
                         isDark ? 'border-amber-400 text-amber-300' : 'border-[#f97316] text-[#f97316]'
                       }`}>
                         {currentSlide.offerTag}
@@ -298,7 +298,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
                   </p>
 
                   {/* Modern Pill CTA Button (e.g. "Shop now →") */}
-                  <div className="pt-2">
+                  <div className="pt-1.5">
                     <button
                       onClick={() => {
                         if (currentSlide.categorySlug) {
@@ -309,7 +309,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
                         }
                       }}
                       style={{ backgroundColor: btnColor }}
-                      className="px-6 py-2.5 sm:py-3 rounded-full text-white font-black text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition-all flex items-center gap-2 cursor-pointer active:scale-95 hover:shadow-xl"
+                      className="px-5 py-2 sm:py-2.5 rounded-full text-white font-black text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition-all flex items-center gap-2 cursor-pointer active:scale-95 hover:shadow-xl"
                     >
                       <span>{currentSlide.cta || 'Shop now'}</span>
                       <span className="text-sm font-bold">→</span>
@@ -318,7 +318,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
                 </div>
 
                 {/* Right Image Showcase Column (Clean Platter like Reference) */}
-                <div className="sm:col-span-5 relative flex items-center justify-center sm:justify-end">
+                <div className="sm:col-span-5 relative flex items-center justify-center sm:justify-end h-36 sm:h-44 lg:h-52">
                   {(() => {
                     const scaleVal = (currentSlide.imageScale || 100) / 100;
                     const posX = currentSlide.imageX || 0;
@@ -326,7 +326,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
                     return (
                       <div 
                         style={{ transform: `translate(${posX}px, ${posY}px) scale(${scaleVal})` }}
-                        className="relative w-full h-48 sm:h-56 lg:h-64 flex items-center justify-center sm:justify-end transition-transform duration-300"
+                        className="relative w-full h-full flex items-center justify-center sm:justify-end transition-transform duration-300"
                       >
                         <Image
                           key={currentSlide.id}
@@ -369,7 +369,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
               )}
 
               {/* Slider Pagination Dots (Numbers / Pills) */}
-              <div className="flex items-center justify-center gap-2 pt-2 relative z-10">
+              <div className="flex items-center justify-center gap-2 pt-1 relative z-10 shrink-0">
                 {slides.map((_, i) => (
                   <button
                     key={i}
@@ -389,7 +389,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
           );
         })()}
 
-        {/* COLUMN 3: Right Promotional Card (Spotlight Promo) */}
+        {/* COLUMN 3: Right Promotional Card (Spotlight Promo - MATCHING EXACT SAME HEIGHT) */}
         {spotlightPromo.enabled && (() => {
           const promoBg = spotlightPromo.bgColor || 'gradient-amber';
           const isCustomBg = promoBg !== 'gradient-amber' && promoBg !== '#fffbeb';
@@ -406,7 +406,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
           return (
             <div 
               style={bgStyle}
-              className={`lg:col-span-3 ${bgClass} rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden p-6 flex flex-col justify-between relative min-h-[380px] sm:min-h-[440px] transition-colors duration-300`}
+              className={`lg:col-span-3 ${bgClass} rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden p-5 sm:p-6 flex flex-col justify-between relative h-[420px] sm:h-[450px] lg:h-[460px] transition-colors duration-300`}
             >
               {/* Diagonal Corner Ribbon (Like EMarket Reference) */}
               <div 
@@ -448,9 +448,9 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
               </div>
 
               {/* Spotlight Promo Product Image */}
-              <div className="relative w-full aspect-square max-h-56 mt-3 flex items-center justify-center overflow-hidden">
+              <div className="relative w-full max-h-44 sm:max-h-50 flex-1 mt-1 flex items-center justify-center overflow-hidden">
                 <div 
-                  className="relative w-44 h-44 sm:w-48 sm:h-48 transition-transform duration-200"
+                  className="relative w-36 h-36 sm:w-44 sm:h-44 transition-transform duration-200"
                   style={{
                     transform: `translate(${spotlightPromo.imageX || 0}px, ${spotlightPromo.imageY || 0}px) scale(${(spotlightPromo.imageScale || 100) / 100})`,
                   }}
