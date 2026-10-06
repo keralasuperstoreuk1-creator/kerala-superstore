@@ -14,6 +14,7 @@ interface AppDownloadContextType {
   isInstalled: boolean;
   isIOS: boolean;
   isAndroid: boolean;
+  isInAppBrowser: boolean;
 }
 
 const AppDownloadContext = createContext<AppDownloadContextType | undefined>(undefined);
@@ -24,17 +25,20 @@ export const AppDownloadProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Detect OS
+    // Detect OS and in-app browsers
     const ua = window.navigator.userAgent.toLowerCase();
     const ios = /iphone|ipad|ipod/.test(ua) || (ua.includes('macintosh') && 'ontouchend' in document);
     const android = /android/.test(ua);
+    const inApp = /whatsapp|fban|fbav|instagram|threads|line|micromessenger/i.test(ua);
     setIsIOS(ios);
     setIsAndroid(android);
+    setIsInAppBrowser(inApp);
     setActiveTab(ios ? 'ios' : 'android');
 
     // Already running as installed app?
@@ -135,6 +139,7 @@ export const AppDownloadProvider: React.FC<{ children: React.ReactNode }> = ({ c
         isInstalled,
         isIOS,
         isAndroid,
+        isInAppBrowser,
       }}
     >
       {children}

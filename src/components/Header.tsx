@@ -185,20 +185,20 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action Buttons: App Download, Specials Bell, Cart, Mobile Menu */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {/* Official App Download Button (Tablet/Desktop) */}
+            {/* Official App Download Button (Mobile + Desktop) */}
             {(config.modules?.showAppDownload ?? true) && (
               <button
                 onClick={() => installApp()}
-                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-amber-500/10 hover:border-amber-500 hover:bg-amber-50 text-slate-800 transition-all text-xs font-bold shadow-2xs group cursor-pointer active:scale-95"
-                title="Download Kerala Superstore App (Android & iPhone)"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-amber-400/60 bg-gradient-to-r from-amber-500/15 via-emerald-500/10 to-amber-500/15 hover:border-amber-500 hover:bg-amber-50 text-slate-800 transition-all text-xs font-bold shadow-2xs group cursor-pointer active:scale-95"
+                title="Install Kerala Superstore App (Android & iPhone)"
               >
                 <div className="flex items-center -space-x-1">
                   <AndroidIcon className="w-3.5 h-3.5 text-emerald-700" />
                   <AppleIcon className="w-3.5 h-3.5 text-slate-800" />
                 </div>
-                <span className="font-extrabold text-slate-900 group-hover:text-emerald-950">App</span>
-                <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                  Free
+                <span className="font-extrabold text-[11px] sm:text-xs text-slate-900 group-hover:text-emerald-950">App</span>
+                <span className="bg-amber-400 text-slate-950 text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded-full uppercase tracking-wider">
+                  Add
                 </span>
               </button>
             )}

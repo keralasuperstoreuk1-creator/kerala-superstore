@@ -42,7 +42,8 @@ export const AppDownloadModal: React.FC = () => {
     openModal, 
     triggerInstall, 
     isInstallable,
-    isIOS 
+    isIOS,
+    isInAppBrowser
   } = useAppDownload();
 
   const [copied, setCopied] = useState(false);
@@ -144,68 +145,89 @@ export const AppDownloadModal: React.FC = () => {
 
         {/* Scrollable Body Content */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1 text-slate-800">
+
+          {/* In-App Browser Warning Alert (WhatsApp, Instagram, Facebook, Threads) */}
+          {isInAppBrowser && (
+            <div className="bg-amber-500/15 border-2 border-amber-500/40 rounded-2xl p-4 text-xs text-amber-950 flex items-start gap-3">
+              <span className="text-xl shrink-0">⚠️</span>
+              <div className="space-y-1">
+                <span className="font-black text-amber-900 block">
+                  നിങ്ങൾ ഇപ്പോൾ WhatsApp / Instagram ബ്രൗസറിലാണ് ഇത് കാണുന്നത് (In-App Browser Detected)
+                </span>
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  Home Screen-ൽ ആപ്പ് ആഡ് ചെയ്യാൻ: മുകളിൽ വലതുവശത്തുള്ള <strong>3 കുത്തുകൾ (⋮)</strong> അല്ലെങ്കിൽ Share അമർത്തി <strong>&apos;Open in Safari / Chrome&apos;</strong> തിരഞ്ഞെടുക്കുക.
+                </p>
+              </div>
+            </div>
+          )}
           
           {/* TAB 1: ANDROID INSTRUCTIONS & 1-CLICK INSTALL */}
           {activeTab === 'android' && (
             <div className="space-y-5 animate-fade-in">
               {/* Instant Install Card */}
-              <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="bg-emerald-50/90 border-2 border-emerald-300 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
                 <div className="flex items-center gap-3 text-center sm:text-left">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <Download className="w-5 h-5" />
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Download className="w-6 h-6 text-amber-300" />
                   </div>
                   <div>
-                    <h4 className="font-black text-slate-900 text-sm">Instant 1-Click Install</h4>
-                    <p className="text-xs text-slate-600">Zero App Store delay • Fast &amp; lightweight (Under 1 MB)</p>
+                    <h4 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                      <span>Instant 1-Click Install</span>
+                      <span className="text-[10px] bg-emerald-600 text-white font-bold px-1.5 py-0.2 rounded">Android</span>
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      ഹോം സ്ക്രീനിൽ നേരിട്ട് ആപ്പ് ആഡ് ചെയ്യാം • Under 1 MB • No Play Store delay
+                    </p>
                   </div>
                 </div>
 
                 <button
                   onClick={handleInstallClick}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-500 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-800/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-800 to-emerald-700 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-900/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
                 >
                   <AndroidIcon className="w-4 h-4 text-emerald-200" />
-                  <span>{installSuccess ? 'App Installed! ✓' : 'Install on Android Phone'}</span>
+                  <span>{installSuccess ? 'App Installed! ✓' : '📲 Add to Home Screen Now'}</span>
                 </button>
               </div>
 
               {/* Step-by-Step Guide for Android */}
               <div>
-                <h5 className="font-black text-xs uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                  <span>How to install on any Android phone (Chrome / Edge / Brave):</span>
+                <h5 className="font-black text-xs uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
+                  <span>Android Chrome / Samsung Internet Steps:</span>
+                  <span className="text-emerald-700 font-bold text-[10px]">3 Easy Steps</span>
                 </h5>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="w-6 h-6 rounded-full bg-emerald-800 text-white font-black text-xs flex items-center justify-center">1</span>
-                      <AndroidIcon className="w-4 h-4 text-slate-400" />
+                      <AndroidIcon className="w-4 h-4 text-emerald-600" />
                     </div>
-                    <div className="font-bold text-xs text-slate-900">Open in Chrome</div>
+                    <div className="font-bold text-xs text-slate-900">Chrome-ൽ തുറക്കുക</div>
                     <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Open this store website in Google Chrome on your Android mobile.
+                      നിങ്ങളുടെ Android ഫോണിൽ Google Chrome അല്ലെങ്കിൽ Samsung Internet-ൽ ഈ സ്റ്റോർ തുറക്കുക.
                     </p>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="w-6 h-6 rounded-full bg-emerald-800 text-white font-black text-xs flex items-center justify-center">2</span>
-                      <span className="font-black text-slate-400 text-xs">⋮</span>
+                      <span className="font-black text-slate-700 text-sm">⋮</span>
                     </div>
-                    <div className="font-bold text-xs text-slate-900">Tap 3-Dots Menu</div>
+                    <div className="font-bold text-xs text-slate-900">3 കുത്തുകൾ (⋮) അമർത്തുക</div>
                     <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Tap the <strong>3 dots (⋮)</strong> in Chrome and tap <strong>&apos;Install app&apos;</strong> or <strong>&apos;Add to Home Screen&apos;</strong>.
+                      മുകളിൽ വലതുവശത്തുള്ള <strong>3 കുത്തുകൾ (⋮)</strong> ക്ലിക്ക് ചെയ്ത് <strong>&apos;Install app&apos;</strong> അല്ലെങ്കിൽ <strong>&apos;Add to Home screen&apos;</strong> നൽകുക.
                     </p>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="w-6 h-6 rounded-full bg-emerald-800 text-white font-black text-xs flex items-center justify-center">3</span>
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     </div>
-                    <div className="font-bold text-xs text-slate-900">Confirm &amp; Enjoy</div>
+                    <div className="font-bold text-xs text-slate-900">&apos;Install&apos; ക്ലിക്ക് ചെയ്യുക</div>
                     <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Tap <strong>Install</strong>. Kerala Superstore will appear as a full standalone app on your home screen!
+                      കൺഫേം ചെയ്യുക. Kerala Superstore നിങ്ങളുടെ ഫോൺ ഹോം സ്ക്രീനിൽ ഒഫീഷ്യൽ ആപ്പായി സേവ് ആകും!
                     </p>
                   </div>
                 </div>
@@ -217,7 +239,7 @@ export const AppDownloadModal: React.FC = () => {
                 <div>
                   <span className="font-bold">Hot Biriyani &amp; Daily Specials Alerts:</span>
                   <p className="text-[11px] text-amber-800 mt-0.5">
-                    When prompted, tap <strong>&apos;Allow Notifications&apos;</strong> so our Manchester kitchen can alert you the instant weekend Dum Biriyani or fresh fish arrives!
+                    ആപ്പ് തുറക്കുമ്പോൾ <strong>&apos;Allow Notifications&apos;</strong> അമർത്തുക. വാരാന്ത്യങ്ങളിലെ തലശ്ശേരി ദം ബിരിയാണിയും പുതിയ ചരക്കുകളും എത്തുമ്പോൾ തത്സമയം മെസ്സേജ് ലഭിക്കും!
                   </p>
                 </div>
               </div>
@@ -228,14 +250,14 @@ export const AppDownloadModal: React.FC = () => {
           {activeTab === 'ios' && (
             <div className="space-y-5 animate-fade-in">
               {/* Highlight Banner */}
-              <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4">
+              <div className="bg-slate-950 text-white rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 border border-white/10 shadow-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
                     <AppleIcon className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h4 className="font-black text-white text-sm">Official iOS Web App (PWA)</h4>
-                    <p className="text-xs text-slate-300">Works seamlessly on iPhone 11 to iPhone 16 Pro &amp; iPads</p>
+                    <h4 className="font-black text-white text-sm">Official Apple iOS Web App</h4>
+                    <p className="text-xs text-amber-300 font-medium">iPhone 11 മുതൽ iPhone 16 Pro &amp; iPad വരെ സപ്പോർട്ട് ചെയ്യും</p>
                   </div>
                 </div>
                 <span className="hidden sm:inline-block px-3 py-1 bg-amber-400 text-slate-950 text-[10px] font-black rounded-full uppercase">
@@ -243,44 +265,74 @@ export const AppDownloadModal: React.FC = () => {
                 </span>
               </div>
 
-              {/* 4-Step iOS Visual Guide */}
-              <div>
-                <h5 className="font-black text-xs uppercase tracking-wider text-slate-500 mb-3">
-                  Follow these 3 quick steps in Safari on your iPhone:
+              {/* Visual Safari Instruction Sheet with exact iOS icons */}
+              <div className="bg-gradient-to-b from-slate-50 to-white border-2 border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xs">
+                <h5 className="font-black text-xs uppercase tracking-wider text-slate-900 flex items-center justify-between">
+                  <span>iPhone-ൽ Home Screen-ൽ ആഡ് ചെയ്യാൻ 3 ലളിതമായ വഴികൾ:</span>
+                  <span className="text-emerald-700 font-bold text-[10px]">Safari Browser</span>
                 </h5>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="w-6 h-6 rounded-full bg-slate-900 text-white font-black text-xs flex items-center justify-center">1</span>
-                      <Share2 className="w-4 h-4 text-emerald-600" />
+                <div className="space-y-3">
+                  {/* Step 1: Tap Share */}
+                  <div className="flex items-start gap-3.5 p-3.5 bg-white border border-slate-200/90 rounded-2xl shadow-2xs">
+                    <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                      1
                     </div>
-                    <div className="font-bold text-xs text-slate-900">1. Tap Share (⎋)</div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      In Safari, tap the <strong>Share</strong> button (the square with an arrow pointing up at the bottom).
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-xs text-slate-900">
+                          Safari-യുടെ താഴെ കാണുന്ന Share (⎋) ബട്ടൺ അമർത്തുക
+                        </span>
+                        <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md font-bold text-[10px] border border-blue-200">
+                          <Share2 className="w-3 h-3 text-blue-600" />
+                          <span>Share Icon</span>
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                        iPhone Safari സ്ക്രീനിന്റെ ഏറ്റവും അടിയിലുള്ള നീല നിറത്തിലുള്ള Share ഐക്കൺ (ചതുരത്തിൽ മുകളിലേക്ക് അമ്പടയാളമുള്ളത് <strong>⎋</strong>) ടാപ്പ് ചെയ്യുക.
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="w-6 h-6 rounded-full bg-slate-900 text-white font-black text-xs flex items-center justify-center">2</span>
-                      <PlusSquare className="w-4 h-4 text-emerald-600" />
+                  {/* Step 2: Add to Home Screen */}
+                  <div className="flex items-start gap-3.5 p-3.5 bg-white border border-slate-200/90 rounded-2xl shadow-2xs">
+                    <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                      2
                     </div>
-                    <div className="font-bold text-xs text-slate-900">2. Add to Home Screen</div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Scroll down in the share sheet and tap <strong>&apos;Add to Home Screen&apos; (+)</strong>.
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-xs text-slate-900">
+                          &apos;Add to Home Screen&apos; (+) തിരഞ്ഞെടുക്കുക
+                        </span>
+                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md font-bold text-[10px] border border-emerald-200">
+                          <PlusSquare className="w-3 h-3 text-emerald-600" />
+                          <span>Add to Home Screen</span>
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                        തുറന്നുവരുന്ന ഓപ്ഷനുകളിൽ അൽപം താഴേക്ക് സ്ക്രോൾ ചെയ്ത് <strong>&apos;Add to Home Screen&apos; (+)</strong> എന്ന ഓപ്ഷൻ ടാപ്പ് ചെയ്യുക.
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="w-6 h-6 rounded-full bg-slate-900 text-white font-black text-xs flex items-center justify-center">3</span>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  {/* Step 3: Tap Add */}
+                  <div className="flex items-start gap-3.5 p-3.5 bg-white border border-slate-200/90 rounded-2xl shadow-2xs">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                      3
                     </div>
-                    <div className="font-bold text-xs text-slate-900">3. Tap &apos;Add&apos; in Top-Right</div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Tap <strong>Add</strong>. The Kerala Superstore app icon is now on your iPhone home screen!
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-xs text-slate-900">
+                          മുകളിൽ വലതുവശത്ത് &apos;Add&apos; അമർത്തുക
+                        </span>
+                        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 px-2 py-0.5 rounded-md font-bold text-[10px] border border-amber-300">
+                          <span>Add</span>
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                        മുകളിൽ വലതുവശത്തുള്ള <strong>Add</strong> ടാപ്പ് ചെയ്യുക. കേരള സൂപ്പർസ്റ്റോർ ലോഗോയുള്ള ആപ്പ് നിങ്ങളുടെ iPhone ഹോം സ്ക്രീനിൽ ഐക്കണായി വരും!
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -291,7 +343,7 @@ export const AppDownloadModal: React.FC = () => {
                 <div>
                   <span className="font-bold">iOS Push Alerts (iOS 16.4+):</span>
                   <p className="text-[11px] text-emerald-800 mt-0.5">
-                    Once added to your home screen, open the Kerala Superstore app icon and allow notifications to receive daily kitchen specials!
+                    ഹോം സ്ക്രീനിൽ ആഡ് ചെയ്ത ശേഷം ആപ്പ് ഐക്കൺ തുറന്ന് നോട്ടിഫിക്കേഷനുകൾ Allow ചെയ്യുക. അടുക്കളയിലെ ഫ്രഷ് ബിരിയാണി ഡ്രോപ്പുകൾ നിങ്ങൾക്ക് തത്സമയം ലഭിക്കും!
                   </p>
                 </div>
               </div>

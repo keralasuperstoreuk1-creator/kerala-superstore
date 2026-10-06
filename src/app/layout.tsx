@@ -8,6 +8,7 @@ import { ThemeParticleEffect } from "@/components/ThemeParticleEffect";
 import { ToastNotificationBanner } from "@/components/ToastNotificationBanner";
 import { NotificationBellModal } from "@/components/NotificationBellModal";
 import { AppDownloadModal } from "@/components/AppDownloadModal";
+import { MobileSmartInstallBar } from "@/components/MobileSmartInstallBar";
 
 export const viewport: Viewport = {
   themeColor: "#064e3b",
@@ -73,6 +74,7 @@ export default function RootLayout({
                 <ToastNotificationBanner />
                 <NotificationBellModal />
                 <AppDownloadModal />
+                <MobileSmartInstallBar />
                 {children}
               </AppDownloadProvider>
             </SpecialsNotificationProvider>
