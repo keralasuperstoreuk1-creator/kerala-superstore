@@ -25,9 +25,17 @@ import {
   Eye,
   EyeOff,
   RotateCcw,
-  Lock
+  Lock,
+  Boxes,
+  Tag,
+  Bell,
+  Flame,
+  Layers,
+  Grid,
+  Smartphone,
+  Sparkles
 } from 'lucide-react';
-import { useStoreConfig, SiteTheme, LogoSize, LogoStyle } from '@/context/StoreConfigContext';
+import { useStoreConfig, SiteTheme, LogoSize, LogoStyle, StoreModules } from '@/context/StoreConfigContext';
 import { DeliveryZone } from '@/types';
 import { 
   getAdminCredentials, 
@@ -36,19 +44,124 @@ import {
   DEFAULT_ADMIN_PASSWORD 
 } from '@/lib/admin-auth';
 
-type SettingsTab = 'store' | 'delivery' | 'branding' | 'security';
+type SettingsTab = 'modules' | 'store' | 'delivery' | 'branding' | 'security';
+
+interface FeatureModuleDef {
+  key: keyof StoreModules;
+  title: string;
+  malayalamHint: string;
+  desc: string;
+  icon: any;
+  color: string;
+  adminLink?: string;
+  adminLinkText?: string;
+}
+
+const FEATURE_MODULES: FeatureModuleDef[] = [
+  {
+    key: 'showComboBundles',
+    title: 'Combo Bundles & Family Kits',
+    malayalamHint: 'കോംബോ ബണ്ടിലുകൾ',
+    desc: 'Showcase curated Onam, Bachelors & Kerala snack feast kits on storefront',
+    icon: Boxes,
+    color: 'from-amber-500 to-orange-600',
+    adminLink: '/admin/bundles',
+    adminLinkText: 'Edit Bundles',
+  },
+  {
+    key: 'showPromoCoupons',
+    title: 'Promo Coupons & Discount Codes',
+    malayalamHint: 'കൂപ്പൺ കോഡുകൾ',
+    desc: 'Coupon discount input in cart drawer and checkout discounts',
+    icon: Tag,
+    color: 'from-emerald-600 to-teal-700',
+    adminLink: '/admin/coupons',
+    adminLinkText: 'Edit Coupons',
+  },
+  {
+    key: 'showKitchenSpecials',
+    title: 'Kitchen Specials & Alerts Bell',
+    malayalamHint: 'കിച്ചൻ സ്പെഷ്യലുകൾ & അലേർട്ട്',
+    desc: 'Daily cooked Thalassery Dum Biriyani drops + notification bell in top bar',
+    icon: Bell,
+    color: 'from-rose-500 to-pink-600',
+    adminLink: '/admin/specials',
+    adminLinkText: 'Edit Specials',
+  },
+  {
+    key: 'showHeroSlider',
+    title: 'Storefront Hero Slider & Big Banners',
+    malayalamHint: 'ഹീറോ സ്ലൈഡറും ബാനറുകളും',
+    desc: 'Top animated carousel banner slides & spotlight promo card on homepage',
+    icon: Sliders,
+    color: 'from-blue-600 to-indigo-700',
+    adminLink: '/admin/banners',
+    adminLinkText: 'Edit Slides',
+  },
+  {
+    key: 'showMovingOffers',
+    title: 'Flash Deals Moving Showcase',
+    malayalamHint: 'ഫ്ലാഷ് ഡീൽസ് മൂവിങ് ബാർ',
+    desc: 'Smooth continuous moving marquee row displaying live discounted groceries',
+    icon: Flame,
+    color: 'from-red-500 to-amber-600',
+  },
+  {
+    key: 'showFeaturedCategories',
+    title: 'Top 6 Circular Category Bubbles',
+    malayalamHint: 'റൗണ്ട് കാറ്റഗറി ബട്ടണുകൾ',
+    desc: 'Circular photographic category badges (Rice, Spices, Snacks, Coconut Oil, etc.)',
+    icon: Layers,
+    color: 'from-teal-600 to-emerald-700',
+    adminLink: '/admin/banners',
+    adminLinkText: 'Edit Category Photos',
+  },
+  {
+    key: 'showCuratedDepartments',
+    title: 'Explore by Department Grid',
+    malayalamHint: 'കാറ്റഗറി ഡിപ്പാർട്മെന്റുകൾ',
+    desc: 'Full 10-department grid with quick-shop popups and variety picker',
+    icon: Grid,
+    color: 'from-purple-600 to-indigo-700',
+  },
+  {
+    key: 'showBrandMarquee',
+    title: 'Authentic Kerala Brands Ticker',
+    malayalamHint: 'ബ്രാൻഡ് ലോഗോ സ്ക്രോളർ',
+    desc: 'Infinite marquee ticker featuring Nirapara, Eastern, Brahmins, Double Horse, etc.',
+    icon: CheckCircle2,
+    color: 'from-cyan-600 to-blue-700',
+  },
+  {
+    key: 'showAppDownload',
+    title: 'Mobile App Download Showcase & Header',
+    malayalamHint: 'മൊബൈൽ ആപ്പ് ഡൗൺലോഡ്',
+    desc: '1-Click App installation section at bottom and top header download button',
+    icon: Smartphone,
+    color: 'from-emerald-700 to-slate-900',
+  },
+  {
+    key: 'showOfferMarquee',
+    title: 'Top Special Offer Marquee Bar',
+    malayalamHint: 'മുകളിലെ ഓഫർ അനൗൺസ്മെന്റ്',
+    desc: 'Top animated ticker strip announcing free Manchester delivery & flash sales',
+    icon: Sparkles,
+    color: 'from-amber-600 to-rose-600',
+  },
+];
 
 export default function AdminSettingsPage() {
   const { 
     config, 
     updateConfig, 
+    toggleModule,
     addDeliveryZone, 
     updateDeliveryZone, 
     deleteDeliveryZone,
     getDeliveryZoneForPostcode
   } = useStoreConfig();
 
-  const [activeTab, setActiveTab] = useState<SettingsTab>('store');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('modules');
   const [savedSuccess, setSavedSuccess] = useState<string | null>(null);
 
   // Form local state for delivery & store
@@ -251,6 +364,18 @@ export default function AdminSettingsPage() {
       {/* Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-2xl border border-slate-200 shadow-2xs text-xs font-bold">
         <button
+          onClick={() => setActiveTab('modules')}
+          className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+            activeTab === 'modules'
+              ? 'bg-emerald-900 text-white shadow-sm ring-2 ring-emerald-500/50'
+              : 'text-emerald-900 bg-emerald-50 hover:bg-emerald-100'
+          }`}
+        >
+          <Sliders className="w-4 h-4 text-emerald-400" />
+          <span>⚡ Website Features (Show / Hide)</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('store')}
           className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
             activeTab === 'store'
@@ -298,6 +423,119 @@ export default function AdminSettingsPage() {
           <span>4. Admin Security &amp; Password</span>
         </button>
       </div>
+
+      {/* ========================================================= */}
+      {/* TAB 0: STOREFRONT FEATURE SWITCHES (ENABLE / DISABLE)     */}
+      {/* ========================================================= */}
+      {activeTab === 'modules' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <h2 className="text-lg font-black text-slate-900 tracking-tight">
+                    Storefront Feature Switches &amp; Live Visibility
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+                  Adminil ninnum ee options ellam on/off cheyyam. Off cheythal live website-il ninnum aa section poorname aayum disappear aakum. On cheythal udan thanne live website-il thirichu varum.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold shrink-0">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Cloudflare R2 Live Synced</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {FEATURE_MODULES.map((mod) => {
+                const IconComponent = mod.icon;
+                const isEnabled = config.modules ? (config.modules[mod.key] ?? true) : true;
+
+                return (
+                  <div
+                    key={mod.key}
+                    className={`p-5 rounded-2xl border transition-all duration-200 flex flex-col justify-between gap-4 ${
+                      isEnabled
+                        ? 'bg-white border-emerald-200/80 shadow-xs hover:border-emerald-300'
+                        : 'bg-slate-50/70 border-slate-200 opacity-80'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${mod.color} text-white flex items-center justify-center font-bold shadow-xs shrink-0`}>
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-black text-sm text-slate-900 leading-tight">
+                              {mod.title}
+                            </h3>
+                            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                              {mod.malayalamHint}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1 leading-snug">
+                            {mod.desc}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100/80 mt-auto">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black ${
+                          isEnabled
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          <span className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-emerald-600 animate-pulse' : 'bg-slate-400'}`} />
+                          <span>{isEnabled ? 'Live on Website' : 'Hidden from Website'}</span>
+                        </span>
+
+                        {mod.adminLink && (
+                          <Link
+                            href={mod.adminLink}
+                            className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 hover:underline flex items-center gap-0.5"
+                          >
+                            <span>{mod.adminLinkText}</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </Link>
+                        )}
+                      </div>
+
+                      {/* Interactive Toggle Switch Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          toggleModule(mod.key);
+                          showSuccess(`${mod.title} is now ${!isEnabled ? 'VISIBLE' : 'HIDDEN'} on the live website!`);
+                        }}
+                        className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          isEnabled ? 'bg-emerald-600' : 'bg-slate-300'
+                        }`}
+                        role="switch"
+                        aria-checked={isEnabled}
+                        title={`Click to ${isEnabled ? 'Hide' : 'Show'} on website`}
+                      >
+                        <span className="sr-only">Toggle {mod.title}</span>
+                        <span
+                          aria-hidden="true"
+                          className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                            isEnabled ? 'translate-x-6' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================= */}
       {/* TAB 1: STORE ADDRESS & CONTACT DETAILS                    */}

@@ -45,7 +45,7 @@ export const CartDrawer: React.FC = () => {
     notes: ''
   });
 
-  const { validateCoupon } = useStoreConfig();
+  const { config, validateCoupon } = useStoreConfig();
   const [placedOrderNumber, setPlacedOrderNumber] = useState('');
   const [couponCodeInput, setCouponCodeInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number; message: string } | null>(null);
@@ -388,50 +388,52 @@ export const CartDrawer: React.FC = () => {
           {cart.length > 0 && checkoutStep !== 'success' && (
             <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-3">
               {/* Promo Code Input / Applied Badge */}
-              <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2">
-                {appliedCoupon ? (
-                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-2 rounded-lg text-xs">
-                    <div className="flex items-center gap-1.5 font-bold text-emerald-800">
-                      <Tag className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Coupon &quot;{appliedCoupon.code}&quot; Applied (-£{appliedCoupon.discountAmount.toFixed(2)})</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleRemoveCoupon}
-                      className="text-[11px] font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleApplyCoupon} className="space-y-1">
-                    <div className="flex gap-1.5">
-                      <div className="relative flex-1">
-                        <Tag className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          placeholder="Promo code (e.g. M9LOCAL, FIRSTORDER)"
-                          value={couponCodeInput}
-                          onChange={(e) => {
-                            setCouponCodeInput(e.target.value.toUpperCase());
-                            setCouponError(null);
-                          }}
-                          className="w-full pl-8 pr-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-mono uppercase font-bold outline-none focus:border-emerald-600"
-                        />
+              {(config.modules?.showPromoCoupons ?? true) && (
+                <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2">
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-2 rounded-lg text-xs">
+                      <div className="flex items-center gap-1.5 font-bold text-emerald-800">
+                        <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Coupon &quot;{appliedCoupon.code}&quot; Applied (-£{appliedCoupon.discountAmount.toFixed(2)})</span>
                       </div>
                       <button
-                        type="submit"
-                        className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shrink-0"
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-[11px] font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
                       >
-                        Apply
+                        Remove
                       </button>
                     </div>
-                    {couponError && (
-                      <p className="text-[10px] text-rose-600 font-bold px-1">{couponError}</p>
-                    )}
-                  </form>
-                )}
-              </div>
+                  ) : (
+                    <form onSubmit={handleApplyCoupon} className="space-y-1">
+                      <div className="flex gap-1.5">
+                        <div className="relative flex-1">
+                          <Tag className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            placeholder="Promo code (e.g. M9LOCAL, FIRSTORDER)"
+                            value={couponCodeInput}
+                            onChange={(e) => {
+                              setCouponCodeInput(e.target.value.toUpperCase());
+                              setCouponError(null);
+                            }}
+                            className="w-full pl-8 pr-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-mono uppercase font-bold outline-none focus:border-emerald-600"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shrink-0"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                      {couponError && (
+                        <p className="text-[10px] text-rose-600 font-bold px-1">{couponError}</p>
+                      )}
+                    </form>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-1.5 text-xs text-slate-600">
                 <div className="flex justify-between">

@@ -24,7 +24,7 @@ import { ComboBundle, BundleItem } from '@/types';
 import AiImageStudioUpload from '@/components/admin/AiImageStudioUpload';
 
 export default function AdminBundlesPage() {
-  const { bundles, addBundle, updateBundle, deleteBundle } = useStoreConfig();
+  const { config, toggleModule, bundles, addBundle, updateBundle, deleteBundle } = useStoreConfig();
 
   const [isAdding, setIsAdding] = useState(false);
   const [editingBundle, setEditingBundle] = useState<ComboBundle | null>(null);
@@ -174,6 +174,45 @@ export default function AdminBundlesPage() {
           <span>{toastMsg}</span>
         </div>
       )}
+
+      {/* Live Storefront Visibility Switch Banner */}
+      {(() => {
+        const isVisible = config.modules?.showComboBundles ?? true;
+        return (
+          <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs transition-colors ${
+            isVisible ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950' : 'bg-rose-50/80 border-rose-200 text-rose-950'
+          }`}>
+            <div className="flex items-center gap-3">
+              <span className={`w-3 h-3 rounded-full ${isVisible ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+              <div>
+                <span className="font-black text-sm">
+                  Storefront Visibility: {isVisible ? '🟢 Active & Visible on Website' : '🔴 Hidden (Disabled) from Website'}
+                </span>
+                <p className="text-[11px] opacity-80 mt-0.5">
+                  {isVisible 
+                    ? 'Customers can see and order Combo Bundles on keralasuperstore.com homepage.'
+                    : 'The Combo Bundles section is completely hidden from the live website.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                toggleModule('showComboBundles');
+                showToast(`Combo Bundles are now ${!isVisible ? 'VISIBLE' : 'HIDDEN'} on the live website!`);
+              }}
+              className={`px-4 py-2 rounded-xl font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-2 ${
+                isVisible
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                  : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+              }`}
+            >
+              <span>{isVisible ? 'Disable / Hide from Website' : 'Enable / Show on Website'}</span>
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Search Bar */}
       <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 text-xs">

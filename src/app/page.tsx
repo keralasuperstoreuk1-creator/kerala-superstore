@@ -182,22 +182,26 @@ export default function HomePage() {
         {/* EMARKET Supermarket Layout: 3-Column Banner, Arched Categories, and Deals of the Week */}
         {!selectedCategory && !searchQuery && (
           <>
-            <EmarketHeroSection
-              onSelectCategory={(slug) => setSelectedCategory(slug)}
-              selectedCategory={selectedCategory}
-              onQuickShop={(cat) => setQuickShopCategory(cat)}
-              onScrollToDeals={scrollToOffers}
-            />
+            {(config.modules?.showHeroSlider ?? true) && (
+              <EmarketHeroSection
+                onSelectCategory={(slug) => setSelectedCategory(slug)}
+                selectedCategory={selectedCategory}
+                onQuickShop={(cat) => setQuickShopCategory(cat)}
+                onScrollToDeals={scrollToOffers}
+              />
+            )}
 
-            <FeaturedArchedCategories
-              onSelectCategory={(slug) => setSelectedCategory(slug)}
-              selectedCategory={selectedCategory}
-            />
+            {(config.modules?.showFeaturedCategories ?? true) && (
+              <FeaturedArchedCategories
+                onSelectCategory={(slug) => setSelectedCategory(slug)}
+                selectedCategory={selectedCategory}
+              />
+            )}
           </>
         )}
 
         {/* TODAY'S FLASH DEALS CONTINUOUS SMOOTH MOVING SHOWCASE (Moved High Up to the Top) */}
-        {!selectedCategory && !searchQuery && offerProducts.length > 0 && (
+        {(config.modules?.showMovingOffers ?? true) && !selectedCategory && !searchQuery && offerProducts.length > 0 && (
           <TodayOffersMovingShowcase
             products={offerProducts}
             onSelectProduct={(p) => setActiveProduct(p)}
@@ -210,12 +214,12 @@ export default function HomePage() {
         )}
 
         {/* TODAY'S FRESH KITCHEN & DAILY SPECIALS (Biriyanis, Porottas & Tea Snacks) */}
-        {!selectedCategory && !searchQuery && (
+        {(config.modules?.showKitchenSpecials ?? true) && !selectedCategory && !searchQuery && (
           <DailyKitchenSpecialsShowcase />
         )}
 
         {/* CREATIVE INFINITE BRAND LOGO MARQUEE TICKER */}
-        {!selectedCategory && !searchQuery && (
+        {(config.modules?.showBrandMarquee ?? true) && !selectedCategory && !searchQuery && (
           <div className="bg-white border-b border-slate-200 py-3 overflow-hidden shadow-2xs">
             <div className="max-w-7xl mx-auto px-4 mb-2 flex items-center justify-between text-xs">
               <span className="font-bold text-slate-400 uppercase tracking-widest text-[10px]">
@@ -246,82 +250,86 @@ export default function HomePage() {
 
 
         {/* Luxury 2026 Category Showcase with REAL PHOTOGRAPHIC IMAGES */}
-        <section id="departments-section" className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-widest mb-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                <span>Curated Departments</span>
+        {(config.modules?.showCuratedDepartments ?? true) && (
+          <section id="departments-section" className="max-w-7xl mx-auto px-4 py-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-widest mb-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                  <span>Curated Departments</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Explore by Category</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Tap any category to open varieties, brands &amp; quick-add options (like dresses &amp; fashion collections!)
+                </p>
               </div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Explore by Category</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Tap any category to open varieties, brands &amp; quick-add options (like dresses &amp; fashion collections!)
-              </p>
-            </div>
-            {selectedCategory && (
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className="text-xs font-bold text-emerald-800 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full transition-all self-start sm:self-auto cursor-pointer"
-              >
-                Clear Filter • View All Departments
-              </button>
-            )}
-          </div>
-
-          {/* 10 Luxury Category Cards - CLICK OPENS QUICK-SHOP POPUP WITH VARIETIES */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
-            {CATEGORIES.map((cat) => {
-              const isSelected = selectedCategory === cat.slug;
-              return (
+              {selectedCategory && (
                 <button
-                  key={cat.id}
-                  onClick={() => {
-                    setQuickShopCategory(cat);
-                    setSelectedCategory(cat.slug);
-                  }}
-                  className={`p-3 rounded-3xl border text-left transition-all duration-300 flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-98 ${
-                    isSelected
-                      ? 'border-emerald-600 bg-emerald-50/90 shadow-xl ring-2 ring-emerald-600/30 -translate-y-1'
-                      : 'border-slate-200/90 hover:border-emerald-400/80 bg-white hover:shadow-xl hover:-translate-y-1'
-                  }`}
+                  onClick={() => setSelectedCategory(null)}
+                  className="text-xs font-bold text-emerald-800 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full transition-all self-start sm:self-auto cursor-pointer"
                 >
-                  {/* Real Photographic Food Thumbnail */}
-                  <div className="relative w-full aspect-4/3 rounded-2xl overflow-hidden mb-2.5 bg-slate-100 shadow-2xs border border-slate-100">
-                    <Image
-                      src={cat.imageUrl || `/categories/rice.jpg`}
-                      alt={cat.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-                    
-                    <span className="absolute bottom-2 left-2 text-[9px] font-black text-white bg-slate-950/75 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/20">
-                      {cat.itemCount} items
-                    </span>
-
-                    {/* Quick Shop Hint Pill on Card */}
-                    <span className="absolute top-2 right-2 text-[9px] font-bold text-amber-300 bg-slate-950/80 backdrop-blur-md px-2 py-0.5 rounded-full border border-amber-300/30 flex items-center gap-0.5 opacity-90 group-hover:opacity-100">
-                      <span>Varieties</span>
-                      <ChevronRight className="w-2.5 h-2.5" />
-                    </span>
-                  </div>
-
-                  <div>
-                    <h3 className="font-black text-xs sm:text-sm text-slate-900 group-hover:text-emerald-900 leading-snug line-clamp-1">
-                      {cat.name}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1 font-medium">
-                      {cat.description}
-                    </p>
-                  </div>
+                  Clear Filter • View All Departments
                 </button>
-              );
-            })}
-          </div>
-        </section>
+              )}
+            </div>
+
+            {/* 10 Luxury Category Cards - CLICK OPENS QUICK-SHOP POPUP WITH VARIETIES */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
+              {CATEGORIES.map((cat) => {
+                const isSelected = selectedCategory === cat.slug;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setQuickShopCategory(cat);
+                      setSelectedCategory(cat.slug);
+                    }}
+                    className={`p-3 rounded-3xl border text-left transition-all duration-300 flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-98 ${
+                      isSelected
+                        ? 'border-emerald-600 bg-emerald-50/90 shadow-xl ring-2 ring-emerald-600/30 -translate-y-1'
+                        : 'border-slate-200/90 hover:border-emerald-400/80 bg-white hover:shadow-xl hover:-translate-y-1'
+                    }`}
+                  >
+                    {/* Real Photographic Food Thumbnail */}
+                    <div className="relative w-full aspect-4/3 rounded-2xl overflow-hidden mb-2.5 bg-slate-100 shadow-2xs border border-slate-100">
+                      <Image
+                        src={cat.imageUrl || `/categories/rice.jpg`}
+                        alt={cat.name}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
+                      
+                      <span className="absolute bottom-2 left-2 text-[9px] font-black text-white bg-slate-950/75 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/20">
+                        {cat.itemCount} items
+                      </span>
+
+                      {/* Quick Shop Hint Pill on Card */}
+                      <span className="absolute top-2 right-2 text-[9px] font-bold text-amber-300 bg-slate-950/80 backdrop-blur-md px-2 py-0.5 rounded-full border border-amber-300/30 flex items-center gap-0.5 opacity-90 group-hover:opacity-100">
+                        <span>Varieties</span>
+                        <ChevronRight className="w-2.5 h-2.5" />
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="font-black text-xs sm:text-sm text-slate-900 group-hover:text-emerald-900 leading-snug line-clamp-1">
+                        {cat.name}
+                      </h3>
+                      <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1 font-medium">
+                        {cat.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Curated Pre-packed Kerala Combo Bundles & Feast Kits */}
-        <ComboBundlesShowcase />
+        {(config.modules?.showComboBundles ?? true) && (
+          <ComboBundlesShowcase />
+        )}
 
         {/* Main Catalog with Filters & Sidebar */}
         <section id="catalog-section" className="max-w-7xl mx-auto px-4 py-4">
@@ -502,7 +510,9 @@ export default function HomePage() {
         </section>
 
         {/* Official Kerala Superstore Mobile App Showcase Section */}
-        <AppDownloadSection />
+        {(config.modules?.showAppDownload ?? true) && (
+          <AppDownloadSection />
+        )}
       </main>
 
       {/* Global Modals & Drawers */}

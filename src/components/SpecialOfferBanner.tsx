@@ -13,7 +13,7 @@ export const SpecialOfferBanner: React.FC<SpecialOfferBannerProps> = ({ onScroll
   const { config } = useStoreConfig();
   const offer = config.offerBanner;
 
-  if (!offer || !offer.enabled) return null;
+  if (!(config.modules?.showOfferMarquee ?? true) || !offer || !offer.enabled) return null;
 
   return (
     <div className="relative overflow-hidden bg-gradient-to-r from-amber-600 via-rose-600 to-amber-600 text-white shadow-md z-20 border-y border-amber-400/30">

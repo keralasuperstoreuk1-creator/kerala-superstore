@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSpecialsNotification } from '@/context/SpecialsNotificationContext';
+import { useStoreConfig } from '@/context/StoreConfigContext';
 import { 
   ChefHat, 
   Bell, 
@@ -55,6 +56,8 @@ export default function AdminSpecialsPage() {
     notifications,
     broadcastNotification,
   } = useSpecialsNotification();
+
+  const { config, toggleModule } = useStoreConfig();
 
   // Theme & Section Color Customizer State
   const [themeConfig, setThemeConfig] = useState<DailySpecialsThemeConfig>(DEFAULT_DAILY_SPECIALS_THEME);
@@ -394,6 +397,46 @@ export default function AdminSpecialsPage() {
           <span>{successMsg}</span>
         </div>
       )}
+
+      {/* Live Storefront Visibility Switch Banner */}
+      {(() => {
+        const isVisible = config.modules?.showKitchenSpecials ?? true;
+        return (
+          <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs transition-colors ${
+            isVisible ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950' : 'bg-rose-50/80 border-rose-200 text-rose-950'
+          }`}>
+            <div className="flex items-center gap-3">
+              <span className={`w-3 h-3 rounded-full ${isVisible ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+              <div>
+                <span className="font-black text-sm">
+                  Kitchen Specials &amp; Alerts Bell: {isVisible ? '🟢 Active & Visible on Website' : '🔴 Hidden (Disabled) from Website'}
+                </span>
+                <p className="text-[11px] opacity-80 mt-0.5">
+                  {isVisible 
+                    ? 'Customers can see fresh Biriyani drops on homepage and tap the notification bell in top bar.'
+                    : 'Kitchen specials and the notification bell are completely hidden from the live website.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                toggleModule('showKitchenSpecials');
+                setSuccessMsg(`Kitchen Specials are now ${!isVisible ? 'VISIBLE' : 'HIDDEN'} on the live website!`);
+                setTimeout(() => setSuccessMsg(null), 3500);
+              }}
+              className={`px-4 py-2 rounded-xl font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-2 ${
+                isVisible
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                  : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+              }`}
+            >
+              <span>{isVisible ? 'Disable / Hide from Website' : 'Enable / Show on Website'}</span>
+            </button>
+          </div>
+        );
+      })()}
 
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

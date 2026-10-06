@@ -25,12 +25,14 @@ import {
   UserCheck
 } from 'lucide-react';
 import { isUserAdminAuthenticated, clearAdminSession, getAdminCredentials } from '@/lib/admin-auth';
+import { useStoreConfig } from '@/context/StoreConfigContext';
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { config } = useStoreConfig();
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -78,12 +80,18 @@ export default function AdminLayout({
     return null;
   }
 
+  const isSliderOn = config.modules?.showHeroSlider ?? true;
+  const isBundlesOn = config.modules?.showComboBundles ?? true;
+  const isCouponsOn = config.modules?.showPromoCoupons ?? true;
+  const isSpecialsOn = config.modules?.showKitchenSpecials ?? true;
+
   const navItems = [
     { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { label: 'Storefront & Banners', href: '/admin/banners', icon: Sliders, badge: 'Live Visuals' },
-    { label: 'Combo Bundles', href: '/admin/bundles', icon: Boxes, badge: 'Kits' },
-    { label: 'Promo Coupons', href: '/admin/coupons', icon: Tag, badge: 'Discounts' },
-    { label: 'Kitchen Specials & Alerts', href: '/admin/specials', icon: Bell, badge: 'Live App' },
+    { label: 'Feature Switches', href: '/admin/settings', icon: Sliders, badge: 'On/Off' },
+    { label: 'Storefront & Banners', href: '/admin/banners', icon: Sliders, badge: isSliderOn ? 'Live' : 'Hidden' },
+    { label: 'Combo Bundles', href: '/admin/bundles', icon: Boxes, badge: isBundlesOn ? 'Kits' : 'Hidden' },
+    { label: 'Promo Coupons', href: '/admin/coupons', icon: Tag, badge: isCouponsOn ? 'Discounts' : 'Hidden' },
+    { label: 'Kitchen Specials & Alerts', href: '/admin/specials', icon: Bell, badge: isSpecialsOn ? 'Live App' : 'Hidden' },
     { label: 'AI Add Product', href: '/admin/ai-add', icon: Sparkles, badge: 'AI Vision' },
     { label: 'Products & Stock', href: '/admin/products', icon: Package },
     { label: 'Customer Orders', href: '/admin/orders', icon: ShoppingBag, badge: '2 New' },
@@ -189,7 +197,9 @@ export default function AdminLayout({
                   </div>
                   {item.badge && (
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                      item.badge.includes('AI')
+                      item.badge === 'Hidden'
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        : item.badge.includes('AI')
                         ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-xs'
                         : 'bg-emerald-500/20 text-emerald-300'
                     }`}>

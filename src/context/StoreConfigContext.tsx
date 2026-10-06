@@ -8,6 +8,32 @@ export type SiteTheme = 'default' | 'onam' | 'christmas';
 export type LogoSize = 'compact' | 'normal' | 'prominent';
 export type LogoStyle = 'circle' | 'glow' | 'minimal';
 
+export interface StoreModules {
+  showHeroSlider: boolean;         // Storefront Hero Slides & Banner (EmarketHeroSection)
+  showFeaturedCategories: boolean; // Featured 6 Round Categories (FeaturedArchedCategories)
+  showMovingOffers: boolean;       // Moving Flash Offers Showcase (TodayOffersMovingShowcase)
+  showKitchenSpecials: boolean;    // Kitchen Specials & Alert Bell (DailyKitchenSpecialsShowcase + Header bell)
+  showComboBundles: boolean;       // Combo Bundles & Family Kits (ComboBundlesShowcase)
+  showPromoCoupons: boolean;       // Promo Coupons & Discount Input (CartDrawer coupon form)
+  showBrandMarquee: boolean;       // Brands Marquee Ticker
+  showCuratedDepartments: boolean; // Explore by Category Grid (#departments-section)
+  showAppDownload: boolean;        // Mobile App Download Banner (AppDownloadSection + Header button)
+  showOfferMarquee: boolean;       // Flash Deal Top Offer Ticker (SpecialOfferBanner)
+}
+
+export const DEFAULT_STORE_MODULES: StoreModules = {
+  showHeroSlider: true,
+  showFeaturedCategories: true,
+  showMovingOffers: true,
+  showKitchenSpecials: true,
+  showComboBundles: true,
+  showPromoCoupons: true,
+  showBrandMarquee: true,
+  showCuratedDepartments: true,
+  showAppDownload: true,
+  showOfferMarquee: true,
+};
+
 export interface StoreConfig {
   theme: SiteTheme;
   logoSize: LogoSize;
@@ -22,6 +48,7 @@ export interface StoreConfig {
   postcode: string;
   deliveryZones: DeliveryZone[];
   offerBanner: OfferBannerConfig;
+  modules: StoreModules;
 }
 
 export const DEFAULT_DELIVERY_ZONES: DeliveryZone[] = [
@@ -94,6 +121,7 @@ const DEFAULT_CONFIG: StoreConfig = {
   postcode: 'M9 8PX',
   deliveryZones: DEFAULT_DELIVERY_ZONES,
   offerBanner: DEFAULT_OFFER_BANNER,
+  modules: DEFAULT_STORE_MODULES,
 };
 
 export interface CouponValidationResult {
@@ -106,6 +134,7 @@ export interface CouponValidationResult {
 interface StoreConfigContextType {
   config: StoreConfig;
   updateConfig: (newConfig: Partial<StoreConfig>) => void;
+  toggleModule: (moduleKey: keyof StoreModules, explicitVal?: boolean) => void;
   setTheme: (theme: SiteTheme) => void;
   getDeliveryZoneForPostcode: (postcode: string) => DeliveryZone;
   addDeliveryZone: (zone: Omit<DeliveryZone, 'id'>) => void;
@@ -153,9 +182,33 @@ export const StoreConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
             ? parsed.deliveryZones
             : DEFAULT_DELIVERY_ZONES,
           offerBanner: parsed.offerBanner ? { ...DEFAULT_OFFER_BANNER, ...parsed.offerBanner } : DEFAULT_OFFER_BANNER,
+          modules: { ...DEFAULT_STORE_MODULES, ...(parsed.modules || {}) },
         }));
       }
     } catch {}
+
+    // Cloudflare R2 Sync for cross-device persistence
+    fetch('/api/store/config')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.storeConfig) {
+          setConfig((prev) => {
+            const merged = {
+              ...prev,
+              ...data.storeConfig,
+              modules: {
+                ...DEFAULT_STORE_MODULES,
+                ...(data.storeConfig.modules || {}),
+              },
+            };
+            try {
+              localStorage.setItem('kss_store_config', JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      })
+      .catch(() => {});
 
     try {
       const savedCoupons = localStorage.getItem('kss_coupons');
@@ -187,8 +240,37 @@ export const StoreConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const updated = { ...prev, ...newConfig };
       try {
         localStorage.setItem('kss_store_config', JSON.stringify(updated));
+        fetch('/api/store/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storeConfig: updated }),
+        }).catch(() => {});
       } catch {}
       return updated;
+    });
+  };
+
+  const toggleModule = (moduleKey: keyof StoreModules, explicitVal?: boolean) => {
+    setConfig((prev) => {
+      const currentVal = prev.modules ? (prev.modules[moduleKey] ?? true) : true;
+      const nextVal = explicitVal !== undefined ? explicitVal : !currentVal;
+      const updatedModules = {
+        ...(prev.modules || DEFAULT_STORE_MODULES),
+        [moduleKey]: nextVal,
+      };
+      const updatedConfig: StoreConfig = {
+        ...prev,
+        modules: updatedModules,
+      };
+      try {
+        localStorage.setItem('kss_store_config', JSON.stringify(updatedConfig));
+        fetch('/api/store/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storeConfig: updatedConfig }),
+        }).catch(() => {});
+      } catch {}
+      return updatedConfig;
     });
   };
 
@@ -403,6 +485,7 @@ export const StoreConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
       value={{
         config,
         updateConfig,
+        toggleModule,
         setTheme,
         getDeliveryZoneForPostcode,
         addDeliveryZone,

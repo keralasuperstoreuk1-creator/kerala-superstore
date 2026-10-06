@@ -12,7 +12,11 @@ import {
   CheckCircle2, 
   Clock, 
   Truck,
-  Plus
+  Plus,
+  Boxes,
+  Tag,
+  Bell,
+  Sliders
 } from 'lucide-react';
 import { INITIAL_ORDERS, INITIAL_PRODUCTS } from '@/lib/mock-data';
 import { Order, OrderStatus } from '@/types';
@@ -20,7 +24,7 @@ import { useStoreConfig, SiteTheme } from '@/context/StoreConfigContext';
 
 export default function AdminDashboardPage() {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
-  const { config, setTheme } = useStoreConfig();
+  const { config, setTheme, toggleModule } = useStoreConfig();
 
   const totalSales = orders.reduce((sum, ord) => sum + ord.total, 0);
   const lowStockCount = INITIAL_PRODUCTS.filter((p) => p.stock <= (p.lowStockThreshold || 10)).length;
@@ -86,6 +90,146 @@ export default function AdminDashboardPage() {
           >
             <span>🎄 Christmas (Snow)</span>
           </button>
+        </div>
+      </div>
+
+      {/* Quick Storefront Feature Visibility Controller */}
+      <div className="bg-white p-4.5 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+          <div>
+            <h3 className="font-bold text-xs text-slate-900 flex items-center gap-2">
+              <Sliders className="w-4 h-4 text-emerald-700" />
+              <span>⚡ Live Storefront Feature Controls (Enable / Disable)</span>
+            </h3>
+            <p className="text-[11px] text-slate-500">
+              Turn OFF to instantly hide sections from live website keralasuperstore.com. Turn ON to restore.
+            </p>
+          </div>
+          <Link
+            href="/admin/settings"
+            className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 self-start sm:self-auto bg-emerald-50 px-2.5 py-1 rounded-lg"
+          >
+            <span>All 10 Feature Controls</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {/* Module 1: Combo Bundles */}
+          {(() => {
+            const isEnabled = config.modules?.showComboBundles ?? true;
+            return (
+              <button
+                type="button"
+                onClick={() => toggleModule('showComboBundles')}
+                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                  isEnabled
+                    ? 'bg-amber-50/70 border-amber-200/80 hover:bg-amber-100/60'
+                    : 'bg-slate-50 border-slate-200 opacity-60'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold">
+                    <Boxes className="w-3.5 h-3.5" />
+                  </div>
+                  <span className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                </div>
+                <div>
+                  <div className="font-black text-xs text-slate-900 leading-tight">Combo Bundles</div>
+                  <div className="text-[10px] font-bold mt-0.5 text-slate-500">
+                    {isEnabled ? '🟢 Live on Web' : '🔴 Hidden'}
+                  </div>
+                </div>
+              </button>
+            );
+          })()}
+
+          {/* Module 2: Promo Coupons */}
+          {(() => {
+            const isEnabled = config.modules?.showPromoCoupons ?? true;
+            return (
+              <button
+                type="button"
+                onClick={() => toggleModule('showPromoCoupons')}
+                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                  isEnabled
+                    ? 'bg-emerald-50/70 border-emerald-200/80 hover:bg-emerald-100/60'
+                    : 'bg-slate-50 border-slate-200 opacity-60'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
+                    <Tag className="w-3.5 h-3.5" />
+                  </div>
+                  <span className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                </div>
+                <div>
+                  <div className="font-black text-xs text-slate-900 leading-tight">Promo Coupons</div>
+                  <div className="text-[10px] font-bold mt-0.5 text-slate-500">
+                    {isEnabled ? '🟢 Live in Basket' : '🔴 Hidden'}
+                  </div>
+                </div>
+              </button>
+            );
+          })()}
+
+          {/* Module 3: Kitchen Specials */}
+          {(() => {
+            const isEnabled = config.modules?.showKitchenSpecials ?? true;
+            return (
+              <button
+                type="button"
+                onClick={() => toggleModule('showKitchenSpecials')}
+                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                  isEnabled
+                    ? 'bg-rose-50/70 border-rose-200/80 hover:bg-rose-100/60'
+                    : 'bg-slate-50 border-slate-200 opacity-60'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-7 h-7 rounded-lg bg-rose-500 text-white flex items-center justify-center font-bold">
+                    <Bell className="w-3.5 h-3.5" />
+                  </div>
+                  <span className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                </div>
+                <div>
+                  <div className="font-black text-xs text-slate-900 leading-tight">Kitchen Specials</div>
+                  <div className="text-[10px] font-bold mt-0.5 text-slate-500">
+                    {isEnabled ? '🟢 Live on Web' : '🔴 Hidden'}
+                  </div>
+                </div>
+              </button>
+            );
+          })()}
+
+          {/* Module 4: Hero Slider */}
+          {(() => {
+            const isEnabled = config.modules?.showHeroSlider ?? true;
+            return (
+              <button
+                type="button"
+                onClick={() => toggleModule('showHeroSlider')}
+                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                  isEnabled
+                    ? 'bg-blue-50/70 border-blue-200/80 hover:bg-blue-100/60'
+                    : 'bg-slate-50 border-slate-200 opacity-60'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">
+                    <Sliders className="w-3.5 h-3.5" />
+                  </div>
+                  <span className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                </div>
+                <div>
+                  <div className="font-black text-xs text-slate-900 leading-tight">Hero Banners</div>
+                  <div className="text-[10px] font-bold mt-0.5 text-slate-500">
+                    {isEnabled ? '🟢 Live on Web' : '🔴 Hidden'}
+                  </div>
+                </div>
+              </button>
+            );
+          })()}
         </div>
       </div>
       {/* Top Banner with AI highlight */}

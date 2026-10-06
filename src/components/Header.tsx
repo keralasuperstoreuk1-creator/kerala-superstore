@@ -186,34 +186,38 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Action Buttons: App Download, Specials Bell, Cart, Mobile Menu */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Official App Download Button (Tablet/Desktop) */}
-            <button
-              onClick={() => installApp()}
-              className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-amber-500/10 hover:border-amber-500 hover:bg-amber-50 text-slate-800 transition-all text-xs font-bold shadow-2xs group cursor-pointer active:scale-95"
-              title="Download Kerala Superstore App (Android & iPhone)"
-            >
-              <div className="flex items-center -space-x-1">
-                <AndroidIcon className="w-3.5 h-3.5 text-emerald-700" />
-                <AppleIcon className="w-3.5 h-3.5 text-slate-800" />
-              </div>
-              <span className="font-extrabold text-slate-900 group-hover:text-emerald-950">App</span>
-              <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                Free
-              </span>
-            </button>
+            {(config.modules?.showAppDownload ?? true) && (
+              <button
+                onClick={() => installApp()}
+                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-amber-500/10 hover:border-amber-500 hover:bg-amber-50 text-slate-800 transition-all text-xs font-bold shadow-2xs group cursor-pointer active:scale-95"
+                title="Download Kerala Superstore App (Android & iPhone)"
+              >
+                <div className="flex items-center -space-x-1">
+                  <AndroidIcon className="w-3.5 h-3.5 text-emerald-700" />
+                  <AppleIcon className="w-3.5 h-3.5 text-slate-800" />
+                </div>
+                <span className="font-extrabold text-slate-900 group-hover:text-emerald-950">App</span>
+                <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Free
+                </span>
+              </button>
+            )}
 
             {/* Daily Specials & Biriyani Alerts Notification Bell */}
-            <button
-              onClick={() => setIsNotificationModalOpen(true)}
-              className="relative p-2 sm:p-2.5 rounded-xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 transition-all text-slate-700 cursor-pointer group active:scale-95"
-              title="Store Alerts & Kitchen Specials"
-            >
-              <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800 group-hover:text-amber-600 transition-colors" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-black text-[9px] sm:text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shadow-xs animate-pulse">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
+            {(config.modules?.showKitchenSpecials ?? true) && (
+              <button
+                onClick={() => setIsNotificationModalOpen(true)}
+                className="relative p-2 sm:p-2.5 rounded-xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 transition-all text-slate-700 cursor-pointer group active:scale-95"
+                title="Store Alerts & Kitchen Specials"
+              >
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800 group-hover:text-amber-600 transition-colors" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-black text-[9px] sm:text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shadow-xs animate-pulse">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            )}
 
             {/* Shopping Cart Button */}
             <button

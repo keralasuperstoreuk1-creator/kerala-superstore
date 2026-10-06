@@ -55,7 +55,7 @@ const migrateImageSrc = (src?: string | null): string => {
 };
 
 export default function StorefrontBannersPage() {
-  const { config, updateOfferBanner } = useStoreConfig();
+  const { config, updateOfferBanner, toggleModule } = useStoreConfig();
 
   const [activeTab, setActiveTab] = useState<CustomizerTab>('hero-slider');
   const [savedSuccess, setSavedSuccess] = useState<string | null>(null);
@@ -732,6 +732,65 @@ export default function StorefrontBannersPage() {
           <span>{savedSuccess}</span>
         </div>
       )}
+
+      {/* Live Storefront Visibility Quick Toggles */}
+      {(() => {
+        const isSliderVisible = config.modules?.showHeroSlider ?? true;
+        const isCategoriesVisible = config.modules?.showFeaturedCategories ?? true;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            {/* Switch 1: Hero Banner Slider */}
+            <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${
+              isSliderVisible ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950' : 'bg-rose-50/80 border-rose-200 text-rose-950'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <span className={`w-2.5 h-2.5 rounded-full ${isSliderVisible ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                <div>
+                  <div className="font-black text-xs">Storefront Hero Banner Slider</div>
+                  <div className="text-[11px] opacity-75">{isSliderVisible ? '🟢 Visible on website' : '🔴 Hidden from website'}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  toggleModule('showHeroSlider');
+                  showSuccess(`Hero Slider is now ${!isSliderVisible ? 'VISIBLE' : 'HIDDEN'} on the live website!`);
+                }}
+                className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all shadow-xs cursor-pointer ${
+                  isSliderVisible ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                }`}
+              >
+                {isSliderVisible ? 'Hide Slider' : 'Show Slider'}
+              </button>
+            </div>
+
+            {/* Switch 2: Round Featured Categories */}
+            <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${
+              isCategoriesVisible ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950' : 'bg-rose-50/80 border-rose-200 text-rose-950'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <span className={`w-2.5 h-2.5 rounded-full ${isCategoriesVisible ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                <div>
+                  <div className="font-black text-xs">Round Category Bubbles (6)</div>
+                  <div className="text-[11px] opacity-75">{isCategoriesVisible ? '🟢 Visible on website' : '🔴 Hidden from website'}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  toggleModule('showFeaturedCategories');
+                  showSuccess(`Category Bubbles are now ${!isCategoriesVisible ? 'VISIBLE' : 'HIDDEN'} on the live website!`);
+                }}
+                className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all shadow-xs cursor-pointer ${
+                  isCategoriesVisible ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                }`}
+              >
+                {isCategoriesVisible ? 'Hide Bubbles' : 'Show Bubbles'}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Navigation Tabs - Horizontally Scrollable on Mobile */}
       <div className="flex items-center gap-2 bg-white p-2 rounded-2xl border border-slate-200 shadow-2xs text-xs font-bold overflow-x-auto no-scrollbar whitespace-nowrap">

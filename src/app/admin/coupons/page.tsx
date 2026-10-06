@@ -23,7 +23,7 @@ import { useStoreConfig } from '@/context/StoreConfigContext';
 import { Coupon } from '@/types';
 
 export default function AdminCouponsPage() {
-  const { coupons, addCoupon, updateCoupon, deleteCoupon } = useStoreConfig();
+  const { config, toggleModule, coupons, addCoupon, updateCoupon, deleteCoupon } = useStoreConfig();
 
   const [isAdding, setIsAdding] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
@@ -132,6 +132,45 @@ export default function AdminCouponsPage() {
           <span>{toastMsg}</span>
         </div>
       )}
+
+      {/* Live Storefront Visibility Switch Banner */}
+      {(() => {
+        const isVisible = config.modules?.showPromoCoupons ?? true;
+        return (
+          <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs transition-colors ${
+            isVisible ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950' : 'bg-rose-50/80 border-rose-200 text-rose-950'
+          }`}>
+            <div className="flex items-center gap-3">
+              <span className={`w-3 h-3 rounded-full ${isVisible ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+              <div>
+                <span className="font-black text-sm">
+                  Cart Promo Code Input: {isVisible ? '🟢 Active & Enabled in Basket' : '🔴 Disabled (Hidden from Basket)'}
+                </span>
+                <p className="text-[11px] opacity-80 mt-0.5">
+                  {isVisible 
+                    ? 'Customers can enter coupon codes to receive discounts during checkout.'
+                    : 'The coupon code box is completely hidden from the cart drawer and checkout.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                toggleModule('showPromoCoupons');
+                showToast(`Promo Coupons are now ${!isVisible ? 'ENABLED' : 'DISABLED'} on the live website!`);
+              }}
+              className={`px-4 py-2 rounded-xl font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-2 ${
+                isVisible
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                  : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+              }`}
+            >
+              <span>{isVisible ? 'Disable / Hide from Basket' : 'Enable / Show in Basket'}</span>
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Search Bar */}
       <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 text-xs">
