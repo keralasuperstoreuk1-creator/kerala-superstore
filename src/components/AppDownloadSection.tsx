@@ -18,7 +18,7 @@ import { useAppDownload } from '@/context/AppDownloadContext';
 import { AppleIcon, AndroidIcon } from '@/components/AppDownloadModal';
 
 export const AppDownloadSection: React.FC = () => {
-  const { openModal, triggerInstall, isInstallable } = useAppDownload();
+  const { openModal, installApp, triggerInstall, isInstallable } = useAppDownload();
 
   return (
     <section className="relative overflow-hidden my-12 rounded-3xl mx-4 sm:mx-6 max-w-7xl lg:mx-auto">
@@ -118,7 +118,7 @@ export const AppDownloadSection: React.FC = () => {
 
             {/* Android Button */}
             <button
-              onClick={() => openModal('android')}
+              onClick={() => (isInstallable ? installApp() : openModal('android'))}
               className="w-full sm:w-auto px-5 py-3.5 bg-gradient-to-r from-emerald-800 to-emerald-700 hover:from-emerald-700 hover:to-emerald-600 border border-emerald-400/30 rounded-2xl text-left flex items-center gap-3.5 transition-all active:scale-95 group cursor-pointer shadow-lg shadow-emerald-950/50"
             >
               <div className="w-9 h-9 rounded-xl bg-emerald-900/60 flex items-center justify-center text-emerald-300 group-hover:scale-110 transition-transform">

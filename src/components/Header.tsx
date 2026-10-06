@@ -40,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { totalItems, setIsCartOpen } = useCart();
   const { config } = useStoreConfig();
   const { unreadCount, setIsNotificationModalOpen } = useSpecialsNotification();
-  const { openModal } = useAppDownload();
+  const { installApp } = useAppDownload();
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -187,7 +187,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Official App Download Button (Tablet/Desktop) */}
             <button
-              onClick={() => openModal()}
+              onClick={() => installApp()}
               className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-amber-500/10 hover:border-amber-500 hover:bg-amber-50 text-slate-800 transition-all text-xs font-bold shadow-2xs group cursor-pointer active:scale-95"
               title="Download Kerala Superstore App (Android & iPhone)"
             >
@@ -331,7 +331,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Mobile Download App Banner in Menu */}
           <button
             onClick={() => {
-              openModal();
+              installApp();
               setMobileMenuOpen(false);
             }}
             className="w-full p-3 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white flex items-center justify-between text-left shadow-lg border border-amber-400/30 active:scale-98 transition-all"

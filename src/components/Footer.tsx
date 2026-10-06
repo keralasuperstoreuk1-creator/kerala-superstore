@@ -20,7 +20,7 @@ import { useAppDownload } from '@/context/AppDownloadContext';
 import { AppleIcon, AndroidIcon } from '@/components/AppDownloadModal';
 
 export const Footer: React.FC = () => {
-  const { openModal } = useAppDownload();
+  const { openModal, installApp, isInstallable } = useAppDownload();
   return (
     <footer className="bg-slate-950 text-slate-300 pt-16 pb-12 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 space-y-12">
@@ -184,7 +184,7 @@ export const Footer: React.FC = () => {
             </button>
 
             <button
-              onClick={() => openModal('android')}
+              onClick={() => (isInstallable ? installApp() : openModal('android'))}
               className="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 shadow-md shadow-emerald-950"
             >
               <AndroidIcon className="w-4 h-4 text-emerald-300" />

@@ -7,7 +7,7 @@ import { useAppDownload } from '@/context/AppDownloadContext';
 import { AppleIcon, AndroidIcon } from '@/components/AppDownloadModal';
 
 export const PwaInstallPrompt: React.FC = () => {
-  const { openModal, triggerInstall, isInstallable, isIOS } = useAppDownload();
+  const { installApp, isInstallable, isInstalled, isIOS } = useAppDownload();
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
@@ -17,14 +17,7 @@ export const PwaInstallPrompt: React.FC = () => {
   }, []);
 
   const handleInstallClick = async () => {
-    if (isInstallable) {
-      const accepted = await triggerInstall();
-      if (!accepted) {
-        openModal();
-      }
-    } else {
-      openModal();
-    }
+    await installApp();
   };
 
   const handleDismiss = () => {
@@ -34,12 +27,12 @@ export const PwaInstallPrompt: React.FC = () => {
     }
   };
 
-  if (isDismissed) return null;
+  if (isDismissed || isInstalled) return null;
 
   return (
     <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white px-3 py-1.5 border-b border-white/10 flex items-center justify-between gap-2 text-xs">
       <div 
-        onClick={() => openModal()}
+        onClick={handleInstallClick}
         className="flex items-center gap-2 min-w-0 cursor-pointer group"
       >
         <div className="relative w-6 h-6 rounded-full overflow-hidden shrink-0 border border-amber-400/80 bg-emerald-900 shadow-xs group-hover:scale-105 transition-transform">
@@ -71,7 +64,7 @@ export const PwaInstallPrompt: React.FC = () => {
           className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg font-black text-[11px] shadow-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
         >
           <Download className="w-3 h-3" />
-          <span>{isInstallable ? 'Install App' : 'Get App'}</span>
+          <span>{isInstallable ? 'Add to Home Screen' : isIOS ? 'Add to Home' : 'Install App'}</span>
         </button>
         <button
           onClick={handleDismiss}

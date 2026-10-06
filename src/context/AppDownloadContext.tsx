@@ -10,6 +10,8 @@ interface AppDownloadContextType {
   deferredPrompt: any;
   isInstallable: boolean;
   triggerInstall: () => Promise<boolean>;
+  installApp: () => Promise<void>;
+  isInstalled: boolean;
   isIOS: boolean;
   isAndroid: boolean;
 }
@@ -22,32 +24,51 @@ export const AppDownloadProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     // Detect OS
-    if (typeof window !== 'undefined') {
-      const ua = window.navigator.userAgent.toLowerCase();
-      const ios = /iphone|ipad|ipod/.test(ua);
-      const android = /android/.test(ua);
-      setIsIOS(ios);
-      setIsAndroid(android);
-      if (ios) {
-        setActiveTab('ios');
-      } else {
-        setActiveTab('android');
-      }
+    const ua = window.navigator.userAgent.toLowerCase();
+    const ios = /iphone|ipad|ipod/.test(ua) || (ua.includes('macintosh') && 'ontouchend' in document);
+    const android = /android/.test(ua);
+    setIsIOS(ios);
+    setIsAndroid(android);
+    setActiveTab(ios ? 'ios' : 'android');
 
-      // Listen for PWA beforeinstallprompt
-      const handleBeforeInstall = (e: Event) => {
-        e.preventDefault();
-        setDeferredPrompt(e);
-      };
+    // Already running as installed app?
+    const standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    setIsInstalled(standalone);
 
-      window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-      return () => {
-        window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
-      };
+    // Pick up prompt captured early in <head> (before React loaded)
+    if ((window as any).__kssInstallPrompt) {
+      setDeferredPrompt((window as any).__kssInstallPrompt);
     }
+
+    const handleReady = () => setDeferredPrompt((window as any).__kssInstallPrompt || null);
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      (window as any).__kssInstallPrompt = e;
+      setDeferredPrompt(e);
+    };
+    const handleInstalled = () => {
+      (window as any).__kssInstallPrompt = null;
+      setDeferredPrompt(null);
+      setIsInstalled(true);
+      setIsOpen(false);
+    };
+
+    window.addEventListener('kss-install-ready', handleReady);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleInstalled);
+    return () => {
+      window.removeEventListener('kss-install-ready', handleReady);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleInstalled);
+    };
   }, []);
 
   const openModal = (tab?: 'android' | 'ios') => {
@@ -66,12 +87,16 @@ export const AppDownloadProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const triggerInstall = async (): Promise<boolean> => {
-    if (deferredPrompt) {
+    const prompt = deferredPrompt || (typeof window !== 'undefined' ? (window as any).__kssInstallPrompt : null);
+    if (prompt) {
       try {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        prompt.prompt();
+        const { outcome } = await prompt.userChoice;
+        // A prompt can only be used once
+        (window as any).__kssInstallPrompt = null;
+        setDeferredPrompt(null);
         if (outcome === 'accepted') {
-          setDeferredPrompt(null);
+          setIsInstalled(true);
           closeModal();
           return true;
         }
@@ -80,6 +105,20 @@ export const AppDownloadProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
     return false;
+  };
+
+  /**
+   * One-tap install: shows the phone's native "Add to Home screen" popup
+   * directly when the browser supports it. Otherwise (iPhone Safari, or
+   * browsers without the API) opens the step-by-step guide.
+   */
+  const installApp = async (): Promise<void> => {
+    const prompt = deferredPrompt || (typeof window !== 'undefined' ? (window as any).__kssInstallPrompt : null);
+    if (prompt) {
+      await triggerInstall();
+      return;
+    }
+    openModal();
   };
 
   return (
@@ -92,6 +131,8 @@ export const AppDownloadProvider: React.FC<{ children: React.ReactNode }> = ({ c
         deferredPrompt,
         isInstallable: !!deferredPrompt,
         triggerInstall,
+        installApp,
+        isInstalled,
         isIOS,
         isAndroid,
       }}
