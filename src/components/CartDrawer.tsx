@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { 
   X, 
@@ -11,6 +11,7 @@ import {
   Truck, 
   ShieldCheck, 
   ArrowRight,
+  ArrowLeft,
   Clock,
   Tag,
   Check,
@@ -75,6 +76,18 @@ export const CartDrawer: React.FC = () => {
     setCouponError(null);
   };
 
+  // Close cart on Escape key press
+  useEffect(() => {
+    if (!isCartOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsCartOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCartOpen, setIsCartOpen]);
+
   if (!isCartOpen) return null;
 
   const freeDeliveryProgress = Math.min(100, (subtotal / freeDeliveryThreshold) * 100);
@@ -93,32 +106,56 @@ export const CartDrawer: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
-      {/* Backdrop */}
+      {/* Backdrop - Tap outside to close */}
       <div 
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity cursor-pointer"
         onClick={() => setIsCartOpen(false)}
+        aria-label="Close cart backdrop"
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-4 sm:pl-10">
         <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col">
-          {/* Header */}
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-emerald-950 text-white">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-amber-400" />
-              <h2 className="font-bold text-base">
-                {checkoutStep === 'cart' && 'Your Shopping Basket'}
-                {checkoutStep === 'checkout' && 'UK Cash on Delivery Checkout'}
-                {checkoutStep === 'success' && 'Order Placed Successfully!'}
-              </h2>
+          {/* Header with prominent Back & Close buttons */}
+          <div className="p-3.5 sm:p-4 border-b border-emerald-900 flex items-center justify-between bg-emerald-950 text-white sticky top-0 z-20 shadow-md">
+            <div className="flex items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (checkoutStep === 'checkout') {
+                    setCheckoutStep('cart');
+                  } else {
+                    setIsCartOpen(false);
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 text-white font-black text-xs transition-all cursor-pointer shrink-0"
+                aria-label="Go Back"
+              >
+                <ArrowLeft className="w-4 h-4 text-amber-300" />
+                <span>Back</span>
+              </button>
+
+              <div className="flex items-center gap-2 min-w-0">
+                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0" />
+                <h2 className="font-bold text-sm sm:text-base truncate">
+                  {checkoutStep === 'cart' && 'Your Basket'}
+                  {checkoutStep === 'checkout' && 'Cash on Delivery'}
+                  {checkoutStep === 'success' && 'Order Placed!'}
+                </h2>
+              </div>
             </div>
+
             <button
+              type="button"
               onClick={() => {
                 setIsCartOpen(false);
                 if (checkoutStep === 'success') setCheckoutStep('cart');
               }}
-              className="p-1 rounded-full text-slate-300 hover:text-white hover:bg-emerald-800 transition-colors"
+              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
+              aria-label="Close basket"
+              title="Close basket"
             >
-              <X className="w-5 h-5" />
+              <span className="hidden sm:inline">Close</span>
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -466,13 +503,22 @@ export const CartDrawer: React.FC = () => {
               </div>
 
               {checkoutStep === 'cart' ? (
-                <button
-                  onClick={() => setCheckoutStep('checkout')}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
-                >
-                  <span>Proceed to UK Cash on Delivery Checkout</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setCheckoutStep('checkout')}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer active:scale-98"
+                  >
+                    <span>Proceed to UK Cash on Delivery Checkout</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCartOpen(false)}
+                    className="w-full py-2.5 px-4 text-center text-xs font-bold text-slate-700 hover:text-emerald-900 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-xl transition-all cursor-pointer"
+                  >
+                    ← Continue Shopping (Back to Store)
+                  </button>
+                </div>
               ) : (
                 <div className="flex gap-2">
                   <button

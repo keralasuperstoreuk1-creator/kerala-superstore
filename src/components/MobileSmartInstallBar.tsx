@@ -53,18 +53,18 @@ export const MobileSmartInstallBar: React.FC = () => {
   };
 
   return (
-    <div className="lg:hidden fixed bottom-[64px] left-0 right-0 z-40 px-3 pb-1 pointer-events-auto animate-fadeIn">
-      <div className="relative overflow-hidden bg-gradient-to-r from-slate-950 via-emerald-950 to-slate-950 text-white rounded-2xl p-3.5 shadow-2xl border border-amber-400/40 ring-1 ring-black/20">
+    <div className="lg:hidden fixed bottom-[58px] left-0 right-0 z-30 px-2.5 pb-1 pointer-events-auto animate-fadeIn">
+      <div className="relative overflow-hidden bg-gradient-to-r from-slate-950 via-emerald-950 to-slate-950 text-white rounded-2xl p-3 shadow-2xl border border-amber-400/40 ring-1 ring-black/20">
         {/* Subtle moving shimmer highlight */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_4s_infinite] pointer-events-none" />
 
-        <div className="relative flex items-center justify-between gap-3">
+        <div className="relative flex items-center justify-between gap-2.5">
           {/* Left: App Logo & Description */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="relative w-11 h-11 rounded-2xl overflow-hidden border-2 border-amber-400 bg-emerald-900 shrink-0 shadow-md">
+            <div className="relative w-10 h-10 rounded-2xl overflow-hidden border-2 border-amber-400 bg-emerald-900 shrink-0 shadow-md">
               <Image
                 src="/branding/kerala-superstore-round-logo.png"
-                alt="App"
+                alt="Kerala Super Store App"
                 fill
                 className="object-contain p-0.5"
               />
@@ -72,13 +72,17 @@ export const MobileSmartInstallBar: React.FC = () => {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-black text-xs text-white leading-tight">
-                  {isIOS ? 'Kerala Store iPhone App' : 'Kerala Superstore App'}
+                  {isIOS 
+                    ? 'Kerala Super Store iPhone App' 
+                    : isAndroid 
+                    ? 'Kerala Super Store Android App' 
+                    : 'Kerala Super Store App'}
                 </span>
                 <span className="bg-amber-400 text-slate-950 font-black text-[9px] px-1.5 py-0.2 rounded-full uppercase">
                   Free
                 </span>
               </div>
-              <p className="text-[11px] text-amber-200/90 font-medium truncate mt-0.5">
+              <p className="text-[10px] text-amber-200/90 font-medium truncate mt-0.5">
                 {isIOS 
                   ? 'Add to Home Screen in 2 taps'
                   : '1-Click Install • Instant Food Alerts'}

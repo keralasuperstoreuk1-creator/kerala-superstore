@@ -11,7 +11,8 @@ import {
   Menu, 
   X,
   ChevronDown,
-  Bell
+  Bell,
+  Download
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStoreConfig } from '@/context/StoreConfigContext';
@@ -40,9 +41,20 @@ export const Header: React.FC<HeaderProps> = ({
   const { totalItems, setIsCartOpen } = useCart();
   const { config } = useStoreConfig();
   const { unreadCount, setIsNotificationModalOpen } = useSpecialsNotification();
-  const { installApp } = useAppDownload();
+  const { isIOS, isAndroid, installApp, openModal } = useAppDownload();
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Auto-detect OS for the top download button
+  const handleAppDownloadClick = () => {
+    if (isIOS) {
+      openModal('ios');
+    } else if (isAndroid) {
+      installApp();
+    } else {
+      openModal();
+    }
+  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -92,8 +104,8 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile App Install Prompt Strip */}
       <PwaInstallPrompt />
 
-      {/* Top Announcement Bar (NO Admin link, completely discreet) */}
-      <div className={`${announcementBg} text-xs py-2 px-4 transition-colors duration-500`}>
+      {/* Top Announcement Bar (Hidden on Mobile as requested, visible on Desktop) */}
+      <div className={`hidden md:block ${announcementBg} text-xs py-2 px-4 transition-colors duration-500`}>
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-center sm:text-left">
           <div className="flex items-center gap-2">
             <span className={`inline-block ${announcementBadge.bg} font-black px-2 py-0.5 rounded-full text-[10px]`}>
@@ -118,30 +130,30 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Main Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5">
-        <div className="flex items-center justify-between gap-2 sm:gap-4">
-          {/* Customer Luxury Emblem with Admin Adjustable Sizing */}
-          <Link href="/" className="shrink-0 flex items-center gap-2 sm:gap-3 group max-w-[55%] sm:max-w-none">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-2 sm:py-2.5">
+        <div className="flex items-center justify-between gap-1.5 sm:gap-4">
+          {/* Customer Luxury Emblem with Full Store Title & Subtitle */}
+          <Link href="/" className="shrink-0 flex items-center gap-2 sm:gap-3 group">
             <LuxuryStoreLogo size={config.logoSize} />
             {config.showStoreTitle && (
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-1">
-                  <span className={`font-black text-lg sm:text-xl tracking-tight leading-none ${
+              <div className="flex flex-col justify-center min-w-0">
+                <div className="flex items-center gap-1 leading-tight">
+                  <span className={`font-black text-sm sm:text-xl tracking-tight leading-none whitespace-nowrap ${
                     config.theme === 'christmas' ? 'text-rose-700' : 'text-emerald-800'
                   }`}>
                     Kerala
                   </span>
-                  <span className="font-black text-lg sm:text-xl text-slate-900 tracking-wider leading-none truncate">
+                  <span className="font-black text-sm sm:text-xl text-slate-900 tracking-tight leading-none whitespace-nowrap">
                     SUPERSTORE
                   </span>
-                  <span className="hidden sm:inline-block px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider shadow-2xs">
+                  <span className="hidden sm:inline-block px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider shadow-2xs ml-0.5">
                     UK
                   </span>
                 </div>
-                <div className="flex items-center gap-1 text-[9px] sm:text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
-                  <span className="text-emerald-800 font-bold shrink-0">Manchester</span>
-                  <span>•</span>
-                  <span className="text-slate-500 truncate">M9 8PX</span>
+                <div className="flex items-center gap-1 text-[9px] sm:text-[11px] font-bold text-amber-600 mt-0.5 leading-none whitespace-nowrap">
+                  <span>Kerala Supermarket</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-emerald-700 font-semibold">Store</span>
                 </div>
               </div>
             )}
@@ -183,31 +195,26 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Action Buttons: App Download, Specials Bell, Cart, Mobile Menu */}
+          {/* Action Buttons: App Download & Shopping Cart (Mobile Optimized, No Overflow) */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {/* Official App Download Button (Mobile + Desktop) */}
+            {/* Official App Download Button (Auto-detects iPhone or Android on click) */}
             {(config.modules?.showAppDownload ?? true) && (
               <button
-                onClick={() => installApp()}
-                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-amber-400/60 bg-gradient-to-r from-amber-500/15 via-emerald-500/10 to-amber-500/15 hover:border-amber-500 hover:bg-amber-50 text-slate-800 transition-all text-xs font-bold shadow-2xs group cursor-pointer active:scale-95"
-                title="Install Kerala Superstore App (Android & iPhone)"
+                type="button"
+                onClick={handleAppDownloadClick}
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-amber-400/80 bg-gradient-to-r from-amber-400/20 via-emerald-500/10 to-amber-400/20 hover:from-amber-400/30 hover:to-amber-400/30 text-slate-900 transition-all text-xs font-black shadow-2xs group cursor-pointer active:scale-95 shrink-0"
+                title="Download Kerala Superstore App"
               >
-                <div className="flex items-center -space-x-1">
-                  <AndroidIcon className="w-3.5 h-3.5 text-emerald-700" />
-                  <AppleIcon className="w-3.5 h-3.5 text-slate-800" />
-                </div>
-                <span className="font-extrabold text-[11px] sm:text-xs text-slate-900 group-hover:text-emerald-950">App</span>
-                <span className="bg-amber-400 text-slate-950 text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded-full uppercase tracking-wider">
-                  Add
-                </span>
+                <Download className="w-3.5 h-3.5 text-emerald-800 group-hover:scale-110 transition-transform shrink-0" />
+                <span className="text-[10px] sm:text-xs font-black whitespace-nowrap">App Download</span>
               </button>
             )}
 
-            {/* Daily Specials & Biriyani Alerts Notification Bell */}
+            {/* Daily Specials & Biriyani Alerts Notification Bell (Desktop Only - Mobile has this in bottom nav) */}
             {(config.modules?.showKitchenSpecials ?? true) && (
               <button
                 onClick={() => setIsNotificationModalOpen(true)}
-                className="relative p-2 sm:p-2.5 rounded-xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 transition-all text-slate-700 cursor-pointer group active:scale-95"
+                className="hidden sm:flex relative p-2 sm:p-2.5 rounded-xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 transition-all text-slate-700 cursor-pointer group active:scale-95"
                 title="Store Alerts & Kitchen Specials"
               >
                 <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800 group-hover:text-amber-600 transition-colors" />
@@ -219,16 +226,17 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Shopping Cart Button */}
+            {/* Shopping Cart Button (Mobile & Desktop - Always fully fitted) */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-xs transition-all cursor-pointer relative text-white active:scale-95 ${
+              className={`flex items-center justify-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-xl shadow-xs transition-all cursor-pointer relative text-white active:scale-95 shrink-0 ${
                 config.theme === 'christmas'
                   ? 'bg-rose-700 hover:bg-rose-800'
                   : config.theme === 'onam'
                   ? 'bg-amber-600 hover:bg-amber-700'
                   : 'bg-emerald-800 hover:bg-emerald-700'
               }`}
+              aria-label="Shopping Basket"
             >
               <div className="relative">
                 <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -244,15 +252,6 @@ export const Header: React.FC<HeaderProps> = ({
                   {totalItems} {totalItems === 1 ? 'item' : 'items'}
                 </div>
               </div>
-            </button>
-
-            {/* Mobile hamburger menu */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 active:scale-95"
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
           </div>
         </div>

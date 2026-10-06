@@ -21,32 +21,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 pointer-events-none pb-[env(safe-area-inset-bottom)]">
-      
-      {/* Floating Sticky Cart Preview Pill (when cart has items) */}
-      {totalItems > 0 && (
-        <div className="px-4 pb-2 pointer-events-auto">
-          <button
-            onClick={() => setIsCartOpen(true)}
-            className="w-full bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-800 text-white p-3 rounded-2xl shadow-2xl border border-emerald-500/40 flex items-center justify-between active:scale-98 transition-all animate-soft-pulse cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center shadow-xs">
-                {totalItems}
-              </div>
-              <div className="text-left">
-                <div className="text-[10px] text-emerald-200 font-semibold leading-tight">Your Basket Total</div>
-                <div className="text-sm font-black leading-tight">£{subtotal.toFixed(2)}</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1 text-xs font-black bg-white/15 px-3 py-1.5 rounded-xl border border-white/20">
-              <span>View Basket</span>
-              <ArrowRight className="w-3.5 h-3.5 text-amber-300" />
-            </div>
-          </button>
-        </div>
-      )}
-
       {/* Modern Fixed App Bottom Navigation Bar */}
       <nav className="pointer-events-auto bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-2xl px-2 py-1.5 flex items-center justify-around">
         {/* Home */}
