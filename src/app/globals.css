@@ -39,6 +39,11 @@
   --color-gold-50: var(--kerala-gold-50);
 }
 
+html {
+  background-color: #020617;
+  overscroll-behavior-y: none;
+}
+
 html, body {
   width: 100%;
   max-width: 100vw;
@@ -52,6 +57,7 @@ html, body {
 }
 
 body {
+  overscroll-behavior-y: none;
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

@@ -22,7 +22,7 @@ import { AppleIcon, AndroidIcon } from '@/components/AppDownloadModal';
 export const Footer: React.FC = () => {
   const { openModal, installApp, isInstallable } = useAppDownload();
   return (
-    <footer className="bg-slate-950 text-slate-300 pt-16 pb-12 border-t border-slate-800">
+    <footer className="bg-slate-950 text-slate-300 pt-14 pb-28 sm:pb-16 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 space-y-12">
         {/* Top Trust Pillars Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pb-12 border-b border-slate-800/80">

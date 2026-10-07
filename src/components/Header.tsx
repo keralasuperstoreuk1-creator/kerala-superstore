@@ -29,6 +29,7 @@ interface HeaderProps {
   selectedCategory?: string | null;
   onOpenPostcodeModal?: () => void;
   currentPostcode?: string;
+  searchQuery?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -36,14 +37,20 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectCategory,
   selectedCategory,
   onOpenPostcodeModal,
-  currentPostcode = 'Manchester (M9 8PX) & Nationwide'
+  currentPostcode = 'Manchester (M9 8PX) & Nationwide',
+  searchQuery: searchQueryProp = ''
 }) => {
   const { totalItems, setIsCartOpen } = useCart();
   const { config } = useStoreConfig();
   const { unreadCount, setIsNotificationModalOpen } = useSpecialsNotification();
   const { isIOS, isAndroid, deferredPrompt, triggerInstall, installApp, openModal } = useAppDownload();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchQueryProp);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Sync internal search query if parent updates it (e.g. reset filters)
+  React.useEffect(() => {
+    setSearchQuery(searchQueryProp);
+  }, [searchQueryProp]);
 
   // Auto-detect OS for the top download button
   const handleAppDownloadClick = () => {
@@ -64,6 +71,25 @@ export const Header: React.FC<HeaderProps> = ({
     const val = e.target.value;
     setSearchQuery(val);
     if (onSearch) onSearch(val);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onSearch) onSearch(searchQuery);
+    // Dismiss mobile virtual keyboard
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    // Scroll smoothly to results
+    const el = document.getElementById('search-results-section') || document.getElementById('catalog-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    if (onSearch) onSearch('');
   };
 
   // Determine theme announcement bar styling
@@ -178,25 +204,41 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Desktop Search Bar (Hidden on Mobile, rendered below on Mobile) */}
           <div className="hidden md:flex flex-1 max-w-xl relative">
-            <div className="relative flex items-center w-full">
+            <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full">
               <input
-                type="text"
+                type="search"
+                inputMode="search"
+                enterKeyHint="search"
                 placeholder="Search Palakkadan Matta Rice, Sambar Masala, Banana Chips..."
                 value={searchQuery}
                 onChange={handleSearchChange}
-                className="w-full pl-10 pr-20 py-2.5 rounded-full border border-slate-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none text-xs sm:text-sm transition-all shadow-xs bg-slate-50/50 focus:bg-white"
+                className="w-full pl-10 pr-24 py-2.5 rounded-full border border-slate-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none text-xs sm:text-sm transition-all shadow-xs bg-slate-50/50 focus:bg-white"
               />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5" />
-              <button className={`absolute right-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white transition-all ${
-                config.theme === 'christmas'
-                  ? 'bg-rose-700 hover:bg-rose-800'
-                  : config.theme === 'onam'
-                  ? 'bg-amber-600 hover:bg-amber-700'
-                  : 'bg-emerald-800 hover:bg-emerald-700'
-              }`}>
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute right-18 p-1 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer transition-colors"
+                  title="Clear search"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                type="submit"
+                className={`absolute right-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white transition-all cursor-pointer active:scale-95 ${
+                  config.theme === 'christmas'
+                    ? 'bg-rose-700 hover:bg-rose-800'
+                    : config.theme === 'onam'
+                    ? 'bg-amber-600 hover:bg-amber-700'
+                    : 'bg-emerald-800 hover:bg-emerald-700'
+                }`}
+              >
                 Search
               </button>
-            </div>
+            </form>
           </div>
 
           {/* Action Buttons: App Download & Shopping Cart (Mobile Optimized, No Overflow) */}
@@ -262,25 +304,41 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Mobile Dedicated Full-Width App-Style Search Bar */}
         <div className="block md:hidden pt-2 pb-0.5">
-          <div className="relative flex items-center w-full">
+          <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full">
             <input
-              type="text"
+              type="search"
+              inputMode="search"
+              enterKeyHint="search"
               placeholder="Search Matta Rice, Masalas, Snacks, Kappa..."
               value={searchQuery}
               onChange={handleSearchChange}
-              className="w-full pl-9 pr-18 py-2 rounded-full border border-slate-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none text-xs transition-all shadow-xs bg-slate-50/70 focus:bg-white"
+              className="w-full pl-9 pr-22 py-2 rounded-full border border-slate-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none text-xs transition-all shadow-xs bg-slate-50/70 focus:bg-white"
             />
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3" />
-            <button className={`absolute right-1 px-3 py-1 rounded-full text-[11px] font-bold text-white transition-all ${
-              config.theme === 'christmas'
-                ? 'bg-rose-700 hover:bg-rose-800'
-                : config.theme === 'onam'
-                ? 'bg-amber-600 hover:bg-amber-700'
-                : 'bg-emerald-800 hover:bg-emerald-700'
-            }`}>
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="absolute right-16 p-1 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer transition-colors"
+                title="Clear search"
+                aria-label="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              type="submit"
+              className={`absolute right-1 px-3 py-1 rounded-full text-[11px] font-bold text-white transition-all cursor-pointer active:scale-95 ${
+                config.theme === 'christmas'
+                  ? 'bg-rose-700 hover:bg-rose-800'
+                  : config.theme === 'onam'
+                  ? 'bg-amber-600 hover:bg-amber-700'
+                  : 'bg-emerald-800 hover:bg-emerald-700'
+              }`}
+            >
               Search
             </button>
-          </div>
+          </form>
         </div>
       </div>
 

@@ -79,17 +79,20 @@ export default function HomePage() {
   // Filter products based on search, category, brand, offers, in-stock
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      if (selectedCategory && p.categorySlug !== selectedCategory) return false;
+      const hasSearch = Boolean(searchQuery.trim());
+      // When searching, match across the entire store unless a specific brand/offer filter is set
+      if (!hasSearch && selectedCategory && p.categorySlug !== selectedCategory) return false;
       if (selectedBrand && p.brand !== selectedBrand) return false;
       if (onlyOffers && !p.offerPrice) return false;
       if (onlyInStock && p.stock <= 0) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
+      if (hasSearch) {
+        const q = searchQuery.toLowerCase().trim();
         const matchName = p.name.toLowerCase().includes(q);
         const matchBrand = p.brand.toLowerCase().includes(q);
         const matchDesc = p.description.toLowerCase().includes(q);
+        const matchCategory = p.category.toLowerCase().includes(q) || p.categorySlug.toLowerCase().includes(q);
         const matchTags = p.tags.some((t) => t.toLowerCase().includes(q));
-        if (!matchName && !matchBrand && !matchDesc && !matchTags) return false;
+        if (!matchName && !matchBrand && !matchDesc && !matchCategory && !matchTags) return false;
       }
       return true;
     }).sort((a, b) => {
@@ -162,6 +165,7 @@ export default function HomePage() {
 
       {/* Top Header */}
       <Header
+        searchQuery={searchQuery}
         onSearch={setSearchQuery}
         onSelectCategory={(slug) => {
           setSelectedCategory(slug);
@@ -178,7 +182,99 @@ export default function HomePage() {
       {/* Animated Special Offer Marquee Banner */}
       <SpecialOfferBanner onScrollToOffers={scrollToOffers} />
 
-      <main className="flex-1 pb-24 lg:pb-10">
+      <main className="flex-1 pb-4 lg:pb-6">
+        {/* Instant Dedicated Search Results Section (Renders immediately at top when search is active) */}
+        {searchQuery.trim() && (
+          <section id="search-results-section" className="max-w-7xl mx-auto px-4 py-6 scroll-mt-24">
+            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-emerald-500/30 shadow-md mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                  <Search className="w-4 h-4 text-emerald-700" />
+                  <span>Search Inventory</span>
+                </div>
+                <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Search results for &ldquo;{searchQuery}&rdquo;
+                </h2>
+                <p className="text-xs text-slate-500 font-medium">
+                  Found <strong className="text-emerald-800 font-bold">{filteredProducts.length}</strong> matching Kerala groceries across all departments
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 self-stretch sm:self-auto justify-between sm:justify-end">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-slate-400 font-semibold hidden sm:inline">Sort:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50 font-bold text-slate-800 text-xs outline-none focus:border-emerald-600 cursor-pointer"
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="name">Name (A-Z)</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                >
+                  <span>Clear Search</span>
+                  <span className="text-sm leading-none">&times;</span>
+                </button>
+              </div>
+            </div>
+
+            {filteredProducts.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 text-center space-y-4 shadow-xs">
+                <div className="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto text-amber-600">
+                  <Package className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-base sm:text-lg">No products found for &ldquo;{searchQuery}&rdquo;</h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                    We couldn&apos;t find an exact match. Try checking the spelling or tap a popular Kerala grocery staple below:
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-2 max-w-lg mx-auto pt-2">
+                  {['Matta Rice', 'Eastern Masala', 'Nirapara', 'Banana Chips', 'Sambar Masala', 'Pickle', 'Tapioca (Kappa)', 'Coconut Oil'].map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => setSearchQuery(tag)}
+                      className="px-3 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 rounded-full text-xs font-semibold text-slate-700 transition-all cursor-pointer"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategory(null);
+                      setSelectedBrand(null);
+                    }}
+                    className="px-5 py-2.5 bg-emerald-800 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all cursor-pointer shadow-sm active:scale-95"
+                  >
+                    View All Groceries
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onOpenDetails={(p) => setActiveProduct(p)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
         {/* EMARKET Supermarket Layout: 3-Column Banner, Arched Categories, and Deals of the Week */}
         {!selectedCategory && !searchQuery && (
           <>
@@ -250,7 +346,7 @@ export default function HomePage() {
 
 
         {/* Luxury 2026 Category Showcase with REAL PHOTOGRAPHIC IMAGES */}
-        {(config.modules?.showCuratedDepartments ?? true) && (
+        {(config.modules?.showCuratedDepartments ?? true) && !searchQuery && (
           <section id="departments-section" className="max-w-7xl mx-auto px-4 py-8">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
               <div>
@@ -327,12 +423,13 @@ export default function HomePage() {
         )}
 
         {/* Curated Pre-packed Kerala Combo Bundles & Feast Kits */}
-        {(config.modules?.showComboBundles ?? true) && (
+        {(config.modules?.showComboBundles ?? true) && !searchQuery && (
           <ComboBundlesShowcase />
         )}
 
-        {/* Main Catalog with Filters & Sidebar */}
-        <section id="catalog-section" className="max-w-7xl mx-auto px-4 py-4">
+        {/* Main Catalog with Filters & Sidebar (Shown in standard view) */}
+        {!searchQuery && (
+          <section id="catalog-section" className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex flex-col lg:flex-row gap-6">
             
             {/* Sidebar Filters */}
@@ -508,6 +605,7 @@ export default function HomePage() {
 
           </div>
         </section>
+        )}
 
         {/* Official Kerala Superstore Mobile App Showcase Section */}
         {(config.modules?.showAppDownload ?? true) && (

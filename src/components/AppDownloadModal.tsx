@@ -318,6 +318,24 @@ export const AppDownloadModal: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Troubleshooting if option is not visible in Safari */}
+                  <div className="bg-amber-500/10 border-2 border-amber-400/50 rounded-2xl p-4 text-xs text-slate-800 space-y-2">
+                    <span className="font-black text-amber-950 flex items-center gap-1.5 text-xs">
+                      <span>💡 Don&apos;t see &apos;Add to Home Screen&apos; in Safari?</span>
+                    </span>
+                    <ul className="space-y-1.5 text-[11px] text-slate-700 list-disc list-inside">
+                      <li>
+                        <strong>Scroll down in the Share sheet:</strong> In the Safari menu, scroll past the WhatsApp/Messages icons to find <strong>&apos;Add to Home Screen (⊕)&apos;</strong>.
+                      </li>
+                      <li>
+                        <strong>Turn off Private Browsing:</strong> If Safari is in <em>Private tab</em> mode, Apple hides this option. Open a <strong>Normal Safari tab</strong>.
+                      </li>
+                      <li>
+                        <strong>Opened from WhatsApp/Instagram?</strong> Tap the compass icon <strong>(🧭)</strong> in the bottom right corner to open in Safari first.
+                      </li>
+                    </ul>
+                  </div>
+
                   {/* Notification note */}
                   <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-3.5 flex items-start gap-3 text-xs text-emerald-950">
                     <Bell className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
