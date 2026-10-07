@@ -205,7 +205,7 @@ export default function AdminSettingsPage() {
     enabled: true,
   });
 
-  const [testPostcode, setTestPostcode] = useState('M9 8PX');
+  const [testPostcode, setTestPostcode] = useState('M9 8DX');
   const [testResult, setTestResult] = useState<DeliveryZone | null>(null);
 
   const showSuccess = (msg: string) => {
@@ -805,7 +805,7 @@ export default function AdminSettingsPage() {
                   setTestPostcode(e.target.value);
                   setTestResult(null);
                 }}
-                placeholder="Enter UK Postcode (e.g. M9 8PX or SW1A 1AA)"
+                placeholder="Enter UK Postcode (e.g. M9 8DX or SW1A 1AA)"
                 className="px-3 py-2 border border-slate-300 rounded-xl uppercase font-bold text-xs bg-white outline-none focus:border-emerald-600 flex-1 max-w-xs"
               />
               <button

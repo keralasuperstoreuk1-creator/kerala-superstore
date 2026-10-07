@@ -66,7 +66,7 @@ export default function AdminOrdersPage() {
       ? '🎉 DELIVERED. Thank you for shopping with us!'
       : 'RECEIVED and processing.';
 
-    const message = `Namaskaram ${ord.customerName}! 🙏%0A%0AUpdate regarding your order *${ord.orderNumber}* from *Kerala Superstore Manchester*:%0A%0A*Status:* ${statusText}%0A%0A*Items Ordered:*%0A${itemsText}%0A%0A*Total Amount:* £${ord.total.toFixed(2)} (${ord.paymentStatus === 'paid' ? 'PAID' : 'Cash on Delivery'})%0A*Delivery To:* ${ord.addressLine1}, ${ord.city} (${ord.postcode})%0A%0AQuestions? WhatsApp us or call 07749 132122.%0A4 Wallbrook Drive, Manchester M9 8PX.`;
+    const message = `Namaskaram ${ord.customerName}! 🙏%0A%0AUpdate regarding your order *${ord.orderNumber}* from *Kerala Superstore Manchester*:%0A%0A*Status:* ${statusText}%0A%0A*Items Ordered:*%0A${itemsText}%0A%0A*Total Amount:* £${ord.total.toFixed(2)} (${ord.paymentStatus === 'paid' ? 'PAID' : 'Cash on Delivery'})%0A*Delivery To:* ${ord.addressLine1}, ${ord.city} (${ord.postcode})%0A%0AQuestions? WhatsApp us or call 07749 132122.%0AUnit 2, 73 Old Market Street, Manchester M9 8DX.`;
 
     return `https://wa.me/${cleanPhone}?text=${message}`;
   };
@@ -309,7 +309,7 @@ export default function AdminOrdersPage() {
                         Kerala Superstore Manchester
                       </h2>
                       <p className="text-[11px] text-slate-500">
-                        4 Wallbrook Drive, Manchester M9 8PX • UK<br/>
+                        Unit 2, 73 Old Market Street, Manchester M9 8DX • UK<br/>
                         Phone / WhatsApp: +44 7749 132122
                       </p>
                     </div>
@@ -398,7 +398,7 @@ export default function AdminOrdersPage() {
                   <div className="text-center space-y-1 pb-2 border-b border-dashed border-slate-400">
                     <h3 className="font-black text-xs uppercase">KERALA SUPERSTORE</h3>
                     <p className="text-[10px] text-slate-600">
-                      4 Wallbrook Dr, Manchester M9 8PX<br/>
+                      Unit 2, 73 Old Market St, Manchester M9 8DX<br/>
                       Tel: 07749 132122
                     </p>
                     <div className="font-bold text-[10px] pt-1">

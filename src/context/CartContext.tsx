@@ -29,7 +29,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { getDeliveryZoneForPostcode, config } = useStoreConfig();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [customerPostcode, setCustomerPostcodeState] = useState('M9 8PX');
+  const [customerPostcode, setCustomerPostcodeState] = useState('M9 8DX');
   const [mounted, setMounted] = useState(false);
 
   // Load cart and postcode from localStorage on mount

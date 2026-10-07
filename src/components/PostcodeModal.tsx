@@ -18,7 +18,7 @@ export const PostcodeModal: React.FC<PostcodeModalProps> = ({
   currentPostcode
 }) => {
   const { getDeliveryZoneForPostcode } = useStoreConfig();
-  const [inputVal, setInputVal] = useState(currentPostcode || 'M9 8PX');
+  const [inputVal, setInputVal] = useState(currentPostcode || 'M9 8DX');
   const [matchedZone, setMatchedZone] = useState<any>(null);
 
   if (!isOpen) return null;
@@ -69,7 +69,7 @@ export const PostcodeModal: React.FC<PostcodeModalProps> = ({
                   setInputVal(e.target.value);
                   setMatchedZone(null);
                 }}
-                placeholder="e.g. M9 8PX, SK4 1AB, or SW1A 1AA"
+                placeholder="e.g. M9 8DX, SK4 1AB, or SW1A 1AA"
                 className="flex-1 px-3.5 py-2.5 border border-slate-200 rounded-xl uppercase font-bold text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
                 required
               />
@@ -131,7 +131,7 @@ export const PostcodeModal: React.FC<PostcodeModalProps> = ({
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             Cash on Delivery Available
           </span>
-          <span className="text-[10px] text-slate-400">4 Wallbrook Dr, Manchester</span>
+          <span className="text-[10px] text-slate-400">Unit 2, 73 Old Market St, Manchester</span>
         </div>
       </div>
     </div>

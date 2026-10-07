@@ -14,14 +14,14 @@ CREATE TABLE IF NOT EXISTS store_settings (
     phone TEXT DEFAULT '+44 7749 132122',
     whatsapp TEXT DEFAULT '+44 7749 132122',
     email TEXT DEFAULT 'info@keralasuperstores.com',
-    address_line TEXT DEFAULT '4 Wallbrook Drive, Manchester',
-    postcode TEXT DEFAULT 'M9 8PX',
+    address_line TEXT DEFAULT 'Unit 2, 73 Old Market Street, Manchester',
+    postcode TEXT DEFAULT 'M9 8DX',
     currency TEXT DEFAULT 'GBP',
     currency_symbol TEXT DEFAULT '£',
     free_delivery_threshold NUMERIC(10, 2) DEFAULT 50.00,
     standard_delivery_charge NUMERIC(10, 2) DEFAULT 3.99,
     cod_enabled BOOLEAN DEFAULT true,
-    announcement_text TEXT DEFAULT '🇬🇧 Free UK Delivery on orders over £50 | 4 Wallbrook Drive, Manchester M9 8PX | Parking at rear',
+    announcement_text TEXT DEFAULT '🇬🇧 Free UK Delivery on orders over £50 | Unit 2, 73 Old Market Street, Manchester M9 8DX | Parking at rear',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

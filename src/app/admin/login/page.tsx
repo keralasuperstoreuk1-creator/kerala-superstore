@@ -228,7 +228,7 @@ export default function AdminLoginPage() {
             </a>
 
             <span className="text-[11px] text-slate-600">
-              Manchester M9 8PX
+              Manchester M9 8DX
             </span>
           </div>
         </div>

@@ -188,7 +188,7 @@ export const AppDownloadSection: React.FC = () => {
                   </div>
                   <div>
                     <div className="font-black text-xs text-amber-400 leading-tight">Kerala Superstore</div>
-                    <div className="text-[8px] text-slate-300">Manchester Hub M9 8PX</div>
+                    <div className="text-[8px] text-slate-300">Manchester Hub M9 8DX</div>
                   </div>
                 </div>
                 <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">

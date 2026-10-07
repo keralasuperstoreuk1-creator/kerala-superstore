@@ -293,7 +293,7 @@ export const DailyKitchenSpecialsShowcase: React.FC = () => {
         }`}>
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Prepared fresh daily with authentic Kerala spices at 4 Wallbrook Drive, Manchester</span>
+            <span>Prepared fresh daily with authentic Kerala spices at Unit 2, 73 Old Market Street, Manchester</span>
           </div>
           <span 
             style={{ color: theme.priceColor }}

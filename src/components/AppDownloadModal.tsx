@@ -520,7 +520,7 @@ export const AppDownloadModal: React.FC = () => {
             {/* Footer actions */}
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs shrink-0">
               <span className="text-slate-500 text-[11px]">
-                Kerala Superstore Manchester • 4 Wallbrook Drive M9 8PX
+                Kerala Superstore Manchester • Unit 2, 73 Old Market Street M9 8DX
               </span>
               <button
                 type="button"

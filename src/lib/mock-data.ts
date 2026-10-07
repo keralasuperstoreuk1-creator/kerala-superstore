@@ -6,12 +6,12 @@ export const INITIAL_SETTINGS: StoreSettings = {
   phone: "+44 7749 132122",
   whatsapp: "+44 7749 132122",
   email: "info@keralasuperstores.com",
-  address: "4 Wallbrook Drive, Manchester",
-  postcode: "M9 8PX",
+  address: "Unit 2, 73 Old Market Street, Manchester",
+  postcode: "M9 8DX",
   freeDeliveryThreshold: 50.00,
   standardDeliveryCharge: 3.99,
   codEnabled: true,
-  announcementText: "Free UK Delivery on orders over £50 | 4 Wallbrook Drive, Manchester M9 8PX | Parking at rear"
+  announcementText: "Free UK Delivery on orders over £50 | Unit 2, 73 Old Market Street, Manchester M9 8DX | Parking at rear"
 };
 
 export const CATEGORIES: Category[] = [
@@ -1207,7 +1207,7 @@ export const INITIAL_NOTIFICATIONS: CustomerNotification[] = [
   {
     id: "notif-1",
     title: "🍲 Today's Kitchen Alert: Fresh Thalassery Biriyani!",
-    message: "Fresh batch of authentic Thalassery Chicken Dum Biriyani is ready at 4 Wallbrook Drive! Limited 40 portions prepared. Order online for Manchester local delivery or store collection.",
+    message: "Fresh batch of authentic Thalassery Chicken Dum Biriyani is ready at Unit 2, 73 Old Market Street! Limited 40 portions prepared. Order online for Manchester local delivery or store collection.",
     type: "special_item",
     specialItemId: "spec-1",
     timestamp: "10 mins ago",

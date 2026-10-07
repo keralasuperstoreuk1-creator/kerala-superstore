@@ -91,7 +91,7 @@ export const Footer: React.FC = () => {
             <div className="space-y-2 text-xs text-slate-400 pt-2">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>4 Wallbrook Drive, Manchester, M9 8PX</span>
+                <span>Unit 2, 73 Old Market Street, Manchester, M9 8DX</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded-full ml-6">

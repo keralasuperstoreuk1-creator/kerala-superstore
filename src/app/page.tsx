@@ -194,7 +194,7 @@ export default function HomePage() {
         }}
         selectedCategory={selectedCategory}
         onOpenPostcodeModal={() => setIsPostcodeModalOpen(true)}
-        currentPostcode={customerPostcode || 'Manchester (M9 8PX) & UK'}
+        currentPostcode={customerPostcode || 'Manchester (M9 8DX) & UK'}
       />
 
       {/* Animated Special Offer Marquee Banner */}

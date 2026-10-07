@@ -37,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectCategory,
   selectedCategory,
   onOpenPostcodeModal,
-  currentPostcode = 'Manchester (M9 8PX) & Nationwide',
+  currentPostcode = 'Manchester (M9 8DX) & Nationwide',
   searchQuery: searchQueryProp = ''
 }) => {
   const { totalItems, setIsCartOpen } = useCart();

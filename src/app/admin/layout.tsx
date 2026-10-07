@@ -238,7 +238,7 @@ export default function AdminLayout({
         <div className="hidden md:flex items-center justify-between bg-white px-8 py-4 border-b border-slate-200">
           <div>
             <h1 className="font-black text-slate-900 text-lg">Shop Owner Portal</h1>
-            <p className="text-xs text-slate-500">Kerala Superstore • 4 Wallbrook Drive, Manchester M9 8PX</p>
+            <p className="text-xs text-slate-500">Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX</p>
           </div>
 
           <div className="flex items-center gap-3">

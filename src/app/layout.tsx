@@ -25,10 +25,10 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Kerala Superstore",
   },
-  keywords: ["Kerala Grocery Manchester", "Kerala Superstore UK", "Matta Rice UK", "Nirapara UK", "Eastern Masala UK", "Kerala Banana Chips", "Wallbrook Drive Manchester"],
+  keywords: ["Kerala Grocery Manchester", "Kerala Superstore UK", "Matta Rice UK", "Nirapara UK", "Eastern Masala UK", "Kerala Banana Chips", "Old Market Street Manchester"],
   openGraph: {
     title: "Kerala Superstore Manchester | Authentic Groceries & Spices UK",
-    description: "Your neighbourhood Kerala superstore at 4 Wallbrook Drive, Manchester M9 8PX. Groceries & spices delivered across the UK.",
+    description: "Your neighbourhood Kerala superstore at Unit 2, 73 Old Market Street, Manchester M9 8DX. Groceries & spices delivered across the UK.",
     type: "website",
     locale: "en_GB",
   }

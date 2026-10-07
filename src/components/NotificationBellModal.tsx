@@ -166,7 +166,7 @@ export const NotificationBellModal: React.FC = () => {
         <div className="p-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
           <span className="flex items-center gap-1 text-[11px]">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Store Hub: 4 Wallbrook Drive, M9 8PX</span>
+            <span>Store Hub: Unit 2, 73 Old Market Street, M9 8DX</span>
           </span>
           <button
             onClick={() => setIsNotificationModalOpen(false)}
