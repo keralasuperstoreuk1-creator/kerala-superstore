@@ -64,16 +64,34 @@ export default function HomePage() {
   const [isPostcodeModalOpen, setIsPostcodeModalOpen] = useState(false);
   const [quickShopCategory, setQuickShopCategory] = useState<Category | null>(null);
 
-  // Sync products from localStorage if admin updated them
+  // Sync products from localStorage if admin added or updated them
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('kss_products');
-      if (saved) {
-        setProducts(JSON.parse(saved));
+    const loadProducts = () => {
+      try {
+        const saved = localStorage.getItem('kss_products');
+        if (saved) {
+          setProducts(JSON.parse(saved));
+        }
+      } catch {
+        // fallback
       }
-    } catch {
-      // fallback
-    }
+    };
+
+    loadProducts();
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'kss_products') {
+        loadProducts();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('kss_products_updated', loadProducts);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('kss_products_updated', loadProducts);
+    };
   }, []);
 
   // Filter products based on search, category, brand, offers, in-stock
@@ -87,12 +105,12 @@ export default function HomePage() {
       if (onlyInStock && p.stock <= 0) return false;
       if (hasSearch) {
         const q = searchQuery.toLowerCase().trim();
-        const matchName = p.name.toLowerCase().includes(q);
-        const matchBrand = p.brand.toLowerCase().includes(q);
-        const matchDesc = p.description.toLowerCase().includes(q);
-        const matchCategory = p.category.toLowerCase().includes(q) || p.categorySlug.toLowerCase().includes(q);
-        const matchTags = p.tags.some((t) => t.toLowerCase().includes(q));
-        if (!matchName && !matchBrand && !matchDesc && !matchCategory && !matchTags) return false;
+        // Combined searchable profile: name, brand, category, weight/size, description, and tags
+        const searchableText = `${p.name} ${p.brand} ${p.category} ${p.categorySlug} ${p.sizeWeight || ''} ${p.description || ''} ${(p.tags || []).join(' ')}`.toLowerCase();
+        // Multi-term search: every typed word must match somewhere in the product's attributes
+        const terms = q.split(/\s+/).filter(Boolean);
+        const matchesAllTerms = terms.every((term) => searchableText.includes(term));
+        if (!matchesAllTerms) return false;
       }
       return true;
     }).sort((a, b) => {

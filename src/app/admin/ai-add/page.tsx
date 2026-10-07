@@ -542,6 +542,7 @@ Do NOT recreate or redraw the product - work with the exact uploaded image.`;
       const updated = [newProduct, ...list];
       localStorage.setItem('kss_products', JSON.stringify(updated));
       window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new Event('kss_products_updated'));
     } catch {}
 
     setPublishedSuccess(true);

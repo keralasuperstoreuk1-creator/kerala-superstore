@@ -76,6 +76,8 @@ export default function AdminProductsPage() {
     setProducts(updated);
     try {
       localStorage.setItem('kss_products', JSON.stringify(updated));
+      window.dispatchEvent(new Event('kss_products_updated'));
+      window.dispatchEvent(new Event('storage'));
     } catch {
       // fallback
     }
