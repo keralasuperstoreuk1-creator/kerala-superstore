@@ -1,11 +1,11 @@
 import { MetadataRoute } from 'next';
-import { CATEGORIES } from '@/lib/mock-data';
+import { CATEGORIES, INITIAL_PRODUCTS } from '@/lib/mock-data';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://keralasuperstore.com';
   const lastModified = new Date();
 
-  // Core pages
+  // Core high-priority landing pages
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/`,
@@ -33,7 +33,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // Category specific filter URLs for Google indexing
+  // Category department URLs
   const categoryRoutes: MetadataRoute.Sitemap = CATEGORIES.map((cat) => ({
     url: `${baseUrl}/?category=${cat.slug}`,
     lastModified,
@@ -41,5 +41,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
-  return [...staticRoutes, ...categoryRoutes];
+  // Product URLs indexed for Google & AI product search
+  const productRoutes: MetadataRoute.Sitemap = INITIAL_PRODUCTS.map((prod) => ({
+    url: `${baseUrl}/?product=${prod.slug || prod.id}`,
+    lastModified,
+    changeFrequency: 'weekly',
+    priority: 0.75,
+  }));
+
+  return [...staticRoutes, ...categoryRoutes, ...productRoutes];
 }

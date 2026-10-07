@@ -511,11 +511,29 @@ Do NOT recreate or redraw the product - work with the exact uploaded image.`;
     e.preventDefault();
     if (!productName.trim()) return;
 
+    const cleanBrand = selectedBrand || 'Kerala Superstore';
+    const cleanName = productName.trim();
+    const cleanSlug = slug || `${cleanBrand}-${cleanName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const cleanSeoTitle = seoTitle || `${cleanName} (${packSize || ''}) | Buy Online UK | Kerala Superstore Manchester`.trim();
+    const cleanSeoDesc = description.trim() 
+      ? `${description.trim()} Available for fast UK delivery with Cash on Delivery.`
+      : `Buy authentic ${cleanName} (${packSize || 'Kerala Grocery'}). Fast delivery across Manchester & UK nationwide with Cash on Delivery from Kerala Superstore.`;
+    const defaultSeoTags = [
+      cleanBrand.toLowerCase(),
+      selectedCategory.toLowerCase(),
+      'kerala groceries uk',
+      'manchester grocery',
+      'authentic south indian food',
+    ];
+    const finalTags = tags 
+      ? Array.from(new Set([...tags.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean), ...defaultSeoTags]))
+      : defaultSeoTags;
+
     const newProduct: Product = {
       id: `prod-${Date.now()}`,
-      name: productName.trim(),
-      slug: slug || productName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      brand: selectedBrand,
+      name: cleanName,
+      slug: cleanSlug,
+      brand: cleanBrand,
       category: selectedCategory,
       categorySlug: selectedCategory.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       sizeWeight: packSize,
@@ -523,15 +541,16 @@ Do NOT recreate or redraw the product - work with the exact uploaded image.`;
       offerPrice: offerPrice ? Number(offerPrice) : undefined,
       stock: Number(stock) || 50,
       barcode: barcode,
-      description: description || `${productName} authentic Kerala grocery item delivered across the UK.`,
+      description: description || `${cleanName} authentic Kerala grocery staple delivered fresh across the UK.`,
       allergens: allergens ? [allergens] : [],
-      tags: tags ? tags.split(',').map((t) => t.trim()) : [selectedBrand.toLowerCase()],
+      tags: finalTags,
       imageUrl: studioImageSrc || '/products/matta-rice.png',
       isFeatured: true,
       isOffer: Boolean(offerPrice && Number(offerPrice) < Number(price)),
       status: 'published',
       origin: 'Palakkad, Kerala, India',
-      seoTitle: seoTitle || `${productName} UK | Kerala Super Store`,
+      seoTitle: cleanSeoTitle,
+      seoDescription: cleanSeoDesc,
       createdAt: new Date().toISOString(),
     };
 

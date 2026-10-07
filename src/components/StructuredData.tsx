@@ -1,4 +1,5 @@
 import React from 'react';
+import { INITIAL_PRODUCTS } from '@/lib/mock-data';
 
 export const StructuredData: React.FC = () => {
   const storeSchema = {
@@ -140,6 +141,38 @@ export const StructuredData: React.FC = () => {
     ],
   };
 
+  const productCatalogSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Authentic Kerala Groceries & Spices Catalogue',
+    itemListElement: INITIAL_PRODUCTS.slice(0, 30).map((prod, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      item: {
+        '@type': 'Product',
+        name: prod.name,
+        image: prod.imageUrl.startsWith('http') ? prod.imageUrl : `https://keralasuperstore.com${prod.imageUrl}`,
+        description: prod.description,
+        sku: prod.barcode || prod.id,
+        brand: {
+          '@type': 'Brand',
+          name: prod.brand,
+        },
+        offers: {
+          '@type': 'Offer',
+          price: (prod.offerPrice || prod.price).toFixed(2),
+          priceCurrency: 'GBP',
+          availability: prod.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+          url: `https://keralasuperstore.com/?product=${prod.slug || prod.id}`,
+          seller: {
+            '@type': 'GroceryStore',
+            name: 'Kerala Superstore Manchester',
+          },
+        },
+      },
+    })),
+  };
+
   return (
     <>
       <script
@@ -153,6 +186,10 @@ export const StructuredData: React.FC = () => {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productCatalogSchema) }}
       />
     </>
   );
