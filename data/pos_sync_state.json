@@ -1,0 +1,41 @@
+{
+  "lastSyncTime": "2026-10-07T19:02:08.821Z",
+  "totalSyncedItems": 2,
+  "inStockCount": 2,
+  "outOfStockCount": 0,
+  "recentLogs": [
+    {
+      "timestamp": "2026-10-07T19:02:08.821Z",
+      "type": "success",
+      "message": "Received 2 items from RetailV2-POS Purchase Entry. Total active catalog: 2",
+      "itemCount": 2
+    },
+    {
+      "timestamp": "2026-10-07T19:02:08.677Z",
+      "type": "info",
+      "message": "POS Sync Service initialized. Ready to receive stock updates from RetailV2."
+    }
+  ],
+  "syncedInventory": {
+    "5012345678904": {
+      "sku": 5001,
+      "barcode": "5012345678904",
+      "description": "Eastern Chicken Masala 100g",
+      "quantity": 60,
+      "price": 1.69,
+      "webPrice": 1.49,
+      "active": true,
+      "updatedAt": "2026-10-07T19:02:08.821Z"
+    },
+    "5012345678905": {
+      "sku": 5002,
+      "barcode": "5012345678905",
+      "description": "Nirapara Chemba Puttu Podi 1kg",
+      "quantity": 35,
+      "price": 2.99,
+      "webPrice": 2.79,
+      "active": true,
+      "updatedAt": "2026-10-07T19:02:08.821Z"
+    }
+  }
+}

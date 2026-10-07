@@ -1,0 +1,56 @@
+[
+  {
+    "id": "pos-5012345678904",
+    "name": "Eastern Chicken Masala 100g",
+    "slug": "eastern-chicken-masala-100g-8904",
+    "brand": "Eastern",
+    "category": "Masala & Curry Powders",
+    "categorySlug": "masala-and-curry-powders",
+    "sizeWeight": "100G",
+    "price": 1.69,
+    "offerPrice": 1.49,
+    "stock": 60,
+    "lowStockThreshold": 5,
+    "barcode": "5012345678904",
+    "description": "Authentic Eastern Chicken Masala 100g sourced directly from Kerala, India. Specially packaged for freshness and rich authentic flavor at Kerala Superstore Manchester.",
+    "tags": [
+      "Eastern",
+      "Masala & Curry Powders",
+      "Kerala Authentic",
+      "UK Fast Delivery"
+    ],
+    "imageUrl": "/products/chicken-masala.png",
+    "status": "published",
+    "origin": "Product of Kerala, India",
+    "seoTitle": "Eastern Chicken Masala 100g | Buy Authentic Online UK | Kerala Superstore Manchester",
+    "seoDescription": "Buy Eastern Chicken Masala 100g (100G) online at Kerala Superstore Manchester. 100% authentic Kerala groceries & spices delivered across the UK.",
+    "createdAt": "2026-10-07T19:02:08.850Z"
+  },
+  {
+    "id": "pos-5012345678905",
+    "name": "Nirapara Chemba Puttu Podi 1kg",
+    "slug": "nirapara-chemba-puttu-podi-1kg-8905",
+    "brand": "Nirapara",
+    "category": "Breakfast Powders",
+    "categorySlug": "breakfast-powders",
+    "sizeWeight": "1KG",
+    "price": 2.99,
+    "offerPrice": 2.79,
+    "stock": 35,
+    "lowStockThreshold": 5,
+    "barcode": "5012345678905",
+    "description": "Authentic Nirapara Chemba Puttu Podi 1kg sourced directly from Kerala, India. Specially packaged for freshness and rich authentic flavor at Kerala Superstore Manchester.",
+    "tags": [
+      "Nirapara",
+      "Breakfast Powders",
+      "Kerala Authentic",
+      "UK Fast Delivery"
+    ],
+    "imageUrl": "/products/puttu-podi.png",
+    "status": "published",
+    "origin": "Product of Kerala, India",
+    "seoTitle": "Nirapara Chemba Puttu Podi 1kg | Buy Authentic Online UK | Kerala Superstore Manchester",
+    "seoDescription": "Buy Nirapara Chemba Puttu Podi 1kg (1KG) online at Kerala Superstore Manchester. 100% authentic Kerala groceries & spices delivered across the UK.",
+    "createdAt": "2026-10-07T19:02:08.853Z"
+  }
+]

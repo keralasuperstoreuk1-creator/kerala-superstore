@@ -164,7 +164,7 @@ export default function PosSyncAdminPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <button
             onClick={() => {
               setRefreshing(true);
@@ -177,12 +177,20 @@ export default function PosSyncAdminPage() {
             Refresh Status
           </button>
           <a
-            href="/downloads/KSS-POS-Sync.exe"
-            download="KSS-POS-Sync.exe"
+            href="/downloads/KSS-POS-Sync-Setup.exe"
+            download="KSS-POS-Sync-Setup.exe"
             className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95"
           >
             <Download className="w-4 h-4" />
-            Download .EXE Tool
+            Download Windows Installer (.exe Setup)
+          </a>
+          <a
+            href="/downloads/KSS-POS-Sync.exe"
+            download="KSS-POS-Sync.exe"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition-all active:scale-95"
+            title="Download portable standalone version without installer"
+          >
+            Portable .EXE
           </a>
         </div>
       </div>
