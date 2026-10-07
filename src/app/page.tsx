@@ -64,9 +64,22 @@ export default function HomePage() {
   const [isPostcodeModalOpen, setIsPostcodeModalOpen] = useState(false);
   const [quickShopCategory, setQuickShopCategory] = useState<Category | null>(null);
 
-  // Sync products from localStorage if admin added or updated them
+  // Sync products from /api/products (including live POS additions & stock) and localStorage
   useEffect(() => {
-    const loadProducts = () => {
+    const loadProducts = async () => {
+      try {
+        const res = await fetch('/api/products?limit=250');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.products && json.products.length > 0) {
+            setProducts(json.products);
+            return;
+          }
+        }
+      } catch {
+        // fallback
+      }
+
       try {
         const saved = localStorage.getItem('kss_products');
         if (saved) {

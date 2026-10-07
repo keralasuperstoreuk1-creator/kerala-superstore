@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPosSyncState, applyPosInventorySync, PosSyncItem } from '@/lib/pos-sync-store';
+import { upsertPosProductsToCatalog, getUnifiedProductCatalog } from '@/lib/product-catalog';
 
 const DEFAULT_POS_SECRET = process.env.POS_SYNC_SECRET || 'kss_pos_sync_key_2026_live';
 
@@ -92,12 +93,19 @@ export async function POST(req: NextRequest) {
     }
 
     const source = body.source || 'RetailV2-POS (Manchester)';
+    
+    // 1. Update POS Inventory Sync State (Stock & Qty Tracking)
     const updatedState = applyPosInventorySync(items, source);
+
+    // 2. Auto-Enrich & Upsert into Website Product Catalog (Auto create new products if missing!)
+    const { updatedCount, newCount } = upsertPosProductsToCatalog(items);
 
     return NextResponse.json({
       success: true,
-      message: `Successfully synchronized ${items.length} items with website inventory.`,
+      message: `Successfully synchronized ${items.length} items (${newCount} new products added to web catalog, ${updatedCount} stock levels updated).`,
       processedCount: items.length,
+      newProductsCreated: newCount,
+      existingProductsUpdated: updatedCount,
       totalSyncedItems: updatedState.totalSyncedItems,
       inStockCount: updatedState.inStockCount,
       outOfStockCount: updatedState.outOfStockCount,
