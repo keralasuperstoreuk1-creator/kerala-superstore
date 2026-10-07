@@ -22,7 +22,8 @@ import {
   Cloud,
   LogOut,
   Lock,
-  UserCheck
+  UserCheck,
+  RefreshCw
 } from 'lucide-react';
 import { isUserAdminAuthenticated, clearAdminSession, getAdminCredentials } from '@/lib/admin-auth';
 import { useStoreConfig } from '@/context/StoreConfigContext';
@@ -87,6 +88,7 @@ export default function AdminLayout({
 
   const navItems = [
     { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { label: 'POS Stock Sync', href: '/admin/pos-sync', icon: RefreshCw, badge: 'RetailV2 EXE' },
     { label: 'Feature Switches', href: '/admin/settings', icon: Sliders, badge: 'On/Off' },
     { label: 'Storefront & Banners', href: '/admin/banners', icon: Sliders, badge: isSliderOn ? 'Live' : 'Hidden' },
     { label: 'Combo Bundles', href: '/admin/bundles', icon: Boxes, badge: isBundlesOn ? 'Kits' : 'Hidden' },

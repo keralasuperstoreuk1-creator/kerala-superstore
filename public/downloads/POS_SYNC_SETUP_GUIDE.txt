@@ -1,0 +1,32 @@
+================================================================================
+   KERALA SUPERSTORE MANCHESTER — RETAILV2 POS AUTO-SYNC SETUP GUIDE (2026)
+================================================================================
+
+📍 Location: Unit 2, 73 Old Market Street, Manchester, M9 8DX
+🔗 Target Website: https://keralasuperstore.com
+
+--------------------------------------------------------------------------------
+1. MALAYALAM INSTRUCTIONS (മലയാളം നിർദ്ദേശങ്ങൾ)
+--------------------------------------------------------------------------------
+ഈ ടൂൾ (`KSS-POS-Sync.exe`) കടയിലെ കൗണ്ടറിലുള്ള POS കമ്പ്യൂട്ടറിലാണ് റൺ ചെയ്യേണ്ടത്.
+ഇത് RetailV2 (Eposv2) സോഫ്റ്റ്‌വെയറിന്റെ ഡാറ്റാബേസിൽ (Microsoft SQL Server / 'epos')
+നിന്നും സ്റ്റോക്ക് വിവരങ്ങളും വിലയും തനിയെ വായിച്ച് വെബ്‌സൈറ്റിലേക്ക് അപ്‌ഡേറ്റ് ചെയ്യും.
+
+എങ്ങനെ ഉപയോഗിക്കാം:
+1. `KSS-POS-Sync.exe` കൂടാതെ `config.json` ഫയലുകൾ ഒരേ ഫോൾഡറിലേക്ക് (ഉദാഹരണത്തിന് Desktop-ൽ) മാറ്റുക.
+2. `KSS-POS-Sync.exe` ഡബിൾ ക്ലിക്ക് ചെയ്തു തുറക്കുക.
+3. "Test POS DB Connection" ബട്ടൺ ക്ലിക്ക് ചെയ്ത് local SQL Server കണക്ട് ആകുന്നുണ്ടോ എന്ന് ഉറപ്പുവരുത്തുക.
+4. "Start Auto-Sync" ബട്ടൺ ക്ലിക്ക് ചെയ്യുക.
+   - ഓരോ 30 സെക്കൻഡിലും കടയിൽ വിറ്റഴിയുന്ന സാധനങ്ങളുടെ പുതിയ സ്റ്റോക്ക് വെബ്‌സൈറ്റിൽ തനിയെ സിങ്ക് ആകും!
+   - ഒരു സാധനം സ്റ്റോക്ക് തീർന്നാൽ വെബ്‌സൈറ്റിൽ "Out of Stock" ആയി മാറും. വീണ്ടും സ്റ്റോക്ക് വരുമ്പോൾ "In Stock" ആകും.
+
+--------------------------------------------------------------------------------
+2. TECHNICAL DETAILS
+--------------------------------------------------------------------------------
+- App: Eposv2.exe (RetailV2)
+- Local DB: Microsoft SQL Server (MSSQLSERVER, Port 1433, DB: epos)
+- Target Table: Inventory (Quantity, Price, Web_Price, Barcode, Description)
+- Cloud Endpoint: https://keralasuperstore.com/api/pos/sync
+- Auth Header: X-POS-SYNC-KEY (kss_pos_sync_key_2026_live)
+- Interval: 30 seconds (configurable in config.json)
+================================================================================
