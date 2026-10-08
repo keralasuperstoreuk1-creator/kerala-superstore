@@ -100,6 +100,46 @@ export const CartDrawer: React.FC = () => {
     e.preventDefault();
     const newOrderNum = `KSS-UK-${Math.floor(1000 + Math.random() * 9000)}`;
     setPlacedOrderNumber(newOrderNum);
+
+    // Create full order record
+    try {
+      const newOrder = {
+        id: `ord-${Date.now()}`,
+        orderNumber: newOrderNum,
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        customerEmail: formData.email || '',
+        addressLine1: formData.address,
+        city: formData.city || 'Manchester',
+        postcode: formData.postcode,
+        items: cart.map((item) => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          sizeWeight: item.product.sizeWeight,
+          unitPrice: item.product.offerPrice ?? item.product.price,
+          quantity: item.quantity,
+          totalPrice: (item.product.offerPrice ?? item.product.price) * item.quantity,
+        })),
+        subtotal,
+        deliveryFee: deliveryCharge,
+        discountAmount,
+        total: finalTotalAmount,
+        paymentMethod: 'cod',
+        paymentStatus: 'pending',
+        orderStatus: 'new',
+        notes: formData.notes,
+        createdAt: new Date().toISOString(),
+      };
+
+      const existingRaw = localStorage.getItem('kss_orders');
+      const existingList = existingRaw ? JSON.parse(existingRaw) : [];
+      const updatedList = [newOrder, ...existingList];
+      localStorage.setItem('kss_orders', JSON.stringify(updatedList));
+      window.dispatchEvent(new Event('kss_orders_updated'));
+    } catch (err) {
+      console.error('Failed to save order:', err);
+    }
+
     setCheckoutStep('success');
     clearCart();
   };
