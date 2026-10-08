@@ -408,8 +408,11 @@ export default function HomePage() {
                   <button
                     key={cat.id}
                     onClick={() => {
-                      setQuickShopCategory(cat);
                       setSelectedCategory(cat.slug);
+                      setTimeout(() => {
+                        const el = document.getElementById('catalog-section');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 50);
                     }}
                     className={`p-3 rounded-3xl border text-left transition-all duration-300 flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-98 ${
                       isSelected
@@ -454,7 +457,7 @@ export default function HomePage() {
         )}
 
         {/* Curated Pre-packed Kerala Combo Bundles & Feast Kits */}
-        {(config.modules?.showComboBundles ?? true) && !searchQuery && (
+        {(config.modules?.showComboBundles ?? true) && !searchQuery && !selectedCategory && (
           <ComboBundlesShowcase />
         )}
 
