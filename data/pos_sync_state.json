@@ -1,9 +1,21 @@
 {
-  "lastSyncTime": "2026-10-07T19:02:08.821Z",
-  "totalSyncedItems": 2,
-  "inStockCount": 2,
+  "lastSyncTime": "2026-10-08T18:44:21.558Z",
+  "totalSyncedItems": 20,
+  "inStockCount": 20,
   "outOfStockCount": 0,
   "recentLogs": [
+    {
+      "timestamp": "2026-10-08T18:44:21.558Z",
+      "type": "success",
+      "message": "Received 20 items from RetailV2-POS (Manchester). Total active catalog: 20",
+      "itemCount": 20
+    },
+    {
+      "timestamp": "2026-10-08T18:42:43.058Z",
+      "type": "success",
+      "message": "Received 20 items from RetailV2-POS (Manchester). Total active catalog: 20",
+      "itemCount": 20
+    },
     {
       "timestamp": "2026-10-07T19:02:08.821Z",
       "type": "success",
@@ -18,24 +30,224 @@
   ],
   "syncedInventory": {
     "5012345678904": {
-      "sku": 5001,
-      "barcode": "5012345678904",
+      "department": "Grocery",
       "description": "Eastern Chicken Masala 100g",
+      "barcode": "5012345678904",
       "quantity": 60,
-      "price": 1.69,
+      "price": 1.49,
+      "category": "Spices & Masalas",
       "webPrice": 1.49,
       "active": true,
-      "updatedAt": "2026-10-07T19:02:08.821Z"
+      "updatedAt": "2026-10-08T18:44:21.558Z"
     },
     "5012345678905": {
-      "sku": 5002,
-      "barcode": "5012345678905",
+      "department": "Grocery",
       "description": "Nirapara Chemba Puttu Podi 1kg",
+      "barcode": "5012345678905",
       "quantity": 35,
-      "price": 2.99,
+      "price": 2.79,
+      "category": "Rice & Flour",
       "webPrice": 2.79,
       "active": true,
-      "updatedAt": "2026-10-07T19:02:08.821Z"
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678901": {
+      "department": "Grocery",
+      "description": "Nirapara Matta Rice 5kg",
+      "barcode": "5012345678901",
+      "quantity": 48,
+      "price": 7.99,
+      "category": "Rice & Flour",
+      "webPrice": 7.99,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678902": {
+      "department": "Grocery",
+      "description": "Eastern Sambar Powder 200g",
+      "barcode": "5012345678902",
+      "quantity": 120,
+      "price": 1.49,
+      "category": "Spices & Masalas",
+      "webPrice": 1.49,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678903": {
+      "department": "Bakery",
+      "description": "Kerala Banana Chips (Nendran) 250g",
+      "barcode": "5012345678903",
+      "quantity": 35,
+      "price": 2.99,
+      "category": "Snacks & Bakery",
+      "webPrice": 2.99,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678906": {
+      "department": "Grocery",
+      "description": "Double Horse Palada Payasam Mix 300g",
+      "barcode": "5012345678906",
+      "quantity": 80,
+      "price": 2.49,
+      "category": "Desserts & Mixes",
+      "webPrice": 2.49,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678907": {
+      "department": "Grocery",
+      "description": "Brahmins Idiyappam Podi 1kg",
+      "barcode": "5012345678907",
+      "quantity": 45,
+      "price": 2.99,
+      "category": "Rice & Flour",
+      "webPrice": 2.99,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678908": {
+      "department": "Grocery",
+      "description": "KPL Shudhi Coconut Oil 1L",
+      "barcode": "5012345678908",
+      "quantity": 90,
+      "price": 4.99,
+      "category": "Oils & Ghee",
+      "webPrice": 4.99,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678909": {
+      "department": "Grocery",
+      "description": "Grandma's Tender Mango Pickle 400g",
+      "barcode": "5012345678909",
+      "quantity": 50,
+      "price": 2.99,
+      "category": "Pickles & Chutneys",
+      "webPrice": 2.99,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678910": {
+      "department": "Grocery",
+      "description": "Eastern Meat Masala 100g",
+      "barcode": "5012345678910",
+      "quantity": 75,
+      "price": 1.49,
+      "category": "Spices & Masalas",
+      "webPrice": 1.49,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678911": {
+      "department": "Produce",
+      "description": "Fresh Tapioca (Kappa) 1kg",
+      "barcode": "5012345678911",
+      "quantity": 65,
+      "price": 1.99,
+      "category": "Fresh Vegetables",
+      "webPrice": 1.99,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678912": {
+      "department": "Produce",
+      "description": "Green Plantain (Nendrakkaya) 1kg",
+      "barcode": "5012345678912",
+      "quantity": 40,
+      "price": 2.49,
+      "category": "Fresh Vegetables",
+      "webPrice": 2.49,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678913": {
+      "department": "Frozen",
+      "description": "Frozen Karimeen (Pearl Spot) 800g",
+      "barcode": "5012345678913",
+      "quantity": 25,
+      "price": 8.99,
+      "category": "Fish & Meat",
+      "webPrice": 8.99,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678914": {
+      "department": "Frozen",
+      "description": "Frozen King Fish Steaks 1kg",
+      "barcode": "5012345678914",
+      "quantity": 30,
+      "price": 9.99,
+      "category": "Fish & Meat",
+      "webPrice": 9.99,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678915": {
+      "department": "Frozen",
+      "description": "Kerala Malabar Parotta (Pack of 5)",
+      "barcode": "5012345678915",
+      "quantity": 110,
+      "price": 1.99,
+      "category": "Frozen Foods",
+      "webPrice": 1.99,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678916": {
+      "department": "Dairy",
+      "description": "Milma Pure Cow Ghee 500ml",
+      "barcode": "5012345678916",
+      "quantity": 40,
+      "price": 6.99,
+      "category": "Oils & Ghee",
+      "webPrice": 6.99,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678917": {
+      "department": "Grocery",
+      "description": "Melam Fish Curry Masala 200g",
+      "barcode": "5012345678917",
+      "quantity": 55,
+      "price": 1.89,
+      "category": "Spices & Masalas",
+      "webPrice": 1.89,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678918": {
+      "department": "Grocery",
+      "description": "Eastern Turmeric Powder 200g",
+      "barcode": "5012345678918",
+      "quantity": 95,
+      "price": 1.29,
+      "category": "Spices & Masalas",
+      "webPrice": 1.29,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678919": {
+      "department": "Grocery",
+      "description": "Eastern Kashmiri Chilli Powder 200g",
+      "barcode": "5012345678919",
+      "quantity": 85,
+      "price": 1.99,
+      "category": "Spices & Masalas",
+      "webPrice": 1.99,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
+    },
+    "5012345678920": {
+      "department": "Grocery",
+      "description": "Aachi Biryani Masala 200g",
+      "barcode": "5012345678920",
+      "quantity": 70,
+      "price": 1.69,
+      "category": "Spices & Masalas",
+      "webPrice": 1.69,
+      "active": true,
+      "updatedAt": "2026-10-08T18:44:21.558Z"
     }
   }
 }
