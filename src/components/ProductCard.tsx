@@ -65,6 +65,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
     }, 2000);
   };
 
+  const [imgSrc, setImgSrc] = useState(product.imageUrl || '/products/matta-rice.png');
+
+  useEffect(() => {
+    setImgSrc(product.imageUrl || '/products/matta-rice.png');
+  }, [product.imageUrl]);
+
   const discountPercent = product.offerPrice 
     ? Math.round(((product.price - product.offerPrice) / product.price) * 100)
     : 0;
@@ -105,12 +111,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
         {/* Product Image Area with Studio Lighting */}
         <div className="relative w-full aspect-square bg-gradient-to-b from-slate-50 via-white to-slate-50 overflow-hidden flex items-center justify-center p-4">
           <Image
-            src={product.imageUrl}
+            src={imgSrc}
             alt={product.name}
             width={360}
             height={360}
             className={`object-contain w-full h-full group-hover:scale-108 transition-transform duration-500 ${isOutOfStock ? 'grayscale-50 opacity-70' : ''}`}
             loading="lazy"
+            onError={() => setImgSrc('/products/matta-rice.png')}
           />
           
           {/* Pack Size Pill */}

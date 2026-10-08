@@ -61,10 +61,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) 
         <div className="md:w-1/2 bg-slate-50 p-6 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-slate-100">
           <div className="relative w-56 h-56">
             <Image
-              src={product.imageUrl}
+              src={product.imageUrl || '/products/matta-rice.png'}
               alt={product.name}
               fill
               className="object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (target) target.src = '/products/matta-rice.png';
+              }}
             />
           </div>
           {product.origin && (
