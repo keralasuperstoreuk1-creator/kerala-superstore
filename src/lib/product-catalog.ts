@@ -176,13 +176,14 @@ export function autoEnrichPosProduct(item: PosSyncItem): Product {
     stock: stock,
     lowStockThreshold: 5,
     barcode: item.barcode,
-    description: `Authentic ${cleanDesc} sourced directly from Kerala, India. Specially packaged for freshness and rich authentic flavor at Kerala Superstore Manchester.`,
-    tags: [detectedBrand, category, 'Kerala Authentic', 'UK Fast Delivery'],
+    description: `Premium quality authentic ${cleanDesc} (${sizeWeight}) sourced directly from Kerala, India. Specially packaged for maximum freshness, aroma, and rich traditional taste. Available for fast home delivery across Greater Manchester and nationwide UK from Kerala Superstore Manchester.\n\nതനതായ കേരള തനിമയിലും ഗുണമേന്മയിലും തയ്യാറാക്കിയത്.`,
+    ingredients: `${detectedBrand} authentic preparation with 100% natural ingredients.`,
+    tags: [detectedBrand, category, 'Kerala Authentic', 'UK Fast Delivery', 'Fresh Stock', sizeWeight],
     imageUrl: imageUrl,
     status: 'published',
     origin: 'Product of Kerala, India',
-    seoTitle: `${cleanDesc} | Buy Authentic Online UK | Kerala Superstore Manchester`,
-    seoDescription: `Buy ${cleanDesc} (${sizeWeight}) online at Kerala Superstore Manchester. 100% authentic Kerala groceries & spices delivered across the UK.`,
+    seoTitle: `${cleanDesc} (${sizeWeight}) | Buy Online UK | Kerala Superstore Manchester`,
+    seoDescription: `Order authentic ${cleanDesc} online at Kerala Superstore Manchester. Best UK price £${price.toFixed(2)}, fast dispatch & free delivery options.`,
     createdAt: new Date().toISOString(),
   };
 }
