@@ -30,7 +30,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { INITIAL_ORDERS } from '@/lib/mock-data';
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, PaymentStatus } from '@/types';
 import { useStoreConfig } from '@/context/StoreConfigContext';
 
 const COMPANY_WHATSAPP = '+447749132122';
@@ -83,9 +83,9 @@ export default function AdminOrdersPage() {
   };
 
   const handlePaymentToggle = (orderId: string) => {
-    const updated = orders.map((o) =>
+    const updated: Order[] = orders.map((o) =>
       o.id === orderId
-        ? { ...o, paymentStatus: o.paymentStatus === 'paid' ? 'pending' : 'paid' }
+        ? { ...o, paymentStatus: (o.paymentStatus === 'paid' ? 'pending' : 'paid') as PaymentStatus }
         : o
     );
     saveOrders(updated);
