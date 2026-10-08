@@ -307,7 +307,7 @@ export default function HomePage() {
           </section>
         )}
         {/* EMARKET Supermarket Layout: 3-Column Banner, Arched Categories, and Deals of the Week */}
-        {!selectedCategory && !searchQuery && (
+        {!searchQuery && (
           <>
             {(config.modules?.showHeroSlider ?? true) && (
               <EmarketHeroSection
@@ -328,7 +328,7 @@ export default function HomePage() {
         )}
 
         {/* TODAY'S FLASH DEALS CONTINUOUS SMOOTH MOVING SHOWCASE (Moved High Up to the Top) */}
-        {(config.modules?.showMovingOffers ?? true) && !selectedCategory && !searchQuery && offerProducts.length > 0 && (
+        {(config.modules?.showMovingOffers ?? true) && !searchQuery && offerProducts.length > 0 && (
           <TodayOffersMovingShowcase
             products={offerProducts}
             onSelectProduct={(p) => setActiveProduct(p)}
@@ -341,12 +341,12 @@ export default function HomePage() {
         )}
 
         {/* TODAY'S FRESH KITCHEN & DAILY SPECIALS (Biriyanis, Porottas & Tea Snacks) */}
-        {(config.modules?.showKitchenSpecials ?? true) && !selectedCategory && !searchQuery && (
+        {(config.modules?.showKitchenSpecials ?? true) && !searchQuery && (
           <DailyKitchenSpecialsShowcase />
         )}
 
         {/* CREATIVE INFINITE BRAND LOGO MARQUEE TICKER */}
-        {(config.modules?.showBrandMarquee ?? true) && !selectedCategory && !searchQuery && (
+        {(config.modules?.showBrandMarquee ?? true) && !searchQuery && (
           <div className="bg-white border-b border-slate-200 py-3 overflow-hidden shadow-2xs">
             <div className="max-w-7xl mx-auto px-4 mb-2 flex items-center justify-between text-xs">
               <span className="font-bold text-slate-400 uppercase tracking-widest text-[10px]">
@@ -403,22 +403,13 @@ export default function HomePage() {
             {/* 10 Luxury Category Cards - CLICK OPENS QUICK-SHOP POPUP WITH VARIETIES */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
               {CATEGORIES.map((cat) => {
-                const isSelected = selectedCategory === cat.slug;
                 return (
                   <button
                     key={cat.id}
                     onClick={() => {
-                      setSelectedCategory(cat.slug);
-                      setTimeout(() => {
-                        const el = document.getElementById('catalog-section');
-                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }, 50);
+                      setQuickShopCategory(cat);
                     }}
-                    className={`p-3 rounded-3xl border text-left transition-all duration-300 flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-98 ${
-                      isSelected
-                        ? 'border-emerald-600 bg-emerald-50/90 shadow-xl ring-2 ring-emerald-600/30 -translate-y-1'
-                        : 'border-slate-200/90 hover:border-emerald-400/80 bg-white hover:shadow-xl hover:-translate-y-1'
-                    }`}
+                    className="p-3 rounded-3xl border text-left transition-all duration-300 flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-98 border-slate-200/90 hover:border-emerald-500 bg-white hover:shadow-xl hover:-translate-y-1"
                   >
                     {/* Real Photographic Food Thumbnail */}
                     <div className="relative w-full aspect-4/3 rounded-2xl overflow-hidden mb-2.5 bg-slate-100 shadow-2xs border border-slate-100">
