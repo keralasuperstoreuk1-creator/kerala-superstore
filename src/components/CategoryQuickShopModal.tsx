@@ -36,12 +36,36 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
   const [selectedVariety, setSelectedVariety] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
 
-  // Filter products belonging to this category
+  // Filter products belonging to this category with intelligent keyword mapping
   const categoryProducts = useMemo(() => {
     if (!category) return [];
-    return products.filter(
-      (p) => p.categorySlug === category.slug || p.category === category.name
-    );
+    const cSlug = (category.slug || '').toLowerCase().trim();
+    const cName = (category.name || '').toLowerCase().trim();
+    
+    return products.filter((p) => {
+      const pSlug = (p.categorySlug || '').toLowerCase().trim();
+      const pCat = (p.category || '').toLowerCase().trim();
+      const pName = (p.name || '').toLowerCase().trim();
+
+      // 1. Direct slug or category name match
+      if (pSlug === cSlug || pCat === cName) return true;
+      if (pSlug.includes(cSlug) || cSlug.includes(pSlug)) return true;
+      if (pCat.includes(cName) || cName.includes(pCat)) return true;
+
+      // 2. Intelligent department fallback matching
+      if (cSlug.includes('rice') && (pName.includes('rice') || pName.includes('matta') || pName.includes('kaima') || pCat.includes('rice'))) return true;
+      if (cSlug.includes('pulse') && (pName.includes('dal') || pName.includes('payar') || pName.includes('kadala') || pCat.includes('pulse') || pCat.includes('dal'))) return true;
+      if (cSlug.includes('masala') && (pName.includes('masala') || pName.includes('powder') || pName.includes('sambar') || pName.includes('chilli') || pCat.includes('masala') || pCat.includes('spice'))) return true;
+      if (cSlug.includes('snack') && (pName.includes('chips') || pName.includes('mixture') || pName.includes('upperi') || pCat.includes('snack') || pCat.includes('crisp'))) return true;
+      if (cSlug.includes('oil') && (pName.includes('oil') || pName.includes('ghee') || pCat.includes('oil'))) return true;
+      if (cSlug.includes('pickle') && (pName.includes('pickle') || pName.includes('achar') || pCat.includes('pickle'))) return true;
+      if (cSlug.includes('frozen') && (pName.includes('frozen') || pName.includes('kappa') || pName.includes('parotta') || pName.includes('fish') || pCat.includes('frozen'))) return true;
+      if (cSlug.includes('kitchen') && (pName.includes('uruli') || pName.includes('maker') || pName.includes('chatti') || pCat.includes('kitchen'))) return true;
+      if (cSlug.includes('breakfast') && (pName.includes('podi') || pName.includes('puttu') || pName.includes('appam') || pName.includes('rava') || pCat.includes('breakfast') || pCat.includes('powder'))) return true;
+      if (cSlug.includes('spice') && (pName.includes('pepper') || pName.includes('cardamom') || pName.includes('clove') || pCat.includes('spice') || pCat.includes('condiment'))) return true;
+
+      return false;
+    });
   }, [category, products]);
 
   // Available brands in this category
@@ -53,21 +77,33 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
     return Object.entries(map).map(([brand, count]) => ({ brand, count }));
   }, [categoryProducts]);
 
-  if (!isOpen || !category) return null;
+  // Filtered by selected variety and selected brand, sorted with IN STOCK items first
+  const filteredList = useMemo(() => {
+    const list = categoryProducts.filter((p) => {
+      if (selectedBrand && p.brand !== selectedBrand) return false;
+      if (selectedVariety && selectedVariety !== 'All') {
+        const q = selectedVariety.toLowerCase();
+        const words = q.split(/[\s/()]+/).filter(w => w.length > 2);
+        if (words.length > 0) {
+          const match = words.some(w => 
+            p.name.toLowerCase().includes(w) || 
+            (p.description || '').toLowerCase().includes(w) || 
+            (p.tags || []).some(t => t.toLowerCase().includes(w))
+          );
+          if (!match) return false;
+        }
+      }
+      return true;
+    });
 
-  // Filtered by selected variety and selected brand
-  const filteredList = categoryProducts.filter((p) => {
-    if (selectedBrand && p.brand !== selectedBrand) return false;
-    if (selectedVariety) {
-      const q = selectedVariety.toLowerCase();
-      // Check variety keywords
-      const matchName = p.name.toLowerCase().includes(q.split(' ')[0]);
-      const matchDesc = p.description.toLowerCase().includes(q.split(' ')[0]);
-      const matchTags = p.tags.some((t) => t.toLowerCase().includes(q.split(' ')[0]));
-      if (!matchName && !matchDesc && !matchTags) return false;
-    }
-    return true;
-  });
+    // In Stock items appear FIRST at the top!
+    return list.sort((a, b) => {
+      const aInStock = a.stock > 0 ? 1 : 0;
+      const bInStock = b.stock > 0 ? 1 : 0;
+      if (bInStock !== aInStock) return bInStock - aInStock;
+      return (b.isOffer ? 1 : 0) - (a.isOffer ? 1 : 0);
+    });
+  }, [categoryProducts, selectedBrand, selectedVariety]);
 
   const getCartQuantity = (productId: string): number => {
     const item = cart.find((i) => i.product.id === productId);
@@ -78,6 +114,8 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
     onClose();
     setIsCartOpen(true);
   };
+
+  if (!isOpen || !category) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -250,10 +288,14 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
                     {/* Image Area */}
                     <div className="relative w-full aspect-square rounded-xl bg-slate-50 overflow-hidden mb-2 p-2 flex items-center justify-center">
                       <Image
-                        src={prod.imageUrl}
+                        src={prod.imageUrl || '/products/matta-rice.png'}
                         alt={prod.name}
                         fill
                         className="object-contain p-1 group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target) target.src = '/products/matta-rice.png';
+                        }}
                       />
                       <span className="absolute bottom-1 right-1 bg-slate-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
                         {prod.sizeWeight}
