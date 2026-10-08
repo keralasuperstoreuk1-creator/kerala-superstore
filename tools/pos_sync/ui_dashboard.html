@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kerala Superstore — POS Sync Monitor (2026)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(130% 120% at 50% 0%, #0d1b2a 0%, #060b13 60%, #03070d 100%);
+      color: #f8fafc;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 16px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(16, 185, 129, 0.15);
+    }
+
+    /* Custom Titlebar */
+    .titlebar {
+      height: 46px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      -webkit-app-region: drag;
+    }
+
+    .title-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-logo {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+    }
+
+    .title-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+      letter-spacing: 0.3px;
+    }
+
+    .title-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .title-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+
+    .win-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .win-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .win-btn.close:hover {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    /* Main Container */
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 24px;
+      overflow-y: auto;
+      gap: 16px;
+    }
+
+    /* Status Grid */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .status-card {
+      background: rgba(17, 24, 39, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .status-card.active {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(6, 78, 59, 0.2);
+    }
+
+    .status-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .status-val {
+      font-size: 16px;
+      font-weight: 800;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .dot.pulse {
+      animation: dotPulse 1.5s infinite;
+    }
+
+    @keyframes dotPulse {
+      0% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 0.4; transform: scale(0.9); }
+    }
+
+    /* Action Bar */
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 12px 18px;
+    }
+
+    .action-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-action {
+      height: 40px;
+      padding: 0 20px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-sync {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: none;
+      color: #042f2e;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-sync:hover {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+      transform: translateY(-1px);
+    }
+
+    .btn-toggle {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #38bdf8;
+    }
+
+    .btn-toggle:hover {
+      background: rgba(51, 65, 85, 0.9);
+      color: #fff;
+    }
+
+    /* Terminal Console */
+    .console-card {
+      flex: 1;
+      background: #030712;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.9);
+    }
+
+    .console-header {
+      background: rgba(15, 23, 42, 0.8);
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+    }
+
+    .console-body {
+      flex: 1;
+      padding: 14px 16px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      line-height: 1.6;
+      color: #94a3b8;
+    }
+
+    .log-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .log-time {
+      color: #475569;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .log-msg {
+      color: #cbd5e1;
+    }
+
+    .log-msg.success { color: #34d399; }
+    .log-msg.warning { color: #fbbf24; }
+    .log-msg.error { color: #f87171; }
+    .log-msg.info { color: #38bdf8; }
+  </style>
+</head>
+<body>
+
+  <!-- Custom Titlebar -->
+  <div class="titlebar">
+    <div class="title-left">
+      <div class="title-logo">🌿</div>
+      <div class="title-text">KERALA SUPERSTORE — POS SYNC MONITOR</div>
+      <div class="title-badge">LIVE EPOS BRIDGE</div>
+    </div>
+    <div class="title-controls">
+      <button class="win-btn" onclick="pyApi.minimize()">—</button>
+      <button class="win-btn close" onclick="pyApi.close()">✕</button>
+    </div>
+  </div>
+
+  <div class="container">
+    
+    <!-- Status Metrics Grid -->
+    <div class="status-grid">
+      <div class="status-card active">
+        <div class="status-label">SQL Server (epos)</div>
+        <div class="status-val">
+          <span class="dot pulse"></span>
+          <span id="stat-db">ONLINE</span>
+        </div>
+      </div>
+
+      <div class="status-card active">
+        <div class="status-label">Auto Sync Engine</div>
+        <div class="status-val">
+          <span class="dot pulse"></span>
+          <span id="stat-engine">RUNNING (30s)</span>
+        </div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-label">Total Items Synced</div>
+        <div class="status-val" style="color: #38bdf8;" id="stat-count">0 Items</div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-label">Cloud Ping Latency</div>
+        <div class="status-val" style="color: #a78bfa;" id="stat-ping">24 ms</div>
+      </div>
+    </div>
+
+    <!-- Action Toolbar -->
+    <div class="action-bar">
+      <div class="action-left">
+        <button class="btn-action btn-sync" onclick="triggerSync()">
+          <span>⚡ Sync Now</span>
+        </button>
+        <button class="btn-action btn-toggle" id="btn-toggle-engine" onclick="toggleEngine()">
+          <span>⏸ Pause Auto-Sync</span>
+        </button>
+      </div>
+
+      <div style="font-size: 12px; color: #64748b;">
+        Target: <strong style="color: #94a3b8;">keralasuperstore.com/api/pos-sync</strong>
+      </div>
+    </div>
+
+    <!-- Live Console Output -->
+    <div class="console-card">
+      <div class="console-header">
+        <span>REAL-TIME INVENTORY & SALES ACTIVITY</span>
+        <span id="last-sync-tag">Last Sync: Just now</span>
+      </div>
+      <div id="console-logs" class="console-body"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const pyApi = {
+      close: () => window.pywebview ? window.pywebview.api.close_window() : window.close(),
+      minimize: () => window.pywebview ? window.pywebview.api.minimize_window() : null
+    };
+
+    let isRunning = true;
+
+    function addLog(timeStr, msg, type = 'info') {
+      const box = document.getElementById('console-logs');
+      const row = document.createElement('div');
+      row.className = 'log-row';
+      row.innerHTML = `<span class="log-time">[${timeStr}]</span> <span class="log-msg ${type}">${msg}</span>`;
+      box.appendChild(row);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function updateStats(itemsCount, ping, lastSync, engineStatus) {
+      if (itemsCount !== undefined) document.getElementById('stat-count').innerText = itemsCount + ' Items';
+      if (ping !== undefined) document.getElementById('stat-ping').innerText = ping + ' ms';
+      if (lastSync) document.getElementById('last-sync-tag').innerText = 'Last Sync: ' + lastSync;
+      if (engineStatus) document.getElementById('stat-engine').innerText = engineStatus;
+    }
+
+    async function triggerSync() {
+      addLog(new Date().toLocaleTimeString(), 'Manual sync triggered by user...', 'info');
+      if (window.pywebview && window.pywebview.api) {
+        await window.pywebview.api.sync_now();
+      }
+    }
+
+    async function toggleEngine() {
+      isRunning = !isRunning;
+      const btn = document.getElementById('btn-toggle-engine');
+      if (isRunning) {
+        btn.innerHTML = '<span>⏸ Pause Auto-Sync</span>';
+        document.getElementById('stat-engine').innerText = 'RUNNING (30s)';
+        addLog(new Date().toLocaleTimeString(), 'Auto-sync engine resumed.', 'success');
+      } else {
+        btn.innerHTML = '<span>▶ Resume Auto-Sync</span>';
+        document.getElementById('stat-engine').innerText = 'PAUSED';
+        addLog(new Date().toLocaleTimeString(), 'Auto-sync engine paused.', 'warning');
+      }
+      if (window.pywebview && window.pywebview.api) {
+        await window.pywebview.api.toggle_engine(isRunning);
+      }
+    }
+
+    window.addEventListener('pywebviewready', () => {
+      addLog(new Date().toLocaleTimeString(), 'POS Sync Engine initialized. Connected to local RetailV2 SQL Server (epos).', 'success');
+      addLog(new Date().toLocaleTimeString(), 'Cloud bridge live at https://keralasuperstore.com/api/pos-sync', 'info');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kerala Superstore — POS Sync Installer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(130% 120% at 50% 0%, #0d1b2a 0%, #060b13 60%, #03070d 100%);
+      color: #f8fafc;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 16px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(16, 185, 129, 0.15);
+    }
+
+    /* Custom Titlebar */
+    .titlebar {
+      height: 44px;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      -webkit-app-region: drag;
+    }
+
+    .title-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-logo {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+    }
+
+    .title-text {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #e2e8f0;
+    }
+
+    .title-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .title-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+
+    .win-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .win-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .win-btn.close:hover {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    /* Main Container */
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 32px 20px 32px;
+      position: relative;
+      overflow-y: auto;
+    }
+
+    /* Screens */
+    .screen {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Hero */
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      background: rgba(19, 29, 49, 0.6);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .hero-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 0 24px rgba(16, 185, 129, 0.4);
+      flex-shrink: 0;
+    }
+
+    .hero-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hero-sub {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+
+    /* Cards */
+    .card {
+      background: rgba(17, 24, 39, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Input with Browse */
+    .input-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .text-input {
+      flex: 1;
+      height: 42px;
+      background: rgba(8, 12, 20, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      color: #fff;
+      padding: 0 14px;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .text-input:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-secondary {
+      height: 42px;
+      padding: 0 18px;
+      border-radius: 10px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #38bdf8;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(51, 65, 85, 0.9);
+      border-color: #38bdf8;
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* Checkboxes */
+    .check-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      padding: 6px 4px;
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+
+    .check-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .custom-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background: rgba(8, 12, 20, 0.8);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: transparent;
+      font-size: 12px;
+      font-weight: 800;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .check-item input[type="checkbox"] {
+      display: none;
+    }
+
+    .check-item input[type="checkbox"]:checked + .custom-check {
+      background: #10b981;
+      border-color: #10b981;
+      color: #042f2e;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    .check-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #cbd5e1;
+    }
+
+    .check-sub {
+      font-size: 11px;
+      color: #64748b;
+      margin-left: 4px;
+    }
+
+    /* Footer Buttons */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .btn-cancel {
+      height: 46px;
+      padding: 0 22px;
+      border-radius: 12px;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-cancel:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: #fff;
+    }
+
+    .btn-primary {
+      height: 48px;
+      padding: 0 32px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: none;
+      color: #042f2e;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(16, 185, 129, 0.5);
+    }
+
+    /* Progress Screen */
+    .progress-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin: 10px 0 20px 0;
+    }
+
+    .progress-ring-container {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin-bottom: 14px;
+    }
+
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring-circle-bg {
+      stroke: rgba(255, 255, 255, 0.08);
+    }
+
+    .progress-ring-circle {
+      stroke: #10b981;
+      stroke-dasharray: 264;
+      stroke-dashoffset: 264;
+      transition: stroke-dashoffset 0.3s ease;
+      filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.6));
+    }
+
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 18px;
+      font-weight: 800;
+      color: #34d399;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .progress-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-bottom: 4px;
+    }
+
+    .progress-sub {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    /* Terminal Log */
+    .terminal-card {
+      flex: 1;
+      background: #030712;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+      min-height: 140px;
+    }
+
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.5px;
+    }
+
+    .terminal-logs {
+      flex: 1;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #94a3b8;
+    }
+
+    .log-line {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 3px;
+    }
+
+    .log-bullet {
+      color: #10b981;
+      font-weight: 800;
+    }
+
+    /* Success Screen */
+    .success-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .success-badge {
+      width: 76px;
+      height: 76px;
+      border-radius: 24px;
+      background: radial-gradient(circle, #10b981 0%, #065f46 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      box-shadow: 0 0 35px rgba(16, 185, 129, 0.6);
+      margin-bottom: 18px;
+      animation: pulseGlow 2s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { box-shadow: 0 0 25px rgba(16, 185, 129, 0.4); transform: scale(1); }
+      to { box-shadow: 0 0 45px rgba(16, 185, 129, 0.8); transform: scale(1.04); }
+    }
+
+    .success-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-bottom: 6px;
+    }
+
+    .success-sub {
+      font-size: 13px;
+      color: #94a3b8;
+      max-width: 460px;
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+
+    .info-pill-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 24px;
+    }
+
+    .info-pill {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px 14px;
+      text-align: left;
+    }
+
+    .info-pill-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-pill-val {
+      font-size: 12px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Custom Titlebar -->
+  <div class="titlebar">
+    <div class="title-left">
+      <div class="title-logo">🌿</div>
+      <div class="title-text">KERALA SUPERSTORE — POS SYNC SETUP</div>
+      <div class="title-badge">2026 NEXTGEN</div>
+    </div>
+    <div class="title-controls">
+      <button class="win-btn" onclick="pyApi.minimize()">—</button>
+      <button class="win-btn close" onclick="pyApi.close()">✕</button>
+    </div>
+  </div>
+
+  <div class="container">
+    
+    <!-- 1. CONFIGURATION SCREEN -->
+    <div id="screen-config" class="screen active">
+      <div class="hero">
+        <div class="hero-icon">⚡</div>
+        <div>
+          <div class="hero-title">
+            RetailV2 POS Live Bridge Setup
+            <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 8px; border-radius: 6px; font-weight: 700;">SQL Server Direct</span>
+          </div>
+          <div class="hero-sub">
+            Automatically connects to your local POS machine's <code style="color: #34d399; font-family: monospace;">epos</code> SQL database and syncs sales, stock reductions, and prices to <strong>keralasuperstore.com</strong> in real-time.
+          </div>
+        </div>
+      </div>
+
+      <!-- Target Location Card -->
+      <div class="card">
+        <div class="card-title">📁 Installation Destination Directory</div>
+        <div class="input-group">
+          <input type="text" id="target-dir" class="text-input" spellcheck="false" value="C:\Users\User\AppData\Local\KeralaSuperstore\POSSync" />
+          <button class="btn-secondary" onclick="browseFolder()">
+            <span>📂 Browse</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Installation Preferences -->
+      <div class="card">
+        <div class="card-title">⚙️ Integration & Startup Preferences</div>
+        <div class="check-list">
+          <label class="check-item">
+            <input type="checkbox" id="chk-shortcut" checked />
+            <div class="custom-check">✓</div>
+            <div class="check-label">Create Desktop Shortcut <span class="check-sub">("Kerala Superstore POS Sync")</span></div>
+          </label>
+          <label class="check-item">
+            <input type="checkbox" id="chk-startup" checked />
+            <div class="custom-check">✓</div>
+            <div class="check-label">Start automatically with Windows <span class="check-sub">(Recommended for Main Till PC)</span></div>
+          </label>
+          <label class="check-item">
+            <input type="checkbox" id="chk-launch" checked />
+            <div class="custom-check">✓</div>
+            <div class="check-label">Launch Live POS Sync Dashboard immediately after setup</div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <button class="btn-cancel" onclick="pyApi.close()">Cancel Setup</button>
+        <button class="btn-primary" onclick="startInstall()">
+          <span>⚡ Install & Configure</span>
+          <span style="font-size: 16px;">➔</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. INSTALLATION PROGRESS SCREEN -->
+    <div id="screen-progress" class="screen">
+      <div class="progress-box">
+        <div class="progress-ring-container">
+          <svg class="progress-ring" width="100" height="100">
+            <circle class="progress-ring-circle-bg" stroke-width="8" fill="transparent" r="42" cx="50" cy="50" />
+            <circle id="progress-circle" class="progress-ring-circle" stroke-width="8" stroke-linecap="round" fill="transparent" r="42" cx="50" cy="50" />
+          </svg>
+          <div id="progress-text" class="progress-text">0%</div>
+        </div>
+        <div class="progress-title">Installing Kerala Superstore POS Sync...</div>
+        <div id="progress-sub" class="progress-sub">Extracting high-performance synchronization bridge engine...</div>
+      </div>
+
+      <div class="terminal-card">
+        <div class="terminal-header">
+          <span>INSTALLATION TELEMETRY LOG</span>
+          <span id="terminal-step">STEP 1 OF 5</span>
+        </div>
+        <div id="terminal-logs" class="terminal-logs"></div>
+      </div>
+    </div>
+
+    <!-- 3. SUCCESS SCREEN -->
+    <div id="screen-success" class="screen">
+      <div class="success-card">
+        <div class="success-badge">✨</div>
+        <div class="success-title">POS Sync Bridge Installed Successfully!</div>
+        <div class="success-sub">
+          Your POS system is now configured to automatically communicate with <strong>keralasuperstore.com</strong>.
+        </div>
+
+        <div class="info-pill-grid">
+          <div class="info-pill">
+            <div class="info-pill-label">SQL Server Target</div>
+            <div class="info-pill-val">epos (RetailV2 Local)</div>
+          </div>
+          <div class="info-pill">
+            <div class="info-pill-label">Sync Interval</div>
+            <div class="info-pill-val">Every 30 Seconds (Live)</div>
+          </div>
+          <div class="info-pill">
+            <div class="info-pill-label">Cloud Target</div>
+            <div class="info-pill-val">keralasuperstore.com</div>
+          </div>
+          <div class="info-pill">
+            <div class="info-pill-label">Windows Auto-Start</div>
+            <div class="info-pill-val" style="color: #34d399;">✓ Active on Boot</div>
+          </div>
+        </div>
+
+        <button class="btn-primary" style="height: 52px; font-size: 15px; padding: 0 40px;" onclick="finishAndLaunch()">
+          <span>🚀 Launch POS Sync Monitor</span>
+          <span style="font-size: 18px;">➔</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // JS - Python API Bridge
+    const pyApi = {
+      close: () => window.pywebview ? window.pywebview.api.close_window() : window.close(),
+      minimize: () => window.pywebview ? window.pywebview.api.minimize_window() : null
+    };
+
+    // Auto-fetch default path from Python
+    window.addEventListener('pywebviewready', async () => {
+      if (window.pywebview && window.pywebview.api) {
+        const defaultPath = await window.pywebview.api.get_default_dir();
+        if (defaultPath) document.getElementById('target-dir').value = defaultPath;
+      }
+    });
+
+    async function browseFolder() {
+      if (window.pywebview && window.pywebview.api) {
+        const selected = await window.pywebview.api.browse_folder();
+        if (selected) document.getElementById('target-dir').value = selected;
+      }
+    }
+
+    function switchScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    function setProgress(pct, message) {
+      const circle = document.getElementById('progress-circle');
+      const text = document.getElementById('progress-text');
+      const sub = document.getElementById('progress-sub');
+      
+      const circumference = 2 * Math.PI * 42; // ~264
+      const offset = circumference - (pct / 100) * circumference;
+      circle.style.strokeDashoffset = offset;
+      text.innerText = Math.round(pct) + '%';
+      if (message) sub.innerText = message;
+    }
+
+    function addLog(msg, step) {
+      const logs = document.getElementById('terminal-logs');
+      const row = document.createElement('div');
+      row.className = 'log-line';
+      row.innerHTML = `<span class="log-bullet">➔</span> <span>${msg}</span>`;
+      logs.appendChild(row);
+      logs.scrollTop = logs.scrollHeight;
+      if (step) document.getElementById('terminal-step').innerText = step;
+    }
+
+    async function startInstall() {
+      const targetDir = document.getElementById('target-dir').value;
+      const shortcut = document.getElementById('chk-shortcut').checked;
+      const startup = document.getElementById('chk-startup').checked;
+      const launch = document.getElementById('chk-launch').checked;
+
+      switchScreen('screen-progress');
+      setProgress(5, 'Initializing installation environment...');
+      addLog('Verifying destination directory access...', 'STEP 1 OF 5');
+
+      if (window.pywebview && window.pywebview.api) {
+        await window.pywebview.api.run_installation({
+          targetDir,
+          shortcut,
+          startup,
+          launch
+        });
+      } else {
+        // Mock fallback for browser testing
+        setTimeout(() => { setProgress(35, 'Extracting binaries...'); addLog('Unpacking KSS-POS-Sync.exe...', 'STEP 2 OF 5'); }, 600);
+        setTimeout(() => { setProgress(70, 'Configuring SQL...'); addLog('Connecting RetailV2 (epos)...', 'STEP 3 OF 5'); }, 1200);
+        setTimeout(() => { setProgress(100, 'Done!'); addLog('Installation complete!', 'STEP 5 OF 5'); switchScreen('screen-success'); }, 1800);
+      }
+    }
+
+    function onInstallSuccess() {
+      setProgress(100, 'Installation Completed!');
+      setTimeout(() => switchScreen('screen-success'), 400);
+    }
+
+    async function finishAndLaunch() {
+      if (window.pywebview && window.pywebview.api) {
+        await window.pywebview.api.finish_and_launch();
+      } else {
+        window.close();
+      }
+    }
+  </script>
+</body>
+</html>
