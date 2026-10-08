@@ -1,12 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_all
+
+datas = [('g:/Kerala super store 2026 website/public/downloads/KSS-POS-Sync.exe', '.')]
+binaries = []
+hiddenimports = []
+tmp_ret = collect_all('customtkinter')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
-    ['g:/Kerala super store 2026 website/tools/pos_sync/installer/pos_sync_installer.py'],
+    ['g:/Kerala super store 2026 website/tools/pos_sync/modern_installer.py'],
     pathex=[],
-    binaries=[],
-    datas=[('g:/Kerala super store 2026 website/public/downloads/KSS-POS-Sync.exe', '.')],
-    hiddenimports=[],
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
