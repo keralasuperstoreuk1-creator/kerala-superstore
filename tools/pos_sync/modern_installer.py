@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Kerala Superstore Manchester — Modern 2026 Windows Installer Wizard
+Kerala Superstore Manchester — NextGen 2026 Windows Installer Wizard
 Built with CustomTkinter for a sleek, premium dark-mode desktop experience.
 """
 
@@ -11,8 +11,8 @@ import json
 import time
 import threading
 import winreg
+from tkinter import filedialog
 import customtkinter as ctk
-from PIL import Image
 
 # Initialize CustomTkinter Theme
 ctk.set_appearance_mode("Dark")
@@ -43,6 +43,7 @@ def create_windows_shortcut(target_path, shortcut_path, description=""):
         shortcut.TargetPath = target_path
         shortcut.WorkingDirectory = os.path.dirname(target_path)
         shortcut.Description = description
+        shortcut.IconLocation = target_path
         shortcut.save()
         return True
     except Exception as e:
@@ -68,10 +69,26 @@ class ModernInstallerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title(f"Setup — {APP_NAME} (2026 NextGen)")
-        self.geometry("740x560")
-        self.minsize(720, 540)
+        self.title(f"Setup — {APP_NAME} (2026 Edition)")
+        
+        # Center Window on Screen & Auto DPI
+        win_w, win_h = 760, 600
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        pos_x = max(50, int((sw - win_w) / 2))
+        pos_y = max(50, int((sh - win_h) / 2))
+        self.geometry(f"{win_w}x{win_h}+{pos_x}+{pos_y}")
+        self.minsize(720, 560)
         self.configure(fg_color="#090d16")
+
+        # Set Icon
+        try:
+            base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+            icon_path = os.path.join(base_dir, "app_icon.ico")
+            if os.path.exists(icon_path):
+                self.iconbitmap(icon_path)
+        except Exception:
+            pass
 
         # Variables
         self.install_dir_var = ctk.StringVar(value=DEFAULT_INSTALL_DIR)
@@ -84,12 +101,12 @@ class ModernInstallerApp(ctk.CTk):
 
     def build_ui(self):
         # 1. Top Header Brand Bar
-        self.header_frame = ctk.CTkFrame(self, fg_color="#111827", corner_radius=0, height=90)
+        self.header_frame = ctk.CTkFrame(self, fg_color="#111827", corner_radius=0, height=85)
         self.header_frame.pack(fill="x", side="top")
         self.header_frame.pack_propagate(False)
 
         header_content = ctk.CTkFrame(self.header_frame, fg_color="transparent")
-        header_content.pack(fill="both", expand=True, padx=25, pady=15)
+        header_content.pack(fill="both", expand=True, padx=24, pady=12)
 
         title_box = ctk.CTkFrame(header_content, fg_color="transparent")
         title_box.pack(side="left", fill="y")
@@ -113,54 +130,59 @@ class ModernInstallerApp(ctk.CTk):
         # Version Badge
         badge = ctk.CTkLabel(
             header_content,
-            text="v2.0 NEXTGEN",
+            text="v2.0 NEXTGEN 2026",
             font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
             text_color="#34d399",
             fg_color="#064e3b",
             corner_radius=8,
-            padx=10,
+            padx=12,
             pady=4
         )
         badge.pack(side="right", padx=5)
 
-        # 2. Dynamic Main Body Container
-        self.main_body = ctk.CTkFrame(self, fg_color="#090d16", corner_radius=0)
-        self.main_body.pack(fill="both", expand=True, padx=25, pady=15)
-
-        # 3. Bottom Navigation Footer
+        # 2. Bottom Navigation Footer (Pack bottom FIRST so it is ALWAYS visible and never clipped!)
         self.footer_frame = ctk.CTkFrame(self, fg_color="#111827", corner_radius=0, height=75)
         self.footer_frame.pack(fill="x", side="bottom")
         self.footer_frame.pack_propagate(False)
 
         self.btn_cancel = ctk.CTkButton(
             self.footer_frame,
-            text="Cancel",
+            text="✖ Cancel",
             command=self.destroy,
-            font=ctk.CTkFont(family="Segoe UI", size=12),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             fg_color="#1f2937",
             hover_color="#374151",
             text_color="#cbd5e1",
-            width=100,
-            height=38,
+            width=110,
+            height=42,
             corner_radius=10
         )
-        self.btn_cancel.pack(side="left", padx=25, pady=18)
+        self.btn_cancel.pack(side="left", padx=24, pady=16)
 
         self.btn_action = ctk.CTkButton(
             self.footer_frame,
-            text="Install Now ➔",
+            text="⚡ Install Now ➔",
             command=self.start_installation,
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            fg_color="#059669",
-            hover_color="#047857",
-            text_color="white",
-            width=160,
-            height=40,
+            fg_color="#10b981",
+            hover_color="#059669",
+            text_color="#042f2e",
+            width=170,
+            height=44,
             corner_radius=10
         )
-        self.btn_action.pack(side="right", padx=25, pady=18)
+        self.btn_action.pack(side="right", padx=24, pady=16)
+
+        # 3. Dynamic Main Body Container
+        self.main_body = ctk.CTkFrame(self, fg_color="#090d16", corner_radius=0)
+        self.main_body.pack(fill="both", expand=True, padx=24, pady=14)
 
         self.render_configuration_step()
+
+    def browse_folder(self):
+        folder = filedialog.askdirectory(initialdir=self.install_dir_var.get())
+        if folder:
+            self.install_dir_var.set(os.path.join(folder, "KeralaSuperstore", "POSSync"))
 
     def render_configuration_step(self):
         for widget in self.main_body.winfo_children():
@@ -168,20 +190,20 @@ class ModernInstallerApp(ctk.CTk):
 
         # Intro Card
         intro_card = ctk.CTkFrame(self.main_body, fg_color="#131d31", corner_radius=14, border_width=1, border_color="#1e293b")
-        intro_card.pack(fill="x", pady=(0, 15), padx=5, ipady=8)
+        intro_card.pack(fill="x", pady=(0, 12), padx=2, ipady=6)
 
         lbl_welcome = ctk.CTkLabel(
             intro_card,
-            text="Automated Stock & Sales Bridge for Windows",
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            text="🚀 Automatic Real-Time POS Inventory & Sales Bridge",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             text_color="#38bdf8"
         )
         lbl_welcome.pack(anchor="w", padx=16, pady=(8, 2))
 
         lbl_desc = ctk.CTkLabel(
             intro_card,
-            text="This tool connects directly into local RetailV2 SQL Server (epos database) in read-only mode.\n"
-                 "It safely pushes live stock deductions and price updates to your website every 30 seconds.",
+            text="Connects seamlessly to local RetailV2 SQL Server ('epos' database).\n"
+                 "Automatically synchronizes inventory counts, new items, and prices with keralasuperstore.com safely.",
             font=ctk.CTkFont(family="Segoe UI", size=11),
             text_color="#94a3b8",
             justify="left"
@@ -190,18 +212,21 @@ class ModernInstallerApp(ctk.CTk):
 
         # Destination Location Card
         loc_card = ctk.CTkFrame(self.main_body, fg_color="#131d31", corner_radius=14, border_width=1, border_color="#1e293b")
-        loc_card.pack(fill="x", pady=(0, 15), padx=5, ipady=6)
+        loc_card.pack(fill="x", pady=(0, 12), padx=2, ipady=6)
 
         lbl_loc = ctk.CTkLabel(
             loc_card,
-            text="Installation Folder:",
+            text="📁 Installation Destination Directory:",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             text_color="#f1f5f9"
         )
         lbl_loc.pack(anchor="w", padx=16, pady=(8, 4))
 
+        loc_row = ctk.CTkFrame(loc_card, fg_color="transparent")
+        loc_row.pack(fill="x", padx=16, pady=(0, 10))
+
         loc_entry = ctk.CTkEntry(
-            loc_card,
+            loc_row,
             textvariable=self.install_dir_var,
             font=ctk.CTkFont(family="Segoe UI", size=11),
             fg_color="#0b1120",
@@ -210,15 +235,29 @@ class ModernInstallerApp(ctk.CTk):
             height=36,
             corner_radius=8
         )
-        loc_entry.pack(fill="x", padx=16, pady=(0, 10))
+        loc_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
+
+        btn_browse = ctk.CTkButton(
+            loc_row,
+            text="📂 Browse...",
+            command=self.browse_folder,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            fg_color="#1e293b",
+            hover_color="#334155",
+            text_color="#38bdf8",
+            width=100,
+            height=36,
+            corner_radius=8
+        )
+        btn_browse.pack(side="right")
 
         # Options Card
         opts_card = ctk.CTkFrame(self.main_body, fg_color="#131d31", corner_radius=14, border_width=1, border_color="#1e293b")
-        opts_card.pack(fill="x", padx=5, ipady=6)
+        opts_card.pack(fill="x", padx=2, ipady=6)
 
         lbl_opts = ctk.CTkLabel(
             opts_card,
-            text="Installation Preferences:",
+            text="⚙️ Installation Preferences & Shortcuts:",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             text_color="#f1f5f9"
         )
@@ -230,32 +269,32 @@ class ModernInstallerApp(ctk.CTk):
             variable=self.desktop_shortcut_var,
             font=ctk.CTkFont(family="Segoe UI", size=11),
             text_color="#e2e8f0",
-            fg_color="#059669",
-            hover_color="#047857",
+            fg_color="#10b981",
+            hover_color="#059669",
             corner_radius=6
         )
         sw1.pack(anchor="w", padx=16, pady=4)
 
         sw2 = ctk.CTkCheckBox(
             opts_card,
-            text="Start automatically with Windows (Recommended for POS Till PC)",
+            text="Start automatically with Windows (Recommended for Main POS Till PC)",
             variable=self.startup_var,
             font=ctk.CTkFont(family="Segoe UI", size=11),
             text_color="#e2e8f0",
-            fg_color="#059669",
-            hover_color="#047857",
+            fg_color="#10b981",
+            hover_color="#059669",
             corner_radius=6
         )
         sw2.pack(anchor="w", padx=16, pady=4)
 
         sw3 = ctk.CTkCheckBox(
             opts_card,
-            text="Launch POS Sync agent immediately after installation completes",
+            text="Launch Kerala Superstore POS Sync immediately after installation",
             variable=self.launch_after_var,
             font=ctk.CTkFont(family="Segoe UI", size=11),
             text_color="#e2e8f0",
-            fg_color="#059669",
-            hover_color="#047857",
+            fg_color="#10b981",
+            hover_color="#059669",
             corner_radius=6
         )
         sw3.pack(anchor="w", padx=16, pady=(4, 10))
@@ -273,7 +312,7 @@ class ModernInstallerApp(ctk.CTk):
         self.btn_action.configure(state="disabled", text="Installing...")
 
         prog_card = ctk.CTkFrame(self.main_body, fg_color="#131d31", corner_radius=16, border_width=1, border_color="#1e293b")
-        prog_card.pack(fill="both", expand=True, padx=5, pady=10, ipady=20)
+        prog_card.pack(fill="both", expand=True, padx=2, pady=6, ipady=15)
 
         self.lbl_status = ctk.CTkLabel(
             prog_card,
@@ -281,7 +320,7 @@ class ModernInstallerApp(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             text_color="#38bdf8"
         )
-        self.lbl_status.pack(anchor="w", padx=25, pady=(25, 10))
+        self.lbl_status.pack(anchor="w", padx=20, pady=(15, 8))
 
         self.progress_bar = ctk.CTkProgressBar(
             prog_card,
@@ -292,7 +331,7 @@ class ModernInstallerApp(ctk.CTk):
             fg_color="#0b1120",
             progress_color="#10b981"
         )
-        self.progress_bar.pack(fill="x", padx=25, pady=(0, 15))
+        self.progress_bar.pack(fill="x", padx=20, pady=(0, 10))
         self.progress_bar.set(0)
 
         self.lbl_detail = ctk.CTkLabel(
@@ -301,7 +340,7 @@ class ModernInstallerApp(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", size=11),
             text_color="#94a3b8"
         )
-        self.lbl_detail.pack(anchor="w", padx=25, pady=(0, 15))
+        self.lbl_detail.pack(anchor="w", padx=20, pady=(0, 10))
 
         # Live terminal log box
         self.log_box = ctk.CTkTextbox(
@@ -313,7 +352,7 @@ class ModernInstallerApp(ctk.CTk):
             border_width=1,
             border_color="#1e293b"
         )
-        self.log_box.pack(fill="both", expand=True, padx=25, pady=(0, 20))
+        self.log_box.pack(fill="both", expand=True, padx=20, pady=(0, 15))
 
         # Start thread
         threading.Thread(target=self._run_install_pipeline, daemon=True).start()
@@ -394,43 +433,44 @@ class ModernInstallerApp(ctk.CTk):
         self.btn_cancel.pack_forget()
         self.btn_action.configure(
             state="normal",
-            text="Launch POS Sync ➔",
+            text="✨ Finish & Launch ➔",
             command=self.finish_and_launch,
-            fg_color="#059669",
-            hover_color="#047857",
-            width=180
+            fg_color="#10b981",
+            hover_color="#059669",
+            text_color="#042f2e",
+            width=200
         )
 
-        done_card = ctk.CTkFrame(self.main_body, fg_color="#131d31", corner_radius=16, border_width=1, border_color="#059669")
-        done_card.pack(fill="both", expand=True, padx=5, pady=10, ipady=15)
+        done_card = ctk.CTkFrame(self.main_body, fg_color="#131d31", corner_radius=16, border_width=1, border_color="#10b981")
+        done_card.pack(fill="both", expand=True, padx=2, pady=6, ipady=15)
 
         lbl_icon = ctk.CTkLabel(
             done_card,
-            text="✨",
-            font=ctk.CTkFont(size=42)
+            text="✅",
+            font=ctk.CTkFont(size=40)
         )
-        lbl_icon.pack(pady=(20, 5))
+        lbl_icon.pack(pady=(15, 5))
 
         lbl_congrats = ctk.CTkLabel(
             done_card,
             text="Installation Completed Successfully!",
-            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=17, weight="bold"),
             text_color="#34d399"
         )
         lbl_congrats.pack(pady=(0, 10))
 
         info_text = (
-            f"Kerala Superstore POS Sync is ready on this machine.\n\n"
-            f"📍 Installed Path: {self.install_dir_var.get()}\n"
-            f"🎯 Cloud Sync Target: https://keralasuperstore.com\n"
-            f"🖥️ Local Database: Microsoft SQL Server (epos)\n"
-            f"🚀 Background Auto-Start: Enabled"
+            f"Kerala Superstore POS Sync Bridge is now fully installed and configured.\n\n"
+            f"📍 Target Path: {self.install_dir_var.get()}\n"
+            f"🎯 Cloud Sync Endpoint: https://keralasuperstore.com/api/pos-sync\n"
+            f"🖥️ Local SQL Server: Microsoft SQL Server (epos database)\n"
+            f"🚀 Auto-Start: Enabled (Syncs continuously in background)"
         )
 
         lbl_info = ctk.CTkLabel(
             done_card,
             text=info_text,
-            font=ctk.CTkFont(family="Segoe UI", size=12),
+            font=ctk.CTkFont(family="Segoe UI", size=11),
             text_color="#cbd5e1",
             justify="center"
         )

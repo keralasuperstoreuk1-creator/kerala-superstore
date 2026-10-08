@@ -230,9 +230,22 @@ class ModernSyncDashboard(ctk.CTk):
         super().__init__()
 
         self.title("Kerala Superstore — RetailV2 POS Bridge Dashboard (2026)")
-        self.geometry("880x640")
+        win_w, win_h = 880, 640
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        pos_x = max(50, int((sw - win_w) / 2))
+        pos_y = max(50, int((sh - win_h) / 2))
+        self.geometry(f"{win_w}x{win_h}+{pos_x}+{pos_y}")
         self.minsize(820, 580)
         self.configure(fg_color="#090d16")
+
+        try:
+            base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+            icon_path = os.path.join(base_dir, "app_icon.ico")
+            if os.path.exists(icon_path):
+                self.iconbitmap(icon_path)
+        except Exception:
+            pass
 
         self.config = load_config()
         self.engine = PosSyncEngine(self.config, logger_callback=self.log_message)
