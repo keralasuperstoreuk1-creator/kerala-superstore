@@ -239,16 +239,28 @@ export function upsertPosProductsToCatalog(items: PosSyncItem[]): { updatedCount
 }
 
 /**
- * Returns the unified active catalog (mock + dynamic + live POS stock levels)
+ * Returns the unified active catalog.
+ * When POS products are synchronized from the shop computer,
+ * it replaces development mock items with the shop's REAL active inventory!
  */
-export function getUnifiedProductCatalog(): Product[] {
+export function getUnifiedProductCatalog(preferExclusivePos: boolean = true): Product[] {
   const dynamicProducts = getDynamicProducts();
   const posState = getPosSyncState();
-  const allProducts: Product[] = [...INITIAL_PRODUCTS, ...dynamicProducts];
+
+  // If real POS products exist in dynamic catalog, use ONLY real POS products
+  let baseProducts: Product[] = [];
+  
+  if (dynamicProducts.length > 0 && preferExclusivePos) {
+    // Pure real items from POS computer
+    baseProducts = [...dynamicProducts];
+  } else {
+    // Development fallback
+    baseProducts = [...INITIAL_PRODUCTS, ...dynamicProducts];
+  }
 
   // Overlay live POS stock & price updates
   if (posState.syncedInventory) {
-    allProducts.forEach((prod) => {
+    baseProducts.forEach((prod) => {
       if (prod.barcode && posState.syncedInventory[prod.barcode]) {
         const live = posState.syncedInventory[prod.barcode];
         prod.stock = live.quantity;
@@ -260,5 +272,7 @@ export function getUnifiedProductCatalog(): Product[] {
     });
   }
 
-  return allProducts;
+  // Filter out any deleted or inactive items
+  return baseProducts.filter(p => p.status === 'published');
 }
+
