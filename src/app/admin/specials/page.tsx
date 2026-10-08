@@ -493,7 +493,7 @@ export default function AdminSpecialsPage() {
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
-                ഈ ഭാഗത്തിന്റെ ബാക്ക്ഗ്രൗണ്ടും ടേബിൾ/കാർഡ് കളറുകളും മാറ്റുക (Change Background, Table/Card Colors, Borders &amp; Buttons)
+                Customize section background, card colors, borders, and buttons
               </p>
             </div>
           </div>
@@ -779,7 +779,7 @@ export default function AdminSpecialsPage() {
               {/* Column B: TABLE / CARD COLORS */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                 <span className="font-black text-slate-900 block flex items-center gap-1.5">
-                  <span>🪑 Table / Card Colors (ടേബിൾ കാർഡ് കളർ)</span>
+                  <span>🪑 Table / Card Colors</span>
                 </span>
 
                 {/* Quick Card Style Presets */}

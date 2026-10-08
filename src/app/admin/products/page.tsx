@@ -517,7 +517,7 @@ export default function AdminProductsPage() {
                 </div>
                 <div>
                   <h2 className="text-base font-black text-slate-900">
-                    Customer Restock Leads (സ്റ്റോക്ക് തീർന്നപ്പോൾ കാത്തിരിക്കുന്ന കസ്റ്റമേഴ്സ്)
+                    Customer Restock Leads (Waitlist Alerts)
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Customers who asked for a WhatsApp alert when out-of-stock items return to Kerala Superstore Manchester.

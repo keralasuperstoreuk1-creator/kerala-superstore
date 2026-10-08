@@ -176,7 +176,7 @@ export function autoEnrichPosProduct(item: PosSyncItem): Product {
     stock: stock,
     lowStockThreshold: 5,
     barcode: item.barcode,
-    description: `Premium quality authentic ${cleanDesc} (${sizeWeight}) sourced directly from Kerala, India. Specially packaged for maximum freshness, aroma, and rich traditional taste. Available for fast home delivery across Greater Manchester and nationwide UK from Kerala Superstore Manchester.\n\nതനതായ കേരള തനിമയിലും ഗുണമേന്മയിലും തയ്യാറാക്കിയത്.`,
+    description: `Premium quality authentic ${cleanDesc} (${sizeWeight}) sourced directly from Kerala, India. Specially packaged for maximum freshness, aroma, and rich traditional taste. Available for fast home delivery across Greater Manchester and nationwide UK from Kerala Superstore Manchester.`,
     ingredients: `${detectedBrand} authentic preparation with 100% natural ingredients.`,
     tags: [detectedBrand, category, 'Kerala Authentic', 'UK Fast Delivery', 'Fresh Stock', sizeWeight],
     imageUrl: imageUrl,

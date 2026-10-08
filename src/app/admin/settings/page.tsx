@@ -49,7 +49,6 @@ type SettingsTab = 'modules' | 'store' | 'delivery' | 'branding' | 'security';
 interface FeatureModuleDef {
   key: keyof StoreModules;
   title: string;
-  malayalamHint: string;
   desc: string;
   icon: any;
   color: string;
@@ -61,7 +60,6 @@ const FEATURE_MODULES: FeatureModuleDef[] = [
   {
     key: 'showComboBundles',
     title: 'Combo Bundles & Family Kits',
-    malayalamHint: 'കോംബോ ബണ്ടിലുകൾ',
     desc: 'Showcase curated Onam, Bachelors & Kerala snack feast kits on storefront',
     icon: Boxes,
     color: 'from-amber-500 to-orange-600',
@@ -71,7 +69,6 @@ const FEATURE_MODULES: FeatureModuleDef[] = [
   {
     key: 'showPromoCoupons',
     title: 'Promo Coupons & Discount Codes',
-    malayalamHint: 'കൂപ്പൺ കോഡുകൾ',
     desc: 'Coupon discount input in cart drawer and checkout discounts',
     icon: Tag,
     color: 'from-emerald-600 to-teal-700',
@@ -81,7 +78,6 @@ const FEATURE_MODULES: FeatureModuleDef[] = [
   {
     key: 'showKitchenSpecials',
     title: 'Kitchen Specials & Alerts Bell',
-    malayalamHint: 'കിച്ചൻ സ്പെഷ്യലുകൾ & അലേർട്ട്',
     desc: 'Daily cooked Thalassery Dum Biriyani drops + notification bell in top bar',
     icon: Bell,
     color: 'from-rose-500 to-pink-600',
@@ -91,7 +87,6 @@ const FEATURE_MODULES: FeatureModuleDef[] = [
   {
     key: 'showHeroSlider',
     title: 'Storefront Hero Slider & Big Banners',
-    malayalamHint: 'ഹീറോ സ്ലൈഡറും ബാനറുകളും',
     desc: 'Top animated carousel banner slides & spotlight promo card on homepage',
     icon: Sliders,
     color: 'from-blue-600 to-indigo-700',
@@ -101,7 +96,6 @@ const FEATURE_MODULES: FeatureModuleDef[] = [
   {
     key: 'showMovingOffers',
     title: 'Flash Deals Moving Showcase',
-    malayalamHint: 'ഫ്ലാഷ് ഡീൽസ് മൂവിങ് ബാർ',
     desc: 'Smooth continuous moving marquee row displaying live discounted groceries',
     icon: Flame,
     color: 'from-red-500 to-amber-600',
@@ -109,7 +103,6 @@ const FEATURE_MODULES: FeatureModuleDef[] = [
   {
     key: 'showFeaturedCategories',
     title: 'Top 6 Circular Category Bubbles',
-    malayalamHint: 'റൗണ്ട് കാറ്റഗറി ബട്ടണുകൾ',
     desc: 'Circular photographic category badges (Rice, Spices, Snacks, Coconut Oil, etc.)',
     icon: Layers,
     color: 'from-teal-600 to-emerald-700',
@@ -119,7 +112,6 @@ const FEATURE_MODULES: FeatureModuleDef[] = [
   {
     key: 'showCuratedDepartments',
     title: 'Explore by Department Grid',
-    malayalamHint: 'കാറ്റഗറി ഡിപ്പാർട്മെന്റുകൾ',
     desc: 'Full 10-department grid with quick-shop popups and variety picker',
     icon: Grid,
     color: 'from-purple-600 to-indigo-700',
@@ -127,7 +119,6 @@ const FEATURE_MODULES: FeatureModuleDef[] = [
   {
     key: 'showBrandMarquee',
     title: 'Authentic Kerala Brands Ticker',
-    malayalamHint: 'ബ്രാൻഡ് ലോഗോ സ്ക്രോളർ',
     desc: 'Infinite marquee ticker featuring Nirapara, Eastern, Brahmins, Double Horse, etc.',
     icon: CheckCircle2,
     color: 'from-cyan-600 to-blue-700',
@@ -135,7 +126,6 @@ const FEATURE_MODULES: FeatureModuleDef[] = [
   {
     key: 'showAppDownload',
     title: 'Mobile App Download Showcase & Header',
-    malayalamHint: 'മൊബൈൽ ആപ്പ് ഡൗൺലോഡ്',
     desc: '1-Click App installation section at bottom and top header download button',
     icon: Smartphone,
     color: 'from-emerald-700 to-slate-900',
@@ -143,7 +133,6 @@ const FEATURE_MODULES: FeatureModuleDef[] = [
   {
     key: 'showOfferMarquee',
     title: 'Top Special Offer Marquee Bar',
-    malayalamHint: 'മുകളിലെ ഓഫർ അനൗൺസ്മെന്റ്',
     desc: 'Top animated ticker strip announcing free Manchester delivery & flash sales',
     icon: Sparkles,
     color: 'from-amber-600 to-rose-600',
@@ -473,9 +462,6 @@ export default function AdminSettingsPage() {
                             <h3 className="font-black text-sm text-slate-900 leading-tight">
                               {mod.title}
                             </h3>
-                            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                              {mod.malayalamHint}
-                            </span>
                           </div>
                           <p className="text-xs text-slate-500 mt-1 leading-snug">
                             {mod.desc}
