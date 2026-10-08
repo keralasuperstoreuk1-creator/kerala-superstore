@@ -91,12 +91,17 @@ export function applyPosInventorySync(items: PosSyncItem[], source: string = 'Re
     if (!item.barcode) return;
     const cleanBarcode = String(item.barcode).trim();
     
+    const rawQty = item.quantity !== undefined ? item.quantity : (item as any).qtyOnHand !== undefined ? (item as any).qtyOnHand : (item as any).qty;
+    const qty = Number(rawQty) || 0;
+    const rawPrice = item.price !== undefined ? item.price : (item as any).unitPrice;
+    const price = Number(rawPrice) || 0;
+
     state.syncedInventory[cleanBarcode] = {
       ...item,
       barcode: cleanBarcode,
-      quantity: Number(item.quantity) || 0,
-      price: Number(item.price) || 0,
-      webPrice: item.webPrice !== undefined ? Number(item.webPrice) : Number(item.price),
+      quantity: qty,
+      price: price,
+      webPrice: item.webPrice !== undefined ? Number(item.webPrice) : price,
       active: item.active !== false && !item.isDeleted,
       updatedAt: now,
     };
