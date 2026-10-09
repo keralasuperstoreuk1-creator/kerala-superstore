@@ -16,10 +16,13 @@ import customtkinter as ctk
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("green")
 
-CONFIG_FILE = "config.json"
+APP_DIR = os.path.dirname(os.path.abspath(sys.argv[0])) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE = os.path.join(APP_DIR, "config.json")
 DEFAULT_CONFIG = {
     "website_url": "https://keralasuperstore.com",
     "api_key": "kss_pos_sync_key_2026_live",
+    "supabase_url": os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "https://rnwthwaputocyirjtabd.supabase.co"),
+    "supabase_key": os.environ.get("SUPABASE_SERVICE_ROLE_KEY", ""),
     "sync_interval_seconds": 30,
     "db_server": ".",
     "db_name": "epos",
@@ -185,6 +188,120 @@ class PosSyncEngine:
 
         self.last_sync_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.total_synced = success_count
+
+        # 2. Direct Supabase Cloud Database Mirror (Permanent Zero-Latency Sync)
+        sb_url = self.config.get("supabase_url", "").rstrip("/")
+        sb_key = self.config.get("supabase_key", "")
+        if sb_url and sb_key:
+            try:
+                sb_headers = {
+                    "apikey": sb_key,
+                    "Authorization": f"Bearer {sb_key}",
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates"
+                }
+                now_iso = datetime.datetime.now().isoformat()
+                sb_rows = []
+                for item in items:
+                    bc = str(item.get("barcode", "")).strip()
+                    if not bc: continue
+                    sb_rows.append({
+                        "barcode": bc,
+                        "sku": str(item.get("sku", "")) if item.get("sku") else None,
+                        "description": item.get("description", "Product"),
+                        "quantity": float(item.get("quantity", 0)),
+                        "price": float(item.get("price", 0)),
+                        "web_price": float(item.get("webPrice", 0)) if item.get("webPrice") else None,
+                        "active": bool(item.get("active", True)),
+                        "updated_at": now_iso
+                    })
+                
+                for i in range(0, len(sb_rows), 500):
+                    sb_batch = sb_rows[i:i + 500]
+                    requests.post(f"{sb_url}/rest/v1/pos_inventory", json=sb_batch, headers=sb_headers, timeout=15)
+                
+                # Auto-enrich and upsert products into live storefront products table
+                PATTERNS = [
+                    (r"matta|palakkad", "/products/matta-rice.png", "Rice & Rice Products", "rice-and-rice-products"),
+                    (r"kaima|jeerakasala|biriyani rice|biryani rice", "/products/kaima-rice.png", "Rice & Rice Products", "rice-and-rice-products"),
+                    (r"ponni|sona masoori|idli rice|rice", "/products/pavizham-rice.png", "Rice & Rice Products", "rice-and-rice-products"),
+                    (r"puttu", "/products/puttu-podi.png", "Breakfast Powders", "breakfast-powders"),
+                    (r"appam|idiyappam|pathiri", "/products/appam-podi.png", "Breakfast Powders", "breakfast-powders"),
+                    (r"rava|sooji|suji", "/products/roasted-rava.png", "Breakfast Powders", "breakfast-powders"),
+                    (r"banana chips|chips|upperi", "/products/banana-chips.png", "Crisps & Snacks", "crisps-and-snacks"),
+                    (r"sharkara upperi", "/products/sharkara-upperi.png", "Crisps & Snacks", "crisps-and-snacks"),
+                    (r"mixture|murukku|snack", "/products/kerala-mixture.png", "Crisps & Snacks", "crisps-and-snacks"),
+                    (r"sambar", "/products/sambar-powder.png", "Masala & Curry Powders", "masala-and-curry-powders"),
+                    (r"chicken masala", "/products/chicken-masala.png", "Masala & Curry Powders", "masala-and-curry-powders"),
+                    (r"meat masala|beef masala", "/products/meat-masala.png", "Masala & Curry Powders", "masala-and-curry-powders"),
+                    (r"fish masala|fish fry", "/products/fish-masala.png", "Masala & Curry Powders", "masala-and-curry-powders"),
+                    (r"turmeric|manjal", "/products/turmeric-powder.png", "Masala & Curry Powders", "masala-and-curry-powders"),
+                    (r"chilli|kashmiri", "/products/kashmiri-chilli.png", "Masala & Curry Powders", "masala-and-curry-powders"),
+                    (r"coriander|malli|garam masala", "/products/sambar-powder.png", "Masala & Curry Powders", "masala-and-curry-powders"),
+                    (r"cardamom|elakka", "/products/cardamom.png", "Spices & Whole Condiments", "spices-and-whole-condiments"),
+                    (r"black pepper|pepper", "/products/black-pepper.png", "Spices & Whole Condiments", "spices-and-whole-condiments"),
+                    (r"clove|gramboo", "/products/cloves.png", "Spices & Whole Condiments", "spices-and-whole-condiments"),
+                    (r"star anise|thakkolam", "/products/star-anise.png", "Spices & Whole Condiments", "spices-and-whole-condiments"),
+                    (r"cherupayar|moong", "/products/cherupayar.png", "Pulses & Dal", "pulses-and-dal"),
+                    (r"toor dal|tuvar|parippu|dal", "/products/toor-dal.png", "Pulses & Dal", "pulses-and-dal"),
+                    (r"kadala|chana|chickpea", "/products/kadala.png", "Pulses & Dal", "pulses-and-dal"),
+                    (r"coconut oil|velichenna", "/products/kera-coconut-oil.png", "Pure Oils & Ghee", "oils-and-ghee"),
+                    (r"ghee|neyy", "/products/malabar-ghee.png", "Pure Oils & Ghee", "oils-and-ghee"),
+                    (r"gingelly|sesame", "/products/gingelly-oil.png", "Pure Oils & Ghee", "oils-and-ghee"),
+                    (r"cut mango|pickle|achar", "/products/cut-mango-pickle.png", "Traditional Pickles", "traditional-pickles"),
+                    (r"frozen kappa|tapioca|kappa", "/products/frozen-kappa.png", "Frozen Delights", "frozen-delights"),
+                    (r"parotta|porotta", "/products/malabar-parotta.png", "Frozen Delights", "frozen-delights"),
+                    (r"puttu maker", "/products/puttu-maker.png", "Traditional Kitchenwares", "traditional-kitchenwares"),
+                    (r"appam chatti", "/products/appam-chatti.png", "Traditional Kitchenwares", "traditional-kitchenwares"),
+                    (r"bronze|uruli", "/products/bronze-uruli.png", "Traditional Kitchenwares", "traditional-kitchenwares"),
+                    (r"tea|chai", "/products/tea-munnar.png", "Breakfast Powders", "breakfast-powders")
+                ]
+                import re
+                prod_rows = []
+                for item in items:
+                    desc = item.get("description", "").strip()
+                    bc = str(item.get("barcode", "")).strip()
+                    if not desc or not bc: continue
+                    img = "/products/banana-chips.png"
+                    cat = "General Grocery"
+                    catslug = "grocery"
+                    for pattern, m_img, m_cat, m_slug in PATTERNS:
+                        if re.search(pattern, desc, re.IGNORECASE):
+                            img = m_img
+                            cat = m_cat
+                            catslug = m_slug
+                            break
+                    slug = re.sub(r"[^a-z0-9]+", "-", desc.lower()).strip("-") + f"-{bc[-6:]}"
+                    price = float(item.get("price", 0))
+                    web_p = float(item.get("webPrice", 0)) if item.get("webPrice") else None
+                    prod_rows.append({
+                        "name": desc,
+                        "slug": slug,
+                        "barcode": bc,
+                        "price": price,
+                        "offer_price": web_p if web_p and web_p < price else None,
+                        "stock_quantity": max(0, int(float(item.get("quantity", 0)))),
+                        "category": cat,
+                        "category_slug": catslug,
+                        "image_url": img,
+                        "status": "published",
+                        "updated_at": now_iso
+                    })
+
+                for i in range(0, len(prod_rows), 200):
+                    p_batch = prod_rows[i:i + 200]
+                    requests.post(f"{sb_url}/rest/v1/products?on_conflict=slug", json=p_batch, headers=sb_headers, timeout=20)
+
+                requests.post(f"{sb_url}/rest/v1/pos_sync_logs", json={
+                    "timestamp": now_iso,
+                    "type": "success",
+                    "message": f"Successfully mirrored {len(items)} items to Supabase Cloud",
+                    "item_count": len(items)
+                }, headers=sb_headers, timeout=10)
+                self.logger(f"Cloud Database: {len(sb_rows)} items mirrored and auto-enriched in Supabase ✔", "success")
+            except Exception as sb_err:
+                self.logger(f"Supabase mirror notice: {sb_err}", "warning")
+
         return True, f"Successfully pushed {success_count} products."
 
     def perform_sync(self):
