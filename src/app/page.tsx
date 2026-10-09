@@ -81,29 +81,20 @@ export default function HomePage() {
         // fallback
       }
 
-      // Check localStorage for admin overrides (e.g. Special Offer Coconut Oil or custom prices)
-      try {
-        const saved = localStorage.getItem('kss_products');
-        if (saved) {
-          const localList: Product[] = JSON.parse(saved);
-          if (localList.length > 0) {
-            const productMap = new Map<string, Product>();
-            (serverProducts.length > 0 ? serverProducts : INITIAL_PRODUCTS).forEach(p => productMap.set(p.id, p));
-            localList.forEach(p => {
-              const current = productMap.get(p.id);
-              productMap.set(p.id, current ? { ...current, ...p } : p);
-            });
-            setProducts(Array.from(productMap.values()));
-            return;
-          }
-        }
-      } catch {
-        // fallback
-      }
-
       if (serverProducts.length > 0) {
         setProducts(serverProducts);
       } else {
+        // Only fallback to localStorage or INITIAL_PRODUCTS if server query failed
+        try {
+          const saved = localStorage.getItem('kss_products');
+          if (saved) {
+            const localList: Product[] = JSON.parse(saved);
+            if (localList.length > 0) {
+              setProducts(localList);
+              return;
+            }
+          }
+        } catch {}
         setProducts(INITIAL_PRODUCTS);
       }
     };
