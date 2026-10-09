@@ -46,7 +46,7 @@ import { CATEGORIES, BRANDS, INITIAL_PRODUCTS } from '@/lib/mock-data';
 import { Product, Category } from '@/types';
 import { useStoreConfig } from '@/context/StoreConfigContext';
 import { useCart } from '@/context/CartContext';
-import { matchProductToCategory } from '@/lib/product-catalog';
+import { matchProductToCategory } from '@/lib/product-matching';
 
 export default function HomePage() {
   const { config } = useStoreConfig();

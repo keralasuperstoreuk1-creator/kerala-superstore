@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Category, Product } from '@/types';
 import { useCart } from '@/context/CartContext';
-import { matchProductToCategory } from '@/lib/product-catalog';
+import { matchProductToCategory } from '@/lib/product-matching';
 
 interface CategoryQuickShopModalProps {
   category: Category | null;

@@ -42,7 +42,8 @@ export async function GET(req: NextRequest) {
             description: p.description || '',
             tags: p.tags || [],
             imageUrl: p.image_url || '/products/matta-rice.png',
-            status: p.status || 'published'
+            status: p.status || 'published',
+            createdAt: p.created_at || new Date().toISOString()
           }));
 
           return NextResponse.json({
