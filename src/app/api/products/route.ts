@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('q')?.toLowerCase();
     const category = searchParams.get('category');
     const brand = searchParams.get('brand');
-    const limit = parseInt(searchParams.get('limit') || '500', 10);
+    const limit = parseInt(searchParams.get('limit') || '5000', 10);
 
     // 1. Try Supabase Cloud Database first
     if (supabaseAdmin) {

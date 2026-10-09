@@ -70,7 +70,7 @@ export default function HomePage() {
     const loadProducts = async () => {
       let serverProducts: Product[] = [];
       try {
-        const res = await fetch('/api/products?limit=250');
+        const res = await fetch('/api/products?limit=5000');
         if (res.ok) {
           const json = await res.json();
           if (json.products && Array.isArray(json.products) && json.products.length > 0) {
