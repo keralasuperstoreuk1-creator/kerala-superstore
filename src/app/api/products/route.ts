@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUnifiedProductCatalog, matchProductToCategory, saveDynamicProducts, getDynamicProducts } from '@/lib/product-catalog';
+import { supabaseAdmin } from '@/lib/supabase';
 import { Product } from '@/types';
 
 export async function GET(req: NextRequest) {
@@ -8,8 +9,55 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('q')?.toLowerCase();
     const category = searchParams.get('category');
     const brand = searchParams.get('brand');
-    const limit = parseInt(searchParams.get('limit') || '250', 10);
+    const limit = parseInt(searchParams.get('limit') || '500', 10);
 
+    // 1. Try Supabase Cloud Database first
+    if (supabaseAdmin) {
+      try {
+        let query = supabaseAdmin
+          .from('products')
+          .select('*')
+          .eq('status', 'published');
+
+        if (search) {
+          query = query.ilike('name', `%${search}%`);
+        }
+
+        const { data: dbProducts, error } = await query.limit(limit);
+
+        if (!error && dbProducts && dbProducts.length > 0) {
+          const mapped: Product[] = dbProducts.map((p: any) => ({
+            id: p.id || `prod-${p.slug}`,
+            name: p.name,
+            slug: p.slug,
+            brand: p.brand || 'Kerala Superstore',
+            category: p.category || 'General Grocery',
+            categorySlug: p.category_slug || 'grocery',
+            sizeWeight: p.size_weight || 'Standard',
+            price: Number(p.price) || 0,
+            offerPrice: p.offer_price ? Number(p.offer_price) : undefined,
+            stock: Number(p.stock_quantity) || 0,
+            lowStockThreshold: Number(p.low_stock_threshold) || 5,
+            barcode: p.barcode,
+            description: p.description || '',
+            tags: p.tags || [],
+            imageUrl: p.image_url || '/products/matta-rice.png',
+            status: p.status || 'published'
+          }));
+
+          return NextResponse.json({
+            success: true,
+            total: mapped.length,
+            products: mapped,
+            source: 'supabase'
+          });
+        }
+      } catch (sbErr) {
+        console.warn('Supabase products fetch fallback:', sbErr);
+      }
+    }
+
+    // 2. Fallback to Local Unified Catalog
     let products = getUnifiedProductCatalog();
 
     if (category) {
@@ -37,6 +85,7 @@ export async function GET(req: NextRequest) {
       success: true,
       total: products.length,
       products: products.slice(0, limit),
+      source: 'local'
     });
   } catch (err: any) {
     return NextResponse.json(

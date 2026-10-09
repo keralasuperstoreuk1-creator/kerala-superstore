@@ -166,3 +166,36 @@ CREATE POLICY "Public can view banners" ON banners FOR SELECT USING (is_active =
 -- Allow public to insert orders (guest checkout)
 CREATE POLICY "Public can insert orders" ON orders FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public can insert order items" ON order_items FOR INSERT WITH CHECK (true);
+
+-- Barcode uniqueness index
+CREATE UNIQUE INDEX IF NOT EXISTS products_barcode_idx ON products(barcode) WHERE barcode IS NOT NULL AND barcode != '';
+
+-- 9. POS INVENTORY (RetailV2 Real-Time Live Mirror)
+CREATE TABLE IF NOT EXISTS pos_inventory (
+    barcode TEXT PRIMARY KEY,
+    sku TEXT,
+    description TEXT NOT NULL,
+    quantity NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    price NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    web_price NUMERIC(10, 2),
+    active BOOLEAN DEFAULT true,
+    category TEXT,
+    department TEXT,
+    last_modified TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 10. POS SYNC TELEMETRY LOGS
+CREATE TABLE IF NOT EXISTS pos_sync_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    timestamp TIMESTAMPTZ DEFAULT NOW(),
+    type TEXT NOT NULL DEFAULT 'info',
+    message TEXT NOT NULL,
+    item_count INT DEFAULT 0
+);
+
+ALTER TABLE pos_inventory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pos_sync_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can view pos_inventory" ON pos_inventory FOR SELECT USING (true);
+CREATE POLICY "Public can view pos_sync_logs" ON pos_sync_logs FOR SELECT USING (true);
