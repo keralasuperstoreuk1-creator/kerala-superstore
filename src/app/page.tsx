@@ -46,6 +46,7 @@ import { CATEGORIES, BRANDS, INITIAL_PRODUCTS } from '@/lib/mock-data';
 import { Product, Category } from '@/types';
 import { useStoreConfig } from '@/context/StoreConfigContext';
 import { useCart } from '@/context/CartContext';
+import { matchProductToCategory } from '@/lib/product-catalog';
 
 export default function HomePage() {
   const { config } = useStoreConfig();
@@ -67,12 +68,32 @@ export default function HomePage() {
   // Sync products from /api/products (including live POS additions & stock) and localStorage
   useEffect(() => {
     const loadProducts = async () => {
+      let serverProducts: Product[] = [];
       try {
         const res = await fetch('/api/products?limit=250');
         if (res.ok) {
           const json = await res.json();
-          if (json.products && json.products.length > 0) {
-            setProducts(json.products);
+          if (json.products && Array.isArray(json.products) && json.products.length > 0) {
+            serverProducts = json.products;
+          }
+        }
+      } catch {
+        // fallback
+      }
+
+      // Check localStorage for admin overrides (e.g. Special Offer Coconut Oil or custom prices)
+      try {
+        const saved = localStorage.getItem('kss_products');
+        if (saved) {
+          const localList: Product[] = JSON.parse(saved);
+          if (localList.length > 0) {
+            const productMap = new Map<string, Product>();
+            (serverProducts.length > 0 ? serverProducts : INITIAL_PRODUCTS).forEach(p => productMap.set(p.id, p));
+            localList.forEach(p => {
+              const current = productMap.get(p.id);
+              productMap.set(p.id, current ? { ...current, ...p } : p);
+            });
+            setProducts(Array.from(productMap.values()));
             return;
           }
         }
@@ -80,13 +101,10 @@ export default function HomePage() {
         // fallback
       }
 
-      try {
-        const saved = localStorage.getItem('kss_products');
-        if (saved) {
-          setProducts(JSON.parse(saved));
-        }
-      } catch {
-        // fallback
+      if (serverProducts.length > 0) {
+        setProducts(serverProducts);
+      } else {
+        setProducts(INITIAL_PRODUCTS);
       }
     };
 
@@ -107,14 +125,26 @@ export default function HomePage() {
     };
   }, []);
 
+  const handleSelectCategory = (slug: string | null) => {
+    setSelectedCategory(slug);
+    if (slug) {
+      setTimeout(() => {
+        const el = document.getElementById('catalog-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 60);
+    }
+  };
+
   // Filter products based on search, category, brand, offers, in-stock
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const hasSearch = Boolean(searchQuery.trim());
       // When searching, match across the entire store unless a specific brand/offer filter is set
-      if (!hasSearch && selectedCategory && p.categorySlug !== selectedCategory) return false;
+      if (!hasSearch && selectedCategory && !matchProductToCategory(p, selectedCategory)) return false;
       if (selectedBrand && p.brand !== selectedBrand) return false;
-      if (onlyOffers && !p.offerPrice) return false;
+      if (onlyOffers && !p.offerPrice && !p.isOffer) return false;
       if (onlyInStock && p.stock <= 0) return false;
       if (hasSearch) {
         const q = searchQuery.toLowerCase().trim();
@@ -127,6 +157,13 @@ export default function HomePage() {
       }
       return true;
     }).sort((a, b) => {
+      // Prioritize In-Stock items first at top
+      const aInStock = a.stock > 0 ? 1 : 0;
+      const bInStock = b.stock > 0 ? 1 : 0;
+      if (bInStock !== aInStock) {
+        return bInStock - aInStock;
+      }
+
       if (sortBy === 'price-asc') {
         const pA = a.offerPrice ?? a.price;
         const pB = b.offerPrice ?? b.price;
@@ -147,7 +184,7 @@ export default function HomePage() {
 
   // Products on offer
   const offerProducts = useMemo(() => {
-    return products.filter((p) => Boolean(p.offerPrice && p.offerPrice < p.price));
+    return products.filter((p) => Boolean((p.offerPrice && p.offerPrice < p.price) || p.isOffer));
   }, [products]);
 
   // Brand items count
@@ -311,7 +348,7 @@ export default function HomePage() {
           <>
             {(config.modules?.showHeroSlider ?? true) && (
               <EmarketHeroSection
-                onSelectCategory={(slug) => setSelectedCategory(slug)}
+                onSelectCategory={(slug) => handleSelectCategory(slug)}
                 selectedCategory={selectedCategory}
                 onQuickShop={(cat) => setQuickShopCategory(cat)}
                 onScrollToDeals={scrollToOffers}
@@ -320,7 +357,7 @@ export default function HomePage() {
 
             {(config.modules?.showFeaturedCategories ?? true) && (
               <FeaturedArchedCategories
-                onSelectCategory={(slug) => setSelectedCategory(slug)}
+                onSelectCategory={(slug) => handleSelectCategory(slug)}
                 selectedCategory={selectedCategory}
               />
             )}
@@ -408,6 +445,7 @@ export default function HomePage() {
                     key={cat.id}
                     onClick={() => {
                       setQuickShopCategory(cat);
+                      handleSelectCategory(cat.slug);
                     }}
                     className="p-3 rounded-3xl border text-left transition-all duration-300 flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-98 border-slate-200/90 hover:border-emerald-500 bg-white hover:shadow-xl hover:-translate-y-1"
                   >

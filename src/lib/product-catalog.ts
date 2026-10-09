@@ -108,7 +108,7 @@ export function autoEnrichPosProduct(item: PosSyncItem): Product {
   const sizeWeight = weightMatch ? weightMatch[0].toUpperCase().replace(/\s+/, '') : 'Standard Pack';
 
   // 3. Detect Category
-  let category = 'Spices & Masalas';
+  let category = 'Spices & Whole Condiments';
   let categorySlug = 'spices-and-whole-condiments';
 
   if (/rice|matta|jeerakasala|kaima|ponni|idli rice|sona masoori/i.test(cleanDesc)) {
@@ -127,20 +127,20 @@ export function autoEnrichPosProduct(item: PosSyncItem): Product {
     category = 'Crisps & Snacks';
     categorySlug = 'crisps-and-snacks';
   } else if (/pickle|achar|chammanthi|puli inji|chutney|paste/i.test(cleanDesc)) {
-    category = 'Pickles & Preserves';
-    categorySlug = 'pickles-and-preserves';
+    category = 'Traditional Pickles';
+    categorySlug = 'traditional-pickles';
   } else if (/oil|velichenna|coconut oil|ghee|gingelly|mustard oil|sunflower/i.test(cleanDesc)) {
-    category = 'Oils & Ghee';
+    category = 'Pure Oils & Ghee';
     categorySlug = 'oils-and-ghee';
   } else if (/frozen|kappa|tapioca|parotta|porotta|fish|prawns|beef|mutton/i.test(cleanDesc)) {
-    category = 'Frozen & Ready-to-Cook';
-    categorySlug = 'frozen-and-ready-to-cook';
+    category = 'Frozen Delights';
+    categorySlug = 'frozen-delights';
   } else if (/uruli|appam chatti|puttu maker|cooker|kadai|vilakku|pooja|soap|ayurvedic/i.test(cleanDesc)) {
-    category = 'Kitchenware & Homeware';
-    categorySlug = 'kitchenware-and-homeware';
+    category = 'Traditional Kitchenwares';
+    categorySlug = 'traditional-kitchenwares';
   } else if (/tea|coffee|horlicks|boost|bru|kannan devan|avt/i.test(cleanDesc)) {
-    category = 'Beverages & Instant';
-    categorySlug = 'beverages-and-instant';
+    category = 'Breakfast Powders';
+    categorySlug = 'breakfast-powders';
   }
 
   // 4. Match Image
@@ -232,7 +232,7 @@ export function upsertPosProductsToCatalog(items: PosSyncItem[]): { updatedCount
     }
   });
 
-  if (newCount > 0) {
+  if (newCount > 0 || updatedCount > 0) {
     saveDynamicProducts(dynamicProducts);
   }
 
@@ -241,25 +241,51 @@ export function upsertPosProductsToCatalog(items: PosSyncItem[]): { updatedCount
 
 /**
  * Returns the unified active catalog.
- * When POS products are synchronized from the shop computer,
- * it replaces development mock items with the shop's REAL active inventory!
+ * Combines standard catalog items with real POS items and dynamic store updates.
  */
-export function getUnifiedProductCatalog(preferExclusivePos: boolean = true): Product[] {
+export function getUnifiedProductCatalog(): Product[] {
   const dynamicProducts = getDynamicProducts();
   const posState = getPosSyncState();
 
-  // If real POS products exist in dynamic catalog, use ONLY real POS products
-  let baseProducts: Product[] = [];
-  
-  if (dynamicProducts.length > 0 && preferExclusivePos) {
-    // Pure real items from POS computer
-    baseProducts = [...dynamicProducts];
-  } else {
-    // Development fallback
-    baseProducts = [...INITIAL_PRODUCTS, ...dynamicProducts];
-  }
+  const productMap = new Map<string, Product>();
 
-  // Overlay live POS stock & price updates
+  // 1. Seed with initial core Kerala grocery products
+  INITIAL_PRODUCTS.forEach((prod) => {
+    productMap.set(prod.id, { ...prod });
+    if (prod.barcode) {
+      productMap.set(`barcode:${prod.barcode}`, { ...prod });
+    }
+  });
+
+  // 2. Overlay dynamic products (saved via admin or synced from POS)
+  dynamicProducts.forEach((dyn) => {
+    if (dyn.barcode && productMap.has(`barcode:${dyn.barcode}`)) {
+      const existing = productMap.get(`barcode:${dyn.barcode}`)!;
+      const merged = { ...existing, ...dyn };
+      productMap.set(existing.id, merged);
+      productMap.set(`barcode:${dyn.barcode}`, merged);
+    } else if (productMap.has(dyn.id)) {
+      const existing = productMap.get(dyn.id)!;
+      const merged = { ...existing, ...dyn };
+      productMap.set(dyn.id, merged);
+      if (dyn.barcode) productMap.set(`barcode:${dyn.barcode}`, merged);
+    } else {
+      productMap.set(dyn.id, { ...dyn });
+      if (dyn.barcode) productMap.set(`barcode:${dyn.barcode}`, dyn);
+    }
+  });
+
+  // 3. De-duplicate by product ID
+  const seenIds = new Set<string>();
+  const baseProducts: Product[] = [];
+  productMap.forEach((prod) => {
+    if (!seenIds.has(prod.id)) {
+      seenIds.add(prod.id);
+      baseProducts.push(prod);
+    }
+  });
+
+  // 4. Overlay live POS stock & price updates if available
   if (posState.syncedInventory) {
     baseProducts.forEach((prod) => {
       if (prod.barcode && posState.syncedInventory[prod.barcode]) {
@@ -273,7 +299,37 @@ export function getUnifiedProductCatalog(preferExclusivePos: boolean = true): Pr
     });
   }
 
-  // Filter out any deleted or inactive items
-  return baseProducts.filter(p => p.status === 'published');
+  // Filter out any un-published products
+  return baseProducts.filter(p => p.status === 'published' || !p.status);
+}
+
+/**
+ * Intelligent helper to match products with selected category slugs/names
+ */
+export function matchProductToCategory(product: Product, categorySlugOrName: string): boolean {
+  if (!categorySlugOrName) return true;
+  const target = categorySlugOrName.toLowerCase().trim();
+  const pSlug = (product.categorySlug || '').toLowerCase().trim();
+  const pCat = (product.category || '').toLowerCase().trim();
+  const pName = (product.name || '').toLowerCase().trim();
+
+  // 1. Direct or partial match
+  if (pSlug === target || pCat === target) return true;
+  if (pSlug.includes(target) || target.includes(pSlug)) return true;
+  if (pCat.includes(target) || target.includes(pCat)) return true;
+
+  // 2. Department keywords matching
+  if (target.includes('rice') && (pSlug.includes('rice') || pCat.includes('rice') || pName.includes('rice') || pName.includes('matta') || pName.includes('kaima') || pName.includes('ponni'))) return true;
+  if ((target.includes('pulse') || target.includes('dal')) && (pSlug.includes('pulse') || pSlug.includes('dal') || pCat.includes('pulse') || pCat.includes('dal') || pName.includes('dal') || pName.includes('payar') || pName.includes('kadala') || pName.includes('moong') || pName.includes('urad'))) return true;
+  if (target.includes('masala') && (pSlug.includes('masala') || pCat.includes('masala') || pName.includes('masala') || pName.includes('powder') || pName.includes('sambar') || pName.includes('curry') || pName.includes('chilli'))) return true;
+  if ((target.includes('snack') || target.includes('crisp')) && (pSlug.includes('snack') || pCat.includes('snack') || pName.includes('chips') || pName.includes('mixture') || pName.includes('upperi') || pName.includes('murukku'))) return true;
+  if (target.includes('oil') && (pSlug.includes('oil') || pCat.includes('oil') || pName.includes('oil') || pName.includes('ghee') || pName.includes('velichenna') || pName.includes('gingelly'))) return true;
+  if (target.includes('pickle') && (pSlug.includes('pickle') || pCat.includes('pickle') || pName.includes('pickle') || pName.includes('achar') || pName.includes('puli inji') || pName.includes('mango'))) return true;
+  if (target.includes('frozen') && (pSlug.includes('frozen') || pCat.includes('frozen') || pName.includes('frozen') || pName.includes('kappa') || pName.includes('parotta') || pName.includes('fish'))) return true;
+  if (target.includes('kitchen') && (pSlug.includes('kitchen') || pCat.includes('kitchen') || pName.includes('uruli') || pName.includes('chatti') || pName.includes('maker') || pName.includes('kudam'))) return true;
+  if (target.includes('breakfast') && (pSlug.includes('breakfast') || pCat.includes('breakfast') || pName.includes('podi') || pName.includes('puttu') || pName.includes('appam') || pName.includes('rava') || pName.includes('suji'))) return true;
+  if (target.includes('spice') && (pSlug.includes('spice') || pCat.includes('spice') || pName.includes('pepper') || pName.includes('cardamom') || pName.includes('clove') || pName.includes('cinnamon') || pName.includes('anise'))) return true;
+
+  return false;
 }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUnifiedProductCatalog } from '@/lib/product-catalog';
+import { getUnifiedProductCatalog, matchProductToCategory, saveDynamicProducts, getDynamicProducts } from '@/lib/product-catalog';
+import { Product } from '@/types';
 
 export async function GET(req: NextRequest) {
   try {
@@ -7,14 +8,12 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('q')?.toLowerCase();
     const category = searchParams.get('category');
     const brand = searchParams.get('brand');
-    const limit = parseInt(searchParams.get('limit') || '100', 10);
+    const limit = parseInt(searchParams.get('limit') || '250', 10);
 
     let products = getUnifiedProductCatalog();
 
     if (category) {
-      products = products.filter(
-        (p) => p.categorySlug === category || p.category.toLowerCase() === category.toLowerCase()
-      );
+      products = products.filter((p) => matchProductToCategory(p, category));
     }
 
     if (brand) {
@@ -46,3 +45,29 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    if (Array.isArray(body)) {
+      saveDynamicProducts(body);
+      const unified = getUnifiedProductCatalog();
+      return NextResponse.json({ success: true, count: unified.length, products: unified });
+    } else if (body && body.product) {
+      const dynamic = getDynamicProducts();
+      const existingIdx = dynamic.findIndex(p => p.id === body.product.id || (p.barcode && p.barcode === body.product.barcode));
+      if (existingIdx >= 0) {
+        dynamic[existingIdx] = { ...dynamic[existingIdx], ...body.product };
+      } else {
+        dynamic.push(body.product);
+      }
+      saveDynamicProducts(dynamic);
+      const unified = getUnifiedProductCatalog();
+      return NextResponse.json({ success: true, product: body.product, products: unified });
+    }
+    return NextResponse.json({ success: false, error: 'Invalid payload' }, { status: 400 });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err?.message || 'Save failed' }, { status: 500 });
+  }
+}
+

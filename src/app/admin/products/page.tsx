@@ -60,19 +60,48 @@ export default function AdminProductsPage() {
   const [bgProgressText, setBgProgressText] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Load from localStorage if previously updated
+  // Load from server API and merge with localStorage if previously updated
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('kss_products');
-      if (saved) {
-        setProducts(JSON.parse(saved));
+    const loadAdminProducts = async () => {
+      let serverProds: Product[] = [];
+      try {
+        const res = await fetch('/api/products?limit=250');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.products && Array.isArray(data.products)) {
+            serverProds = data.products;
+          }
+        }
+      } catch {
+        // fallback
       }
-    } catch {
-      // fallback
-    }
+
+      try {
+        const saved = localStorage.getItem('kss_products');
+        if (saved) {
+          const localList: Product[] = JSON.parse(saved);
+          if (localList.length > 0) {
+            // Merge server and local
+            const map = new Map<string, Product>();
+            serverProds.forEach(p => map.set(p.id, p));
+            localList.forEach(p => map.set(p.id, { ...(map.get(p.id) || {}), ...p }));
+            setProducts(Array.from(map.values()));
+            return;
+          }
+        }
+      } catch {
+        // fallback
+      }
+
+      if (serverProds.length > 0) {
+        setProducts(serverProds);
+      }
+    };
+
+    loadAdminProducts();
   }, []);
 
-  const saveProducts = (updated: Product[]) => {
+  const saveProducts = async (updated: Product[]) => {
     setProducts(updated);
     try {
       localStorage.setItem('kss_products', JSON.stringify(updated));
@@ -80,6 +109,16 @@ export default function AdminProductsPage() {
       window.dispatchEvent(new Event('storage'));
     } catch {
       // fallback
+    }
+
+    try {
+      await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+    } catch {
+      // background save fallback
     }
   };
 

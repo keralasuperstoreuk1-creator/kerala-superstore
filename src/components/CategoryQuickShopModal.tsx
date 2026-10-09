@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Category, Product } from '@/types';
 import { useCart } from '@/context/CartContext';
+import { matchProductToCategory } from '@/lib/product-catalog';
 
 interface CategoryQuickShopModalProps {
   category: Category | null;
@@ -43,28 +44,7 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
     const cName = (category.name || '').toLowerCase().trim();
     
     return products.filter((p) => {
-      const pSlug = (p.categorySlug || '').toLowerCase().trim();
-      const pCat = (p.category || '').toLowerCase().trim();
-      const pName = (p.name || '').toLowerCase().trim();
-
-      // 1. Direct slug or category name match
-      if (pSlug === cSlug || pCat === cName) return true;
-      if (pSlug.includes(cSlug) || cSlug.includes(pSlug)) return true;
-      if (pCat.includes(cName) || cName.includes(pCat)) return true;
-
-      // 2. Intelligent department fallback matching
-      if (cSlug.includes('rice') && (pName.includes('rice') || pName.includes('matta') || pName.includes('kaima') || pCat.includes('rice'))) return true;
-      if (cSlug.includes('pulse') && (pName.includes('dal') || pName.includes('payar') || pName.includes('kadala') || pCat.includes('pulse') || pCat.includes('dal'))) return true;
-      if (cSlug.includes('masala') && (pName.includes('masala') || pName.includes('powder') || pName.includes('sambar') || pName.includes('chilli') || pCat.includes('masala') || pCat.includes('spice'))) return true;
-      if (cSlug.includes('snack') && (pName.includes('chips') || pName.includes('mixture') || pName.includes('upperi') || pCat.includes('snack') || pCat.includes('crisp'))) return true;
-      if (cSlug.includes('oil') && (pName.includes('oil') || pName.includes('ghee') || pCat.includes('oil'))) return true;
-      if (cSlug.includes('pickle') && (pName.includes('pickle') || pName.includes('achar') || pCat.includes('pickle'))) return true;
-      if (cSlug.includes('frozen') && (pName.includes('frozen') || pName.includes('kappa') || pName.includes('parotta') || pName.includes('fish') || pCat.includes('frozen'))) return true;
-      if (cSlug.includes('kitchen') && (pName.includes('uruli') || pName.includes('maker') || pName.includes('chatti') || pCat.includes('kitchen'))) return true;
-      if (cSlug.includes('breakfast') && (pName.includes('podi') || pName.includes('puttu') || pName.includes('appam') || pName.includes('rava') || pCat.includes('breakfast') || pCat.includes('powder'))) return true;
-      if (cSlug.includes('spice') && (pName.includes('pepper') || pName.includes('cardamom') || pName.includes('clove') || pCat.includes('spice') || pCat.includes('condiment'))) return true;
-
-      return false;
+      return matchProductToCategory(p, cSlug) || matchProductToCategory(p, cName);
     });
   }, [category, products]);
 
