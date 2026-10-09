@@ -22,6 +22,12 @@ export async function GET(req: NextRequest) {
         if (search) {
           query = query.ilike('name', `%${search}%`);
         }
+        if (category) {
+          query = query.or(`category_slug.eq.${category},category.ilike.%${category}%`);
+        }
+        if (brand) {
+          query = query.ilike('brand', `%${brand}%`);
+        }
 
         const { data: dbProducts, error } = await query.limit(limit);
 
