@@ -1,6 +1,8 @@
 {
   "website_url": "https://keralasuperstore.com",
   "api_key": "kss_pos_sync_key_2026_live",
+  "supabase_url": "https://rnwthwaputocyirjtabd.supabase.co",
+  "supabase_key": "",
   "sync_interval_seconds": 30,
   "db_server": ".",
   "db_name": "epos",
@@ -8,5 +10,6 @@
   "db_password": "London2012$",
   "use_windows_auth": true,
   "batch_size": 500,
-  "auto_start_sync": true
+  "auto_start_sync": true,
+  "serper_api_key": "5c71895da3ddd6f6e287859051a486a50ddb9b79"
 }

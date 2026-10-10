@@ -220,6 +220,37 @@ class PosSyncEngine:
                     sb_batch = sb_rows[i:i + 500]
                     requests.post(f"{sb_url}/rest/v1/pos_inventory", json=sb_batch, headers=sb_headers, timeout=15)
                 
+                serper_api_key = self.config.get("serper_api_key") or os.environ.get("SERPER_API_KEY", "")
+                
+                # In-memory session cache so repeated items don't burn API quota
+                if not hasattr(self, "_image_cache"):
+                    self._image_cache = {}
+
+                def lookup_google_image(product_name):
+                    if not serper_api_key:
+                        return None
+                    if product_name in self._image_cache:
+                        return self._image_cache[product_name]
+                    try:
+                        clean = re.sub(r'\b(kg|g|gm|ml|ltr|l|pcs|pack)\b', '', product_name, flags=re.I).strip()
+                        q = f"{clean} grocery packet packaging pouch"
+                        p_res = requests.post(
+                            "https://google.serper.dev/images",
+                            json={"q": q, "num": 3},
+                            headers={"X-API-KEY": serper_api_key, "Content-Type": "application/json"},
+                            timeout=6
+                        )
+                        if p_res.status_code == 200:
+                            data = p_res.json()
+                            imgs = data.get("images", [])
+                            if imgs and imgs[0].get("imageUrl"):
+                                live_url = imgs[0].get("imageUrl")
+                                self._image_cache[product_name] = live_url
+                                return live_url
+                    except Exception:
+                        pass
+                    return None
+
                 # Auto-enrich and upsert products into live storefront products table
                 PATTERNS = [
                     (r"matta|palakkad", "/products/matta-rice.png", "Rice & Rice Products", "rice-and-rice-products"),
@@ -262,12 +293,13 @@ class PosSyncEngine:
                     desc = item.get("description", "").strip()
                     bc = str(item.get("barcode", "")).strip()
                     if not desc or not bc: continue
-                    img = "/products/banana-chips.png"
+                    img = lookup_google_image(desc) or "/products/banana-chips.png"
                     cat = "General Grocery"
                     catslug = "grocery"
                     for pattern, m_img, m_cat, m_slug in PATTERNS:
                         if re.search(pattern, desc, re.IGNORECASE):
-                            img = m_img
+                            if img == "/products/banana-chips.png":
+                                img = m_img
                             cat = m_cat
                             catslug = m_slug
                             break
