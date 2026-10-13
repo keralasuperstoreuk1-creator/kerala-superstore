@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { CATEGORIES, INITIAL_PRODUCTS } from '@/lib/mock-data';
 import { Product } from '@/types';
+import InteractiveImageCropper from '@/components/admin/InteractiveImageCropper';
 
 const POPULAR_BRANDS = [
   'Pavizham',
@@ -738,60 +739,92 @@ Output square 1000x1000 pixel professional UK supermarket listing image.`;
           </div>
 
           {/* Canvas & Live Preview Viewport */}
-          <div className="flex-1 min-h-0 relative flex flex-col items-center justify-center p-3 bg-slate-100/70 overflow-hidden">
+          <div className="flex-1 min-h-0 relative flex flex-col items-center justify-center p-2.5 sm:p-3 bg-slate-100/70 overflow-hidden">
             
-            {/* View Mode Pills (Floating overlay at top of canvas) */}
-            <div className="absolute top-3 inset-x-3 flex items-center justify-between z-20 pointer-events-none">
-              <div className="pointer-events-auto flex items-center gap-1 bg-white/90 backdrop-blur-md p-1 rounded-xl border border-slate-200/90 shadow-xs">
-                <button
-                  type="button"
-                  onClick={() => handleSetViewMode('packshot')}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
-                    activeViewMode === 'packshot' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Sparkles className="w-3 h-3 text-amber-300" />
-                  <span>AI Packshot</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSetViewMode('transparent')}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
-                    activeViewMode === 'transparent' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <span>Cutout (PNG)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSetViewMode('original')}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
-                    activeViewMode === 'original' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <span>Original</span>
-                </button>
-              </div>
-
-              {/* Status Badge */}
-              {bgRemoveResult === 'success' && (
-                <div className="bg-emerald-100/90 border border-emerald-300 text-emerald-800 text-[10px] font-extrabold px-2 py-1 rounded-xl shadow-xs flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                  <span className="hidden sm:inline">Studio Clean</span>
+            {/* View Mode Pills (Floating overlay at top of canvas - visible only in Packshot mode) */}
+            {studioTab !== 'crop' && (
+              <div className="absolute top-3 inset-x-3 flex items-center justify-between z-20 pointer-events-none">
+                <div className="pointer-events-auto flex items-center gap-1 bg-white/90 backdrop-blur-md p-1 rounded-xl border border-slate-200/90 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => handleSetViewMode('packshot')}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
+                      activeViewMode === 'packshot' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-300" />
+                    <span>AI Packshot</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetViewMode('transparent')}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
+                      activeViewMode === 'transparent' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>Cutout (PNG)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetViewMode('original')}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
+                      activeViewMode === 'original' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>Original</span>
+                  </button>
                 </div>
-              )}
-            </div>
 
-            {/* The Main Packshot Preview Container (Constrained aspect ratio to fit available height) */}
-            <div className={`relative w-full max-w-[340px] aspect-square rounded-2xl border-2 border-slate-200 overflow-hidden shadow-inner flex items-center justify-center transition-all ${
-              bgMode === 'white' 
-                ? 'bg-white' 
-                : bgMode === 'offwhite'
-                ? 'bg-slate-50'
-                : 'bg-[linear-gradient(45deg,#f0f0f0_25%,transparent_25%),linear-gradient(-45deg,#f0f0f0_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f0f0f0_75%),linear-gradient(-45deg,transparent_75%,#f0f0f0_75%)] bg-[size:16px_16px]'
-            }`}>
-              {studioImageSrc ? (
-                <>
+                {/* Status Badge */}
+                {bgRemoveResult === 'success' && (
+                  <div className="bg-emerald-100/90 border border-emerald-300 text-emerald-800 text-[10px] font-extrabold px-2 py-1 rounded-xl shadow-xs flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                    <span className="hidden sm:inline">Studio Clean</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* If Crop Tab is active: Render Interactive Corner Cropper */}
+            {studioTab === 'crop' && (rawImageSrc || studioImageSrc) ? (
+              <div className="w-full h-full flex flex-col items-center justify-center max-w-[340px]">
+                <InteractiveImageCropper
+                  imageSrc={rawImageSrc || studioImageSrc || ''}
+                  crop={{ top: cropTop, bottom: cropBottom, left: cropLeft, right: cropRight }}
+                  onChange={(newCrop) => {
+                    setCropTop(newCrop.top);
+                    setCropBottom(newCrop.bottom);
+                    setCropLeft(newCrop.left);
+                    setCropRight(newCrop.right);
+                    if (rawImageSrc) {
+                      processImageOnCanvas(rawImageSrc, newCrop.top, newCrop.bottom, newCrop.left, newCrop.right, scale, bgMode);
+                    }
+                  }}
+                  onApply={async () => {
+                    if (!rawImageSrc) return;
+                    const cropped = await getCroppedImageBase64(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight);
+                    runLocalBgRemoval(cropped);
+                    setStudioTab('studio');
+                  }}
+                  onReset={() => {
+                    setCropTop(0);
+                    setCropBottom(0);
+                    setCropLeft(0);
+                    setCropRight(0);
+                    if (rawImageSrc) processImageOnCanvas(rawImageSrc, 0, 0, 0, 0, scale, bgMode);
+                  }}
+                />
+              </div>
+            ) : (
+              /* The Standard Packshot Preview Container */
+              <div className={`relative w-full max-w-[340px] aspect-square rounded-2xl border-2 border-slate-200 overflow-hidden shadow-inner flex items-center justify-center transition-all ${
+                bgMode === 'white' 
+                  ? 'bg-white' 
+                  : bgMode === 'offwhite'
+                  ? 'bg-slate-50'
+                  : 'bg-[linear-gradient(45deg,#f0f0f0_25%,transparent_25%),linear-gradient(-45deg,#f0f0f0_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f0f0f0_75%),linear-gradient(-45deg,transparent_75%,#f0f0f0_75%)] bg-[size:16px_16px]'
+              }`}>
+                {studioImageSrc ? (
                   <Image
                     src={studioImageSrc}
                     alt="Product Studio Packshot"
@@ -799,64 +832,47 @@ Output square 1000x1000 pixel professional UK supermarket listing image.`;
                     className="object-contain p-2"
                     unoptimized
                   />
+                ) : (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-center p-6 text-slate-400 space-y-2 cursor-pointer hover:text-emerald-700 transition-colors"
+                  >
+                    <div className="w-12 h-12 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-2xl shadow-xs">
+                      📸
+                    </div>
+                    <div className="text-xs font-bold text-slate-700">Tap to Upload or Snap Photo</div>
+                    <div className="text-[10px] text-slate-400 max-w-[200px] mx-auto">
+                      Take a photo of any grocery flyer or packet on your shelf
+                    </div>
+                  </div>
+                )}
 
-                  {/* Live Visual Crop Mask Overlay (Visible when crop tab is active) */}
-                  {studioTab === 'crop' && (cropTop > 0 || cropBottom > 0 || cropLeft > 0 || cropRight > 0) && (
-                    <div 
-                      className="absolute inset-0 pointer-events-none border-2 border-dashed border-violet-500/80 bg-violet-900/10 transition-all"
-                      style={{
-                        top: `${cropTop}%`,
-                        bottom: `${cropBottom}%`,
-                        left: `${cropLeft}%`,
-                        right: `${cropRight}%`,
-                      }}
-                    >
-                      <span className="absolute top-1 left-1 bg-violet-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs">
-                        Active Crop
+                {/* Live Neural Progress Card (Floating bottom banner) */}
+                {(isRemovingBg || isAnalyzing) && (
+                  <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-xl rounded-xl p-2.5 z-30 space-y-1 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="flex items-center justify-between text-[10px] font-black text-slate-800">
+                      <div className="flex items-center gap-1.5">
+                        <RefreshCw className="w-3 h-3 text-emerald-600 animate-spin" />
+                        <span>{isRemovingBg ? '🪄 Neural AI Isolating Product...' : '🔍 Scanning Label Details...'}</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-700 font-bold">
+                        {bgProgressPct}%
                       </span>
                     </div>
-                  )}
-                </>
-              ) : (
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-center p-6 text-slate-400 space-y-2 cursor-pointer hover:text-emerald-700 transition-colors"
-                >
-                  <div className="w-12 h-12 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-2xl shadow-xs">
-                    📸
-                  </div>
-                  <div className="text-xs font-bold text-slate-700">Tap to Upload or Snap Photo</div>
-                  <div className="text-[10px] text-slate-400 max-w-[200px] mx-auto">
-                    Take a photo of any grocery flyer or packet on your shelf
-                  </div>
-                </div>
-              )}
-
-              {/* Live Neural Progress Card (Floating bottom banner) */}
-              {(isRemovingBg || isAnalyzing) && (
-                <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-xl rounded-xl p-2.5 z-30 space-y-1 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="flex items-center justify-between text-[10px] font-black text-slate-800">
-                    <div className="flex items-center gap-1.5">
-                      <RefreshCw className="w-3 h-3 text-emerald-600 animate-spin" />
-                      <span>{isRemovingBg ? '🪄 Neural AI Isolating Product...' : '🔍 Scanning Label Details...'}</span>
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        ref={progressBarRef}
+                        className="h-1.5 rounded-full bg-gradient-to-r from-violet-500 via-blue-500 to-emerald-500 transition-all duration-300"
+                        style={{ width: `${bgProgressPct}%` }}
+                      />
                     </div>
-                    <span className="text-[10px] text-emerald-700 font-bold">
-                      {bgProgressPct}%
-                    </span>
+                    <p ref={progressLabelRef} className="text-[9px] text-slate-500 truncate">
+                      {bgProgressText || 'Processing image...'}
+                    </p>
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      ref={progressBarRef}
-                      className="h-1.5 rounded-full bg-gradient-to-r from-violet-500 via-blue-500 to-emerald-500 transition-all duration-300"
-                      style={{ width: `${bgProgressPct}%` }}
-                    />
-                  </div>
-                  <p ref={progressLabelRef} className="text-[9px] text-slate-500 truncate">
-                    {bgProgressText || 'Processing image...'}
-                  </p>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Bottom Controls Panel (Switches with active tab, compact height) */}
@@ -912,15 +928,14 @@ Output square 1000x1000 pixel professional UK supermarket listing image.`;
                     </div>
                   </div>
 
-                  {/* Switch to crop button */}
+                  {/* Switch to interactive corner cropper button */}
                   <button
                     type="button"
                     onClick={() => setStudioTab('crop')}
-                    className="text-slate-600 hover:text-violet-700 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1 bg-violet-50 hover:bg-violet-100 border border-violet-200 text-violet-800 rounded-xl text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
                   >
                     <Crop className="w-3.5 h-3.5 text-violet-600" />
-                    <span>Fine Crop</span>
-                    <ChevronRight className="w-3 h-3 text-slate-400" />
+                    <span>Corner Cropper</span>
                   </button>
                 </div>
 
@@ -935,7 +950,7 @@ Output square 1000x1000 pixel professional UK supermarket listing image.`;
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleApplyPresetAndRun(22, 28, 16, 28)}
+                    onClick={() => handleApplyPresetAndRun(20, 24, 15, 20)}
                     className="py-1 px-1.5 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 text-center truncate cursor-pointer transition-colors"
                   >
                     ✂️ Flyer
@@ -945,7 +960,7 @@ Output square 1000x1000 pixel professional UK supermarket listing image.`;
                     onClick={() => handleApplyPresetAndRun(15, 15, 15, 15)}
                     className="py-1 px-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 text-center truncate cursor-pointer transition-colors"
                   >
-                    🔲 Square
+                    🔲 1:1 Box
                   </button>
                   <button
                     type="button"
@@ -962,9 +977,9 @@ Output square 1000x1000 pixel professional UK supermarket listing image.`;
             {studioTab === 'crop' && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-black text-slate-800">
-                  <span className="flex items-center gap-1 text-violet-700">
-                    <Crop className="w-3.5 h-3.5" />
-                    <span>Live Framing &amp; Flyer Crop</span>
+                  <span className="flex items-center gap-1.5 text-emerald-800">
+                    <Crop className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Touch &amp; Drag Crop Box Corners</span>
                   </span>
                   <div className="flex items-center gap-2">
                     <button
@@ -972,84 +987,35 @@ Output square 1000x1000 pixel professional UK supermarket listing image.`;
                       onClick={() => { setCropTop(0); setCropBottom(0); setCropLeft(0); setCropRight(0); setScale(100); }}
                       className="text-[10px] text-slate-400 hover:text-slate-700 underline cursor-pointer"
                     >
-                      Reset
+                      Reset All
                     </button>
                     <button
                       type="button"
                       onClick={() => setStudioTab('studio')}
-                      className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md cursor-pointer"
+                      className="text-[11px] font-bold text-white bg-emerald-800 hover:bg-emerald-700 px-3 py-1 rounded-xl cursor-pointer shadow-xs transition-colors"
                     >
-                      Done
+                      Done Cropping
                     </button>
                   </div>
                 </div>
 
-                {/* 4-Edge Mini Sliders in 2x2 Grid */}
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1 bg-slate-50 p-2 rounded-xl border border-slate-200">
-                  {([['Top', cropTop, setCropTop], ['Bottom', cropBottom, setCropBottom], ['Left', cropLeft, setCropLeft], ['Right', cropRight, setCropRight]] as [string, number, (v: number) => void][]).map(([label, val, setter]) => (
-                    <div key={label} className="space-y-0.5">
-                      <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                        <span>{label}</span>
-                        <span className="text-violet-700">{val}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="50"
-                        value={val}
-                        onChange={(e) => {
-                          const v = Number(e.target.value);
-                          setter(v);
-                          if (rawImageSrc) {
-                            processImageOnCanvas(
-                              rawImageSrc, 
-                              label === 'Top' ? v : cropTop, 
-                              label === 'Bottom' ? v : cropBottom, 
-                              label === 'Left' ? v : cropLeft, 
-                              label === 'Right' ? v : cropRight, 
-                              scale, 
-                              bgMode
-                            );
-                          }
-                        }}
-                        className="w-full h-1 accent-violet-600 cursor-pointer"
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Zoom & Apply */}
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
-                    <ZoomIn className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                    <input
-                      type="range"
-                      min="60"
-                      max="140"
-                      value={scale}
-                      onChange={(e) => {
-                        const s = Number(e.target.value);
-                        setScale(s);
-                        if (rawImageSrc) processImageOnCanvas(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight, s, bgMode);
-                      }}
-                      className="w-full h-1 accent-emerald-700 cursor-pointer"
-                    />
-                    <span className="text-[10px] font-bold text-slate-600 w-8 text-right">{scale}%</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!rawImageSrc) return;
-                      const cropped = await getCroppedImageBase64(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight);
-                      runLocalBgRemoval(cropped);
-                      setStudioTab('studio');
+                {/* Packet Frame Zoom */}
+                <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                  <ZoomIn className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="text-[10px] font-bold text-slate-600 shrink-0">Scale Packet in Frame:</span>
+                  <input
+                    type="range"
+                    min="60"
+                    max="140"
+                    value={scale}
+                    onChange={(e) => {
+                      const s = Number(e.target.value);
+                      setScale(s);
+                      if (rawImageSrc) processImageOnCanvas(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight, s, bgMode);
                     }}
-                    className="px-3 py-1.5 bg-violet-700 hover:bg-violet-600 text-white font-bold text-[11px] rounded-xl cursor-pointer shadow-xs transition-all shrink-0 flex items-center gap-1"
-                  >
-                    <Sparkles className="w-3 h-3 text-amber-300" />
-                    <span>Apply &amp; Cutout</span>
-                  </button>
+                    className="w-full h-1 accent-emerald-700 cursor-pointer"
+                  />
+                  <span className="text-[10px] font-bold text-emerald-800 w-8 text-right">{scale}%</span>
                 </div>
               </div>
             )}
