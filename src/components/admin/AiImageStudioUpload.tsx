@@ -195,16 +195,7 @@ export default function AiImageStudioUpload({
     } finally {
       setIsProcessing(false);
     }
-  }, [defaultMode, onImageChange, uploadToCloudR2]);
-      } catch {
-        setProcessError(true);
-        setActiveMode('original');
-        onImageChange(base64Data, 'original');
-      }
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [onImageChange, defaultMode]);
+  }, [defaultMode, onImageChange]);
 
   // Helper to upload base64 images directly to Cloudflare R2
   const uploadToCloudR2 = async (dataUrl: string, modeName = 'product'): Promise<string> => {
