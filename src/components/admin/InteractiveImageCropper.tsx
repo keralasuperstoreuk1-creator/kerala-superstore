@@ -127,23 +127,50 @@ export default function InteractiveImageCropper({
     onChange({ top: t, bottom: b, left: l, right: r });
   };
 
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!imageSrc) return;
+    const img = new window.Image();
+    img.onload = () => {
+      if (img.naturalWidth && img.naturalHeight) {
+        setAspectRatio(img.naturalWidth / img.naturalHeight);
+      }
+    };
+    img.src = imageSrc;
+  }, [imageSrc]);
+
   return (
     <div className="w-full h-full flex flex-col justify-between select-none">
       
-      {/* Interactive Crop Viewport Canvas Area */}
-      <div 
-        ref={containerRef}
-        onPointerMove={handlePointerMove}
-        className="relative w-full aspect-square max-h-[320px] sm:max-h-[350px] mx-auto rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center touch-none shadow-inner"
-        style={{ touchAction: 'none' }}
-      >
-        {/* Background Image being cropped */}
-        <img
-          src={imageSrc}
-          alt="Original for Cropping"
-          className="w-full h-full object-contain pointer-events-none select-none"
-          draggable={false}
-        />
+      {/* Interactive Crop Viewport Canvas Area - Fitted 100% to Image Aspect Ratio */}
+      <div className="w-full flex items-center justify-center bg-slate-950/90 rounded-2xl p-1 max-h-[320px] sm:max-h-[350px] overflow-hidden shadow-inner">
+        <div 
+          ref={containerRef}
+          onPointerMove={handlePointerMove}
+          className="relative touch-none overflow-hidden rounded-xl shadow-md select-none"
+          style={{
+            aspectRatio: aspectRatio ? `${aspectRatio}` : undefined,
+            maxHeight: '305px',
+            maxWidth: '100%',
+            height: aspectRatio && aspectRatio <= 1 ? '305px' : 'auto',
+            width: aspectRatio && aspectRatio > 1 ? '100%' : 'auto',
+            touchAction: 'none',
+          }}
+        >
+          {/* Background Image being cropped */}
+          <img
+            src={imageSrc}
+            alt="Original for Cropping"
+            onLoad={(e) => {
+              const { naturalWidth, naturalHeight } = e.currentTarget;
+              if (naturalWidth && naturalHeight) {
+                setAspectRatio(naturalWidth / naturalHeight);
+              }
+            }}
+            className="w-full h-full block object-contain pointer-events-none select-none"
+            draggable={false}
+          />
 
         {/* 4 Shaded Mask Panels outside the Crop Box */}
         {/* Top mask */}
@@ -289,6 +316,7 @@ export default function InteractiveImageCropper({
           </div>
         </div>
       </div>
+    </div>
 
       {/* QUICK PRESETS & ACTIONS BAR */}
       <div className="mt-2 space-y-2">
