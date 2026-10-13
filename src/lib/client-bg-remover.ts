@@ -192,16 +192,16 @@ export function removeBackgroundOnCanvas(imageSrc: string): Promise<BackgroundRe
         const imgData = ctx.getImageData(0, 0, procW, procH);
         const data = imgData.data;
 
-        // 1. Sample background colors from all 4 borders & corners
-        const samplePoints = [
-          [2, 2], [Math.floor(procW / 2), 2], [procW - 3, 2],
-          [2, Math.floor(procH / 2)], [procW - 3, Math.floor(procH / 2)],
-          [2, procH - 3], [Math.floor(procW / 2), procH - 3], [procW - 3, procH - 3],
-          [10, 10], [procW - 11, 10], [10, procH - 11], [procW - 11, procH - 11],
+        // 1. Sample background colors ONLY from the 4 extreme outer corners (never touching the product)
+        const cornerPoints = [
+          [2, 2], 
+          [procW - 3, 2], 
+          [2, procH - 3], 
+          [procW - 3, procH - 3],
         ];
 
         const bgSamples: { r: number; g: number; b: number }[] = [];
-        for (const [sx, sy] of samplePoints) {
+        for (const [sx, sy] of cornerPoints) {
           const idx = (sy * procW + sx) * 4;
           bgSamples.push({ r: data[idx], g: data[idx + 1], b: data[idx + 2] });
         }
@@ -213,20 +213,33 @@ export function removeBackgroundOnCanvas(imageSrc: string): Promise<BackgroundRe
 
         // Flood map: 0 = unvisited, 1 = background, 2 = foreground
         const visited = new Uint8Array(procW * procH);
-        const threshold = 42; // Sensitivity for background flood
+        const threshold = 32; // Safe sensitivity
         const queue: number[] = [];
 
-        // Push perimeter boundary pixels into flood queue
-        for (let x = 0; x < procW; x++) {
-          queue.push(0 * procW + x); // Top edge
-          queue.push((procH - 1) * procW + x); // Bottom edge
-        }
-        for (let y = 0; y < procH; y++) {
-          queue.push(y * procW + 0); // Left edge
-          queue.push(y * procW + (procW - 1)); // Right edge
+        // STRICT FOREGROUND PROTECTED ZONE: The central 76% of the cropped image is GUARANTEED to be protected!
+        // The product packet will NEVER be touched or made transparent!
+        const minX = Math.floor(procW * 0.12);
+        const maxX = Math.ceil(procW * 0.88);
+        const minY = Math.floor(procH * 0.12);
+        const maxY = Math.ceil(procH * 0.88);
+
+        for (let y = minY; y <= maxY; y++) {
+          for (let x = minX; x <= maxX; x++) {
+            visited[y * procW + x] = 2; // Locked as solid foreground product
+          }
         }
 
-        // BFS flood fill from outside inward
+        // Push outer perimeter boundary pixels into flood queue
+        for (let x = 0; x < procW; x++) {
+          if (!visited[0 * procW + x]) queue.push(0 * procW + x); // Top edge
+          if (!visited[(procH - 1) * procW + x]) queue.push((procH - 1) * procW + x); // Bottom edge
+        }
+        for (let y = 0; y < procH; y++) {
+          if (!visited[y * procW + 0]) queue.push(y * procW + 0); // Left edge
+          if (!visited[y * procW + (procW - 1)]) queue.push(y * procW + (procW - 1)); // Right edge
+        }
+
+        // BFS flood fill ONLY in the outer margin zone
         let head = 0;
         while (head < queue.length) {
           const pixelIdx = queue[head++];
@@ -234,26 +247,30 @@ export function removeBackgroundOnCanvas(imageSrc: string): Promise<BackgroundRe
 
           const px = pixelIdx % procW;
           const py = Math.floor(pixelIdx / procW);
-          const pDataIdx = pixelIdx * 4;
 
+          // Never penetrate protected center product zone
+          if (px >= minX && px <= maxX && py >= minY && py <= maxY) {
+            visited[pixelIdx] = 2;
+            continue;
+          }
+
+          const pDataIdx = pixelIdx * 4;
           const pr = data[pDataIdx];
           const pg = data[pDataIdx + 1];
           const pb = data[pDataIdx + 2];
 
-          // Check minimum distance to any sampled background color
+          // Check minimum distance to corner background color
           let minDist = 999;
           for (const s of bgSamples) {
             const d = colorDistance(pr, pg, pb, s.r, s.g, s.b);
             if (d < minDist) minDist = d;
           }
 
-          // Near edges or matched background color
-          const isEdgeZone = px < 8 || px >= procW - 8 || py < 8 || py >= procH - 8;
-          if (minDist <= threshold || (isEdgeZone && minDist <= threshold * 1.5)) {
-            visited[pixelIdx] = 1; // Mark as background
-            data[pDataIdx + 3] = 0; // Make transparent
+          if (minDist <= threshold) {
+            visited[pixelIdx] = 1; // Background
+            data[pDataIdx + 3] = 0; // Transparent
 
-            // Spread to 4 neighbors
+            // Spread to 4 neighbors within margin
             if (px > 0 && !visited[pixelIdx - 1]) queue.push(pixelIdx - 1);
             if (px < procW - 1 && !visited[pixelIdx + 1]) queue.push(pixelIdx + 1);
             if (py > 0 && !visited[pixelIdx - procW]) queue.push(pixelIdx - procW);

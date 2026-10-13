@@ -283,6 +283,23 @@ export default function AIProductAddPage() {
       setBgProgressPct(100);
       setBgProgressText('✅ Studio Packshot Ready!');
 
+      // Run real neural u2net background isolation on the server in the background
+      fetch('/api/admin/remove-bg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64DataUrl }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.packshot && data.source === 'u2net-ai-neural') {
+            setAiTransparentSrc(data.transparent);
+            setAiPackshotSrc(data.packshot);
+            setStudioImageSrc(data.packshot);
+            setGeminiCleanImageSrc(data.packshot);
+          }
+        })
+        .catch(() => {});
+
     } catch (err) {
       console.warn('Canvas packshot fallback:', err);
       setStudioImageSrc(base64DataUrl);
