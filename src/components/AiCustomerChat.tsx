@@ -36,6 +36,7 @@ const COMMON_FAQS = [
 ];
 
 export default function AiCustomerChat() {
+  return null;
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

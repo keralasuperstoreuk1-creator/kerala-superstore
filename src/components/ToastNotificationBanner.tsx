@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useSpecialsNotification } from '@/context/SpecialsNotificationContext';
 import { Bell, X, ArrowRight } from 'lucide-react';
 
 export const ToastNotificationBanner: React.FC = () => {
+  const pathname = usePathname();
   const { activeToast, dismissToast, setIsNotificationModalOpen } = useSpecialsNotification();
 
   useEffect(() => {
@@ -16,7 +18,7 @@ export const ToastNotificationBanner: React.FC = () => {
     }
   }, [activeToast, dismissToast]);
 
-  if (!activeToast) return null;
+  if (!activeToast || pathname?.startsWith('/pos')) return null;
 
   return (
     <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-6 z-9999 max-w-md animate-in slide-in-from-top-4 duration-300">

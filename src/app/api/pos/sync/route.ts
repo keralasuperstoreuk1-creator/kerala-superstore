@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPosSyncState, applyPosInventorySync, PosSyncItem } from '@/lib/pos-sync-store';
 import { upsertPosProductsToCatalog, getUnifiedProductCatalog, autoEnrichPosProduct } from '@/lib/product-catalog';
 import { supabaseAdmin } from '@/lib/supabase';
+import { searchProductGoogleImage } from '@/lib/serper';
 
 const DEFAULT_POS_SECRET = process.env.POS_SYNC_SECRET || 'kss_pos_sync_key_2026_live';
 
@@ -185,26 +186,40 @@ export async function POST(req: NextRequest) {
             .upsert(posRows, { onConflict: 'barcode' });
         }
 
-        // Also enrich and upsert into products table
-        const productRows = items
-          .filter(i => i.barcode && i.description)
-          .map(i => {
-            const enriched = autoEnrichPosProduct(i);
-            return {
-              name: enriched.name,
-              slug: enriched.slug,
-              size_weight: enriched.sizeWeight,
-              price: enriched.price,
-              offer_price: enriched.offerPrice || null,
-              stock_quantity: Math.max(0, Math.floor(enriched.stock)),
-              barcode: enriched.barcode,
-              description: enriched.description,
-              image_url: enriched.imageUrl,
-              tags: enriched.tags,
-              status: enriched.status,
-              updated_at: now
-            };
-          });
+        // Also enrich and upsert into products table with Google Images via Serper
+        const productRows = await Promise.all(
+          items
+            .filter(i => i.barcode && i.description)
+            .map(async i => {
+              const enriched = autoEnrichPosProduct(i);
+              let imgUrl = enriched.imageUrl;
+              // If image is a local placeholder, attempt Google Image search by brand + name
+              if (!imgUrl || !imgUrl.startsWith('http')) {
+                try {
+                  const googleImg = await searchProductGoogleImage(enriched.name, enriched.brand);
+                  if (googleImg) {
+                    imgUrl = googleImg;
+                  }
+                } catch {
+                  // Keep fallback on error
+                }
+              }
+              return {
+                name: enriched.name,
+                slug: enriched.slug,
+                size_weight: enriched.sizeWeight,
+                price: enriched.price,
+                offer_price: enriched.offerPrice || null,
+                stock_quantity: Math.max(0, Math.floor(enriched.stock)),
+                barcode: enriched.barcode,
+                description: enriched.description,
+                image_url: imgUrl,
+                tags: enriched.tags,
+                status: enriched.status,
+                updated_at: now
+              };
+            })
+        );
 
         if (productRows.length > 0) {
           await supabaseAdmin

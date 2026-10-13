@@ -286,5 +286,353 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   animation: logoPulseScale 3s infinite ease-in-out;
 }
 
+/* ==========================================================================
+   UNIVERSAL THERMAL RECEIPT PRINTER STYLES (80mm & 58mm ESC/POS COMPLIANT)
+   Supports Epson TM-T88/TM-m30, Star TSP100, Munbyn, Bixolon, Xprinter, etc.
+   ========================================================================== */
+@media print {
+  @page {
+    margin: 0 !important;
+    size: auto !important;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: 'Courier New', Courier, monospace, system-ui !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    width: 100% !important;
+  }
+
+  /* When printing, hide all non-receipt elements */
+  nav, header, aside, .modal-backdrop, button, .no-print {
+    display: none !important;
+  }
+
+  /* Force thermal receipt preview to occupy full printable area with crisp black ink */
+  #thermal-receipt-preview,
+  #thermal-return-preview,
+  #thermal-closing-stock-preview,
+  .pos-printable-receipt {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 78mm !important;
+    margin: 0 auto !important;
+    padding: 2mm 3mm 16mm 3mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    font-family: 'Courier New', Courier, monospace, system-ui !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+
+  #thermal-receipt-preview.paper-58mm,
+  #thermal-return-preview.paper-58mm,
+  #thermal-closing-stock-preview.paper-58mm {
+    max-width: 52mm !important;
+    font-size: 9.5px !important;
+    padding: 1mm 2mm 12mm 2mm !important;
+  }
+
+  /* All children inside receipt */
+  #thermal-receipt-preview *,
+  #thermal-return-preview *,
+  #thermal-closing-stock-preview *,
+  .pos-printable-receipt * {
+    color: #000000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Thermal printer logo optimization: crisp monochrome high-contrast */
+  img.receipt-logo {
+    display: block !important;
+    margin: 0 auto 6px auto !important;
+    max-width: 65px !important;
+    height: auto !important;
+    filter: grayscale(100%) contrast(160%) !important;
+    -webkit-filter: grayscale(100%) contrast(160%) !important;
+  }
+}
+
+/* ==========================================================================
+   HIGH-VISIBILITY WHITE / LIGHT MODE FOR POS TERMINAL
+   Engineered for retail counters under bright store lighting (Square / Toast style)
+   ========================================================================== */
+.pos-light {
+  background-color: #f8fafc !important; /* Slate-50 */
+  color: #0f172a !important; /* High-contrast Slate-900 */
+}
+
+/* Base Canvas & Major Panels */
+.pos-light main {
+  background-color: #f1f5f9 !important; /* Clean light canvas */
+}
+
+.pos-light aside,
+.pos-light header {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+.pos-light .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+.pos-light .bg-slate-900 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.pos-light .bg-slate-900\/60,
+.pos-light .bg-slate-900\/70,
+.pos-light .bg-slate-900\/80,
+.pos-light .bg-slate-900\/90,
+.pos-light .bg-slate-900\/95 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.pos-light .bg-slate-950\/60,
+.pos-light .bg-slate-950\/70,
+.pos-light .bg-slate-950\/80,
+.pos-light .bg-slate-950\/90,
+.pos-light .bg-slate-950\/95 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Subtle Secondary Buttons, Pills & Dividers */
+.pos-light .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+.pos-light .hover\:bg-slate-800:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.pos-light .hover\:bg-slate-700:hover {
+  background-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Borders across all cards & panels */
+.pos-light .border-slate-800,
+.pos-light .border-slate-700,
+.pos-light .border-slate-800\/80,
+.pos-light .border-slate-800\/60,
+.pos-light .border-slate-800\/50,
+.pos-light .border-slate-700\/60,
+.pos-light .border-slate-700\/50,
+.pos-light .divide-slate-800,
+.pos-light .divide-slate-800\/60 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Crisp Dark Typography for High Daylight Legibility */
+.pos-light .text-white,
+.pos-light .text-slate-100,
+.pos-light .text-slate-200 {
+  color: #0f172a !important; /* Deep dark slate */
+}
+
+.pos-light .text-slate-300 {
+  color: #1e293b !important; /* Slate-800 */
+}
+
+.pos-light .text-slate-400 {
+  color: #475569 !important; /* Slate-600 */
+}
+
+.pos-light .text-slate-500 {
+  color: #64748b !important; /* Slate-500 */
+}
+
+/* High-Contrast Colored Accents */
+.pos-light .text-emerald-400 {
+  color: #059669 !important; /* Emerald-600 */
+}
+
+.pos-light .text-emerald-300 {
+  color: #047857 !important; /* Emerald-700 */
+}
+
+.pos-light .text-rose-400 {
+  color: #e11d48 !important; /* Rose-600 */
+}
+
+.pos-light .text-rose-300 {
+  color: #be123c !important; /* Rose-700 */
+}
+
+.pos-light .text-amber-400 {
+  color: #d97706 !important; /* Amber-600 */
+}
+
+.pos-light .text-amber-300 {
+  color: #b45309 !important; /* Amber-700 */
+}
+
+.pos-light .text-indigo-400 {
+  color: #4f46e5 !important; /* Indigo-600 */
+}
+
+/* Pill & Alert Backgrounds */
+.pos-light .bg-emerald-950\/90,
+.pos-light .bg-emerald-950\/50,
+.pos-light .bg-emerald-500\/10,
+.pos-light .bg-emerald-500\/20 {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #065f46 !important;
+}
+
+.pos-light .bg-rose-950\/90,
+.pos-light .bg-rose-950\/50,
+.pos-light .bg-rose-500\/10,
+.pos-light .bg-rose-500\/15,
+.pos-light .bg-rose-500\/20,
+.pos-light .bg-rose-500\/30 {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+  color: #9f1239 !important;
+}
+
+.pos-light .bg-amber-950\/90,
+.pos-light .bg-amber-950\/50,
+.pos-light .bg-amber-500\/10,
+.pos-light .bg-amber-500\/20,
+.pos-light .bg-amber-500\/30 {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #92400e !important;
+}
+
+.pos-light .bg-indigo-500\/20 {
+  background-color: #eef2ff !important;
+  border-color: #c7d2fe !important;
+  color: #3730a3 !important;
+}
+
+/* Action Buttons: Keep Bold White Text on Vibrant Colors */
+.pos-light .bg-emerald-600,
+.pos-light .bg-emerald-500,
+.pos-light .bg-rose-600,
+.pos-light .bg-rose-500,
+.pos-light .bg-blue-600,
+.pos-light .bg-blue-500,
+.pos-light .bg-indigo-600,
+.pos-light .bg-indigo-500,
+.pos-light .bg-amber-600,
+.pos-light .bg-orange-600,
+.pos-light [class*="bg-gradient-to"] {
+  color: #ffffff !important;
+}
+
+.pos-light .bg-emerald-600 *,
+.pos-light .bg-emerald-500 *,
+.pos-light .bg-rose-600 *,
+.pos-light .bg-rose-500 *,
+.pos-light .bg-blue-600 *,
+.pos-light .bg-blue-500 *,
+.pos-light .bg-indigo-600 *,
+.pos-light .bg-indigo-500 *,
+.pos-light .bg-amber-600 *,
+.pos-light .bg-orange-600 *,
+.pos-light [class*="bg-gradient-to"] * {
+  color: #ffffff !important;
+}
+
+/* Clean White Form Inputs & Selects */
+.pos-light input:not([type="checkbox"]):not([type="radio"]),
+.pos-light select,
+.pos-light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.pos-light input::placeholder,
+.pos-light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.pos-light input:focus,
+.pos-light select:focus,
+.pos-light textarea:focus {
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2) !important;
+}
+
+/* Product Cards in Grid */
+.pos-light .group.cursor-pointer {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.pos-light .group.cursor-pointer:hover {
+  border-color: #059669 !important;
+  box-shadow: 0 4px 12px 0 rgba(5, 150, 105, 0.12);
+}
+
+.pos-light .aspect-square.bg-slate-950\/80 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Modals & Dialog Overlays */
+.pos-light .fixed.inset-0.bg-black\/80,
+.pos-light .fixed.inset-0.bg-slate-950\/80 {
+  background-color: rgba(15, 23, 42, 0.55) !important;
+}
+
+/* Touch Numpad & Quick Payment Buttons */
+.pos-light .grid-cols-3 button.bg-slate-800,
+.pos-light .grid-cols-4 button.bg-slate-800 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.pos-light .grid-cols-3 button.bg-slate-800:hover,
+.pos-light .grid-cols-4 button.bg-slate-800:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* Tables */
+.pos-light table {
+  background-color: #ffffff !important;
+}
+
+.pos-light table thead tr {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.pos-light table thead th {
+  color: #475569 !important;
+}
+
+.pos-light table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+
 
 

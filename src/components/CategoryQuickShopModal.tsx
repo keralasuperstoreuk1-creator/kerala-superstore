@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { Category, Product } from '@/types';
 import { useCart } from '@/context/CartContext';
-import { matchProductToCategory } from '@/lib/product-matching';
+import { matchProductToCategory, matchProductToVariety } from '@/lib/product-matching';
+import { getProductDisplayPricing } from '@/lib/pricing';
 
 interface CategoryQuickShopModalProps {
   category: Category | null;
@@ -48,31 +49,33 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
     });
   }, [category, products]);
 
-  // Available brands in this category
+  // Filter products specifically matching selected variety (e.g. Meat Masala shows ONLY meat masala)
+  const varietyProducts = useMemo(() => {
+    if (!selectedVariety || selectedVariety === 'All' || selectedVariety === 'All Varieties') {
+      return categoryProducts;
+    }
+    return categoryProducts.filter((p) => matchProductToVariety(p, selectedVariety));
+  }, [categoryProducts, selectedVariety]);
+
+  // Available brands in the currently selected variety
   const brandCounts = useMemo(() => {
     const map: Record<string, number> = {};
-    categoryProducts.forEach((p) => {
-      map[p.brand] = (map[p.brand] || 0) + 1;
+    varietyProducts.forEach((p) => {
+      const b = p.brand || 'Kerala Superstore';
+      map[b] = (map[b] || 0) + 1;
     });
     return Object.entries(map).map(([brand, count]) => ({ brand, count }));
-  }, [categoryProducts]);
+  }, [varietyProducts]);
 
-  // Filtered by selected variety and selected brand, sorted with IN STOCK items first
+  const handleSelectVariety = (v: string | null) => {
+    setSelectedVariety(v);
+    setSelectedBrand(null); // Reset brand filter on variety switch
+  };
+
+  // Filtered by selected brand, sorted with IN STOCK items first
   const filteredList = useMemo(() => {
-    const list = categoryProducts.filter((p) => {
+    const list = varietyProducts.filter((p) => {
       if (selectedBrand && p.brand !== selectedBrand) return false;
-      if (selectedVariety && selectedVariety !== 'All') {
-        const q = selectedVariety.toLowerCase();
-        const words = q.split(/[\s/()]+/).filter(w => w.length > 2);
-        if (words.length > 0) {
-          const match = words.some(w => 
-            p.name.toLowerCase().includes(w) || 
-            (p.description || '').toLowerCase().includes(w) || 
-            (p.tags || []).some(t => t.toLowerCase().includes(w))
-          );
-          if (!match) return false;
-        }
-      }
       return true;
     });
 
@@ -83,7 +86,7 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
       if (bInStock !== aInStock) return bInStock - aInStock;
       return (b.isOffer ? 1 : 0) - (a.isOffer ? 1 : 0);
     });
-  }, [categoryProducts, selectedBrand, selectedVariety]);
+  }, [varietyProducts, selectedBrand]);
 
   const getCartQuantity = (productId: string): number => {
     const item = cart.find((i) => i.product.id === productId);
@@ -165,7 +168,7 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
               </div>
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar touch-pan-x">
                 <button
-                  onClick={() => setSelectedVariety(null)}
+                  onClick={() => handleSelectVariety(null)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer active:scale-95 ${
                     selectedVariety === null
                       ? 'bg-emerald-800 text-white shadow-xs'
@@ -174,19 +177,23 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
                 >
                   All Varieties ({categoryProducts.length})
                 </button>
-                {category.varieties.map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setSelectedVariety(selectedVariety === v ? null : v)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer active:scale-95 ${
-                      selectedVariety === v
-                        ? 'bg-emerald-800 text-white shadow-xs'
-                        : 'bg-white text-slate-700 border border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
+                {category.varieties.map((v) => {
+                  const count = categoryProducts.filter((p) => matchProductToVariety(p, v)).length;
+                  return (
+                    <button
+                      key={v}
+                      onClick={() => handleSelectVariety(selectedVariety === v ? null : v)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer active:scale-95 flex items-center gap-1 ${
+                        selectedVariety === v
+                          ? 'bg-emerald-800 text-white shadow-xs ring-2 ring-emerald-600/30'
+                          : 'bg-white text-slate-700 border border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <span>{v}</span>
+                      <span className="text-[10px] opacity-75 font-semibold">({count})</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -247,9 +254,7 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
               {filteredList.map((prod) => {
                 const qty = getCartQuantity(prod.id);
-                const discount = prod.offerPrice 
-                  ? Math.round(((prod.price - prod.offerPrice) / prod.price) * 100)
-                  : 0;
+                const { sellingPrice, cutPrice, discountPercent, hasDiscount } = getProductDisplayPricing(prod);
 
                 return (
                   <div
@@ -258,10 +263,10 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
                     className="bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-lg transition-all p-3 flex flex-col justify-between group cursor-pointer relative"
                   >
                     {/* Offer badge */}
-                    {discount > 0 && (
+                    {hasDiscount && (
                       <span className="absolute top-2 left-2 z-10 bg-gradient-to-r from-rose-600 to-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-xs uppercase flex items-center gap-0.5">
                         <Flame className="w-2.5 h-2.5 fill-white" />
-                        <span>-{discount}%</span>
+                        <span>-{discountPercent}%</span>
                       </span>
                     )}
 
@@ -290,17 +295,30 @@ export const CategoryQuickShopModal: React.FC<CategoryQuickShopModalProps> = ({
                       <h4 className="font-bold text-xs text-slate-900 line-clamp-2 leading-tight">
                         {prod.name}
                       </h4>
+                      {/* Live POS Stock Badge */}
+                      <div className="flex items-center gap-1 pt-0.5">
+                        {prod.stock > 0 ? (
+                          <span className="text-[9.5px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/70 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span>In Stock ({prod.stock})</span>
+                          </span>
+                        ) : (
+                          <span className="text-[9.5px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                            <span>Out of Stock</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Price and Add Stepper */}
                     <div className="pt-2.5 mt-2 border-t border-slate-100 flex items-center justify-between gap-1.5">
                       <div>
                         <div className="font-black text-sm text-slate-900">
-                          £{(prod.offerPrice ?? prod.price).toFixed(2)}
+                          £{sellingPrice.toFixed(2)}
                         </div>
-                        {prod.offerPrice && (
+                        {hasDiscount && cutPrice && (
                           <div className="text-[10px] text-slate-400 line-through">
-                            £{prod.price.toFixed(2)}
+                            £{cutPrice.toFixed(2)}
                           </div>
                         )}
                       </div>

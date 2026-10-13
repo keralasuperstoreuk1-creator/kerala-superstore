@@ -15,6 +15,7 @@ import {
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { useStoreConfig } from '@/context/StoreConfigContext';
+import { getProductDisplayPricing } from '@/lib/pricing';
 
 interface ProductCardProps {
   product: Product;
@@ -31,6 +32,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
   const [notifySuccess, setNotifySuccess] = useState(false);
 
   const isOutOfStock = product.stock <= 0;
+  const { sellingPrice, cutPrice, discountPercent, hasDiscount } = getProductDisplayPricing(product);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -71,10 +73,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
     setImgSrc(product.imageUrl || '/products/matta-rice.png');
   }, [product.imageUrl]);
 
-  const discountPercent = product.offerPrice 
-    ? Math.round(((product.price - product.offerPrice) / product.price) * 100)
-    : 0;
-
   return (
     <>
       <div 
@@ -101,11 +99,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
             </span>
           )}
 
-          {!isOutOfStock && product.stock <= (product.lowStockThreshold || 10) && (
-            <span className="bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[9px] px-2 py-0.5 rounded-full shadow-2xs">
-              Only {product.stock} left
+          {!isOutOfStock && product.stock <= (product.lowStockThreshold || 10) ? (
+            <span className="bg-amber-500 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full shadow-sm border border-amber-300">
+              🔥 Only {product.stock} left
             </span>
-          )}
+          ) : !isOutOfStock ? (
+            <span className="bg-emerald-800/85 backdrop-blur-md text-emerald-100 font-bold text-[9px] px-2 py-0.5 rounded-full shadow-sm border border-emerald-600/40">
+              ✓ In Stock ({product.stock})
+            </span>
+          ) : null}
         </div>
 
         {/* Product Image Area with Studio Lighting */}
@@ -159,16 +161,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
             <div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-base sm:text-lg font-black text-slate-900">
-                  £{(product.offerPrice ?? product.price).toFixed(2)}
+                  £{sellingPrice.toFixed(2)}
                 </span>
-                {product.offerPrice && (
+                {hasDiscount && cutPrice && (
                   <span className="text-xs text-slate-400 line-through font-medium">
-                    £{product.price.toFixed(2)}
+                    £{cutPrice.toFixed(2)}
                   </span>
                 )}
               </div>
-              <div className="text-[9px] text-emerald-700 font-semibold flex items-center gap-0.5">
-                <Zap className="w-2.5 h-2.5" /> Express UK Dispatch
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[9px] text-emerald-700 font-semibold flex items-center gap-0.5">
+                  <Zap className="w-2.5 h-2.5" /> Express UK Dispatch
+                </span>
+                <span className="text-[9px] font-bold text-slate-400">•</span>
+                <span className={`text-[9px] font-bold ${isOutOfStock ? 'text-slate-400' : 'text-emerald-700 font-black'}`}>
+                  {isOutOfStock ? 'Out of Stock' : `Stock: ${product.stock}`}
+                </span>
               </div>
             </div>
 

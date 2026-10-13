@@ -23,7 +23,8 @@ import {
   LogOut,
   Lock,
   UserCheck,
-  RefreshCw
+  RefreshCw,
+  Camera
 } from 'lucide-react';
 import { isUserAdminAuthenticated, clearAdminSession, getAdminCredentials } from '@/lib/admin-auth';
 import { useStoreConfig } from '@/context/StoreConfigContext';
@@ -88,6 +89,7 @@ export default function AdminLayout({
 
   const navItems = [
     { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { label: 'Touch POS Terminal', href: '/pos', icon: Store, badge: 'Live Till' },
     { label: 'POS Stock Sync', href: '/admin/pos-sync', icon: RefreshCw, badge: 'RetailV2 EXE' },
     { label: 'Feature Switches', href: '/admin/settings', icon: Sliders, badge: 'On/Off' },
     { label: 'Storefront & Banners', href: '/admin/banners', icon: Sliders, badge: isSliderOn ? 'Live' : 'Hidden' },
@@ -95,6 +97,7 @@ export default function AdminLayout({
     { label: 'Promo Coupons', href: '/admin/coupons', icon: Tag, badge: isCouponsOn ? 'Discounts' : 'Hidden' },
     { label: 'Kitchen Specials & Alerts', href: '/admin/specials', icon: Bell, badge: isSpecialsOn ? 'Live App' : 'Hidden' },
     { label: 'AI Add Product', href: '/admin/ai-add', icon: Sparkles, badge: 'AI Vision' },
+    { label: 'WhatsApp / Image Sync', href: '/admin/whatsapp-sync', icon: Camera, badge: 'Packshots' },
     { label: 'Products & Stock', href: '/admin/products', icon: Package },
     { label: 'Customer Orders', href: '/admin/orders', icon: ShoppingBag, badge: '2 New' },
     { label: 'Media Cloud (R2)', href: '/admin/storage', icon: Cloud, badge: 'Free 10GB' },
@@ -235,12 +238,12 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Admin Content Body */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <main className={`flex-1 flex flex-col min-w-0 ${pathname === '/admin/ai-add' ? 'h-screen max-h-screen overflow-hidden' : 'overflow-y-auto'}`}>
         {/* Top bar */}
-        <div className="hidden md:flex items-center justify-between bg-white px-8 py-4 border-b border-slate-200">
+        <div className="hidden md:flex items-center justify-between bg-white px-8 py-3.5 border-b border-slate-200 shrink-0">
           <div>
-            <h1 className="font-black text-slate-900 text-lg">Shop Owner Portal</h1>
-            <p className="text-xs text-slate-500">Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX</p>
+            <h1 className="font-black text-slate-900 text-base">Shop Owner Portal</h1>
+            <p className="text-[11px] text-slate-500">Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -269,7 +272,7 @@ export default function AdminLayout({
           </div>
         </div>
 
-        <div className="p-4 md:p-8 flex-1">
+        <div className={pathname === '/admin/ai-add' ? 'p-2 sm:p-3 flex-1 flex flex-col min-h-0 overflow-hidden' : 'p-4 md:p-8 flex-1'}>
           {children}
         </div>
       </main>

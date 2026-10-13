@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
+import { getProductDisplayPricing } from '@/lib/pricing';
 import { Check, ShoppingBag, ArrowRight } from 'lucide-react';
 
 interface DealsOfTheWeekSectionProps {
@@ -126,7 +127,7 @@ export const DealsOfTheWeekSection: React.FC<DealsOfTheWeekSectionProps> = ({
           {/* Right Column: 2 Featured Deal Cards */}
           <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-5">
             {displayProducts.map((product) => {
-              const hasDiscount = product.offerPrice && product.offerPrice < product.price;
+              const pricing = getProductDisplayPricing(product);
               const isAdded = addedIds[product.id];
               return (
                 <div
@@ -135,9 +136,9 @@ export const DealsOfTheWeekSection: React.FC<DealsOfTheWeekSectionProps> = ({
                   className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-lg transition-all cursor-pointer flex flex-col justify-between group relative"
                 >
                   {/* Top discount chip */}
-                  {hasDiscount && (
+                  {pricing.hasDiscount && (
                     <div className="absolute top-3 left-3 bg-[#f97316] text-white font-black text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
-                      SAVE {Math.round(((product.price - (product.offerPrice || 0)) / product.price) * 100)}%
+                      SAVE {pricing.discountPercent}%
                     </div>
                   )}
 
@@ -165,11 +166,11 @@ export const DealsOfTheWeekSection: React.FC<DealsOfTheWeekSectionProps> = ({
                     {/* Price with strikethrough original */}
                     <div className="flex items-center justify-center gap-2 pt-1">
                       <span className="text-base font-black text-[#f97316]">
-                        £{(product.offerPrice ?? product.price).toFixed(2)}
+                        £{pricing.sellingPrice.toFixed(2)}
                       </span>
-                      {hasDiscount && (
+                      {pricing.hasDiscount && pricing.cutPrice && (
                         <span className="text-xs text-slate-400 line-through font-semibold">
-                          £{product.price.toFixed(2)}
+                          £{pricing.cutPrice.toFixed(2)}
                         </span>
                       )}
                     </div>

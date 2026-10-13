@@ -333,3 +333,12 @@ export function matchProductToCategory(product: Product, categorySlugOrName: str
   return false;
 }
 
+let catalogStaleTimestamp = 0;
+export function markCatalogStale() {
+  catalogStaleTimestamp = Date.now();
+}
+export function getCatalogStaleTimestamp() {
+  return catalogStaleTimestamp;
+}
+
+

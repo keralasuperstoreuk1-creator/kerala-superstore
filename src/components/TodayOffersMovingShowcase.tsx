@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
+import { getProductDisplayPricing } from '@/lib/pricing';
 import { 
   Flame, 
   Clock, 
@@ -191,12 +192,7 @@ export const TodayOffersMovingShowcase: React.FC<TodayOffersMovingShowcaseProps>
             }`}
           >
             {displayItems.map((prod, idx) => {
-              const discountPercent = prod.offerPrice
-                ? Math.round(((prod.price - prod.offerPrice) / prod.price) * 100)
-                : 0;
-              const savings = prod.offerPrice
-                ? (prod.price - prod.offerPrice).toFixed(2)
-                : '0.00';
+              const pricing = getProductDisplayPricing(prod);
               const isJustAdded = addedProductId === prod.id;
 
               return (
@@ -209,12 +205,14 @@ export const TodayOffersMovingShowcase: React.FC<TodayOffersMovingShowcaseProps>
                   <div className="flex items-center justify-between gap-1 mb-2 relative z-10">
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-rose-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-wider shadow-xs animate-pulse">
                       <Flame className="w-3 h-3 fill-white" />
-                      <span>{discountPercent}% OFF</span>
+                      <span>{pricing.discountPercent}% OFF</span>
                     </span>
 
-                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      Save £{savings}
-                    </span>
+                    {pricing.hasDiscount && (
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        Save £{pricing.savings.toFixed(2)}
+                      </span>
+                    )}
                   </div>
 
                   {/* Product Image Showcase */}
@@ -258,11 +256,11 @@ export const TodayOffersMovingShowcase: React.FC<TodayOffersMovingShowcaseProps>
                     <div>
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-base sm:text-lg font-black text-rose-600">
-                          £{prod.offerPrice ? prod.offerPrice.toFixed(2) : prod.price.toFixed(2)}
+                          £{pricing.sellingPrice.toFixed(2)}
                         </span>
-                        {prod.offerPrice && (
+                        {pricing.hasDiscount && pricing.cutPrice && (
                           <span className="text-xs text-slate-400 line-through font-semibold">
-                            £{prod.price.toFixed(2)}
+                            £{pricing.cutPrice.toFixed(2)}
                           </span>
                         )}
                       </div>

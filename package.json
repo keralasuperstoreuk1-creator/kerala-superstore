@@ -3,9 +3,13 @@
   "version": "0.1.1",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev -p 809",
+    "dev:809": "next dev -p 809",
+    "dev:8090": "next dev -p 8090",
+    "dev:3000": "next dev -p 3000",
+    "pos": "next dev -p 809",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 809",
     "lint": "eslint"
   },
   "dependencies": {

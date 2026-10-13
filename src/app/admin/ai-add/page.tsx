@@ -12,9 +12,23 @@ import {
   Crop,
   Wand2,
   Key,
-  Sparkles
+  Sparkles,
+  Search,
+  Globe,
+  Copy,
+  Sliders,
+  ZoomIn,
+  Eye,
+  Check,
+  Layers,
+  ArrowRight,
+  ArrowLeft,
+  Smartphone,
+  ChevronRight,
+  ExternalLink,
+  Plus
 } from 'lucide-react';
-import { CATEGORIES, BRANDS, INITIAL_PRODUCTS } from '@/lib/mock-data';
+import { CATEGORIES, INITIAL_PRODUCTS } from '@/lib/mock-data';
 import { Product } from '@/types';
 
 const POPULAR_BRANDS = [
@@ -33,15 +47,17 @@ const POPULAR_BRANDS = [
 ];
 
 export default function AIProductAddPage() {
-  // Original uploaded raw image data URL
+  // Mobile step switcher: 'studio' (Image & Cutout) or 'details' (Product Form)
+  const [mobileStep, setMobileStep] = useState<'studio' | 'details'>('studio');
+
+  // Left studio sub-tab: 'studio' | 'crop' | 'google' | 'prompt'
+  const [studioTab, setStudioTab] = useState<'studio' | 'crop' | 'google' | 'prompt'>('studio');
+
+  // Image data URLs
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
-  
-  // Processed Studio Packshot data URL  
   const [studioImageSrc, setStudioImageSrc] = useState<string | null>(null);
-  // Clean result lock - once AI removes bg, canvas pipeline won't overwrite
   const [geminiCleanImageSrc, setGeminiCleanImageSrc] = useState<string | null>(null);
-  // AI Generated Versions
   const [aiPackshotSrc, setAiPackshotSrc] = useState<string | null>(null);
   const [aiTransparentSrc, setAiTransparentSrc] = useState<string | null>(null);
   const [activeViewMode, setActiveViewMode] = useState<'packshot' | 'transparent' | 'original'>('packshot');
@@ -53,20 +69,20 @@ export default function AIProductAddPage() {
   const [geminiEditPrompt, setGeminiEditPrompt] = useState<string>('');
   const [bgRemoveResult, setBgRemoveResult] = useState<'success' | 'no-key' | 'error' | null>(null);
   const [aiSource, setAiSource] = useState<'gemini-live' | 'smart-catalog-ai' | null>(null);
-  // Live AI progress tracking
   const [bgProgressText, setBgProgressText] = useState<string>('');
   const [bgProgressPct, setBgProgressPct] = useState<number>(0);
   const [publishedSuccess, setPublishedSuccess] = useState<boolean>(false);
   const [geminiApiKey, setGeminiApiKey] = useState<string>('');
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
-  // Background Editor Tool Settings (Framing & Crop only - NO color wiping)
-  const [bgMode, setBgMode] = useState<'white' | 'transparent'>('white');
+  // Background Editor Tool Settings
+  const [bgMode, setBgMode] = useState<'white' | 'transparent' | 'offwhite'>('white');
   const [cropTop, setCropTop] = useState<number>(0);
   const [cropBottom, setCropBottom] = useState<number>(0);
   const [cropLeft, setCropLeft] = useState<number>(0);
   const [cropRight, setCropRight] = useState<number>(0);
   const [scale, setScale] = useState<number>(100);
+  const [showCropGuides, setShowCropGuides] = useState<boolean>(false);
 
   // Product Form Fields
   const [productName, setProductName] = useState<string>('');
@@ -82,13 +98,20 @@ export default function AIProductAddPage() {
   const [seoTitle, setSeoTitle] = useState<string>('');
   const [slug, setSlug] = useState<string>('');
   const [tags, setTags] = useState<string>('');
+  
+  // Google Images Search
+  const [isSearchingGoogle, setIsSearchingGoogle] = useState<boolean>(false);
+  const [googleImageResults, setGoogleImageResults] = useState<Array<{ title: string; imageUrl: string; source?: string }>>([]);
+  const [googleSearchQuery, setGoogleSearchQuery] = useState<string>('');
+  const [copiedPrompt, setCopiedPrompt] = useState<boolean>(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  // Direct DOM refs for live AI progress — bypasses React batching for instant repaints
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const progressBarRef = useRef<HTMLDivElement | null>(null);
   const progressLabelRef = useRef<HTMLParagraphElement | null>(null);
 
-  // Load API key from localStorage if saved
+  // Load API key from localStorage
   useEffect(() => {
     try {
       const savedKey = localStorage.getItem('kss_gemini_api_key');
@@ -104,15 +127,15 @@ export default function AIProductAddPage() {
     setShowKeyModal(false);
   };
 
-  // Image Processing Canvas Pipeline: Clean framing, crop & zoom (NO color wiping)
-  const processImageOnCanvas = (
+  // Image Processing Canvas Pipeline: Clean framing, crop & zoom
+  const processImageOnCanvas = useCallback((
     imageSource: string,
     cTop: number,
     cBottom: number,
     cLeft: number,
     cRight: number,
     zoomScale: number,
-    backgroundType: 'white' | 'transparent'
+    backgroundType: 'white' | 'transparent' | 'offwhite'
   ) => {
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
@@ -128,6 +151,9 @@ export default function AIProductAddPage() {
       if (backgroundType === 'white') {
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, size, size);
+      } else if (backgroundType === 'offwhite') {
+        ctx.fillStyle = '#F8FAFC';
+        ctx.fillRect(0, 0, size, size);
       } else {
         ctx.clearRect(0, 0, size, size);
       }
@@ -141,7 +167,7 @@ export default function AIProductAddPage() {
       const sh = Math.max(1, srcH * (1 - (cTop + cBottom) / 100));
 
       // 3. Draw onto 1000x1000 studio canvas (centered and scaled)
-      const maxDim = 850 * (zoomScale / 100);
+      const maxDim = 840 * (zoomScale / 100);
       let renderW = maxDim;
       let renderH = maxDim;
       const aspect = sw / sh;
@@ -155,97 +181,94 @@ export default function AIProductAddPage() {
       const dx = (size - renderW) / 2;
       const dy = (size - renderH) / 2;
 
-      // Add subtle studio drop shadow on white canvas
-      if (backgroundType === 'white') {
+      // Add subtle studio drop shadow on white/offwhite canvas
+      if (backgroundType !== 'transparent') {
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.10)';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
         ctx.shadowBlur = 24;
-        ctx.shadowOffsetY = 14;
+        ctx.shadowOffsetY = 12;
         ctx.drawImage(img, sx, sy, sw, sh, dx, dy, renderW, renderH);
         ctx.restore();
       }
 
       ctx.drawImage(img, sx, sy, sw, sh, dx, dy, renderW, renderH);
 
-      const finalDataUrl = canvas.toDataURL(backgroundType === 'white' ? 'image/jpeg' : 'image/png', 0.95);
+      const finalDataUrl = canvas.toDataURL(backgroundType === 'transparent' ? 'image/png' : 'image/jpeg', 0.95);
       setStudioImageSrc(finalDataUrl);
     };
     img.src = imageSource;
+  }, []);
+
+  const getCroppedImageBase64 = (
+    imageSource: string,
+    cTop: number,
+    cBottom: number,
+    cLeft: number,
+    cRight: number
+  ): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const srcW = img.width;
+        const srcH = img.height;
+        const sx = (cLeft / 100) * srcW;
+        const sy = (cTop / 100) * srcH;
+        const sw = Math.max(10, srcW * (1 - (cLeft + cRight) / 100));
+        const sh = Math.max(10, srcH * (1 - (cTop + cBottom) / 100));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = sw;
+        canvas.height = sh;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(imageSource);
+
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+        resolve(canvas.toDataURL('image/jpeg', 0.95));
+      };
+      img.onerror = () => resolve(imageSource);
+      img.src = imageSource;
+    });
   };
 
-  // Canvas pipeline: ONLY updates studioImageSrc when viewing original
+  const handleApplyPresetAndRun = async (top: number, bottom: number, left: number, right: number) => {
+    setCropTop(top);
+    setCropBottom(bottom);
+    setCropLeft(left);
+    setCropRight(right);
+    if (!rawImageSrc) return;
+    // Update live preview immediately
+    processImageOnCanvas(rawImageSrc, top, bottom, left, right, scale, bgMode);
+    // Then run AI on cropped image
+    const cropped = await getCroppedImageBase64(rawImageSrc, top, bottom, left, right);
+    runLocalBgRemoval(cropped);
+  };
+
+  // Canvas pipeline: Immediately updates studioImageSrc whenever crop or scale changes in raw view
   useEffect(() => {
-    if (rawImageSrc && activeViewMode === 'original') {
-      processImageOnCanvas(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight, scale, bgMode);
-    }
-  }, [rawImageSrc, cropTop, cropBottom, cropLeft, cropRight, scale, bgMode, activeViewMode]);
+    if (!rawImageSrc || activeViewMode !== 'original') return;
+    processImageOnCanvas(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight, scale, bgMode);
+  }, [rawImageSrc, cropTop, cropBottom, cropLeft, cropRight, scale, bgMode, activeViewMode, processImageOnCanvas]);
 
-  /**
-   * LOCAL AI BACKGROUND REMOVAL
-   * Uses @imgly/background-removal - runs 100% in the browser
-   * No API key. No image recreation. Removes background from exact uploaded photo.
-   * Result: transparent PNG → placed on white canvas
-   */
-
-
+  // AI Background Removal
   const runLocalBgRemoval = useCallback(async (base64DataUrl: string) => {
     setIsRemovingBg(true);
     setBgRemoveResult(null);
     setBgRemoveMethod(null);
-    setBgProgressText('🚀 Starting AI neural network (U²-Net)...');
+    setBgProgressText('🚀 Initializing Neural AI engine...');
     setBgProgressPct(15);
 
-    if (progressBarRef.current) progressBarRef.current.style.width = '15%';
-    if (progressLabelRef.current) progressLabelRef.current.textContent = '🧠 AI neural network isolating product...';
-
-    const interval = setInterval(() => {
-      setBgProgressPct((prev) => {
-        const next = Math.min(88, prev + 12);
-        if (progressBarRef.current) progressBarRef.current.style.width = `${next}%`;
-        if (progressLabelRef.current) {
-          if (next > 60) {
-            progressLabelRef.current.textContent = '🎨 Preserving white packaging & labels...';
-          } else if (next > 35) {
-            progressLabelRef.current.textContent = '✂️ Removing background cleanly...';
-          }
-        }
-        return next;
-      });
-    }, 400);
-
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const { removeBackgroundWithAi } = await import('@/lib/client-bg-remover');
+      const result = await removeBackgroundWithAi(base64DataUrl, (msg, pct) => {
+        setBgProgressText(msg);
+        setBgProgressPct(pct);
+        if (progressBarRef.current) progressBarRef.current.style.width = `${pct}%`;
+        if (progressLabelRef.current) progressLabelRef.current.textContent = msg;
+      });
 
-      const res = await fetch('/api/admin/remove-bg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64DataUrl }),
-        signal: controller.signal,
-      }).catch(() => null);
-
-      clearTimeout(timeoutId);
-      clearInterval(interval);
-
-      let transparentResult = '';
-      let packshotResult = '';
-
-      if (res && res.ok) {
-        const data = await res.json();
-        if (data.success && data.transparent && data.packshot && data.source === 'u2net-ai-neural') {
-          transparentResult = data.transparent;
-          packshotResult = data.packshot;
-        }
-      }
-
-      // 2. Client-side smart segmentation fallback if server didn't supply clean packshot
-      if (!transparentResult || !packshotResult) {
-        if (progressLabelRef.current) progressLabelRef.current.textContent = '⚡ Applying smart studio packshot framing...';
-        const { removeBackgroundOnCanvas } = await import('@/lib/client-bg-remover');
-        const clientRes = await removeBackgroundOnCanvas(base64DataUrl);
-        transparentResult = clientRes.transparent;
-        packshotResult = clientRes.packshot;
-      }
+      const transparentResult = result.transparent;
+      const packshotResult = result.packshot;
 
       if (progressBarRef.current) progressBarRef.current.style.width = '100%';
       if (progressLabelRef.current) progressLabelRef.current.textContent = '✅ Studio Packshot Ready!';
@@ -262,7 +285,6 @@ export default function AIProductAddPage() {
       setBgProgressText('✅ Studio Packshot Ready!');
 
     } catch (err) {
-      clearInterval(interval);
       console.error('Local BG removal fallback:', err);
       try {
         const { removeBackgroundOnCanvas } = await import('@/lib/client-bg-remover');
@@ -287,137 +309,16 @@ export default function AIProductAddPage() {
     }
   }, []);
 
-  /**
-   * SMART CONTEXT-AWARE PROMPT BUILDER
-   * Automatically creates the perfect Gemini prompt based on:
-   * - Kerala Super Store UK website context
-   * - Detected product brand, category, name
-   * - E-commerce product listing requirements
-   * - Common Kerala grocery flyer elements to remove
-   */
   const buildSmartWebsitePrompt = (name: string, brand: string, category: string) => {
     const productDesc = [brand, name].filter(Boolean).join(' ') || 'grocery product';
     const catHint = category || 'Kerala Indian grocery';
+    const websiteContext = `Kerala Super Store - UK online supermarket in Manchester delivering authentic Kerala groceries`;
 
-    // Website-specific context
-    const websiteContext = `Kerala Super Store - a UK-based online supermarket specialising in authentic South Indian (Kerala) groceries delivered across the United Kingdom`;
-
-    // Smart detection of what to remove based on typical Kerala/Indian grocery flyers
-    const removeList = [
-      'promotional flyer text and headlines',
-      'price tags, offer badges, "EXCLUSIVE OFFER", "1 PACK", "2 PACK" stickers',
-      'dollar/pound price text ($1999, $3500 etc)',
-      'store name/logo (Royal Kerala, Kerala Super Store etc)',
-      'store address and phone numbers',
-      'website URLs and social media handles',
-      'coloured background (teal, blue, dark green, red etc)',
-      'decorative borders and frames',
-      'food photography plates/bowls beside the packet',
-      'any text that is NOT printed ON the product packaging itself',
-    ].join('; ');
-
-    return `You are processing a product image for ${websiteContext}.
-
-TASK: Remove the background from this ${catHint} product photo and create a professional studio packshot.
-
-PRODUCT: ${productDesc}
-
-KEEP EXACTLY:
-- The ${productDesc} packet/bag/box EXACTLY as it physically looks
-- All text, logos, and design printed ON the product packaging
-- The product's original colours, shape and proportions
-- Nothing should change about the actual product itself
-
-REMOVE COMPLETELY:
-- ${removeList}
-
-OUTPUT REQUIREMENTS:
-- Pure solid white background (#FFFFFF) - no gradients, no shadows on background
-- Product centred in a 1000x1000 pixel square frame
-- Product occupies 75-80% of the frame height
-- Add a soft, subtle shadow ONLY directly below the product (natural ground shadow)
-- High quality, sharp edges around the product
-- Suitable for a UK online grocery store product listing page
-
-Do NOT recreate or redraw the product - work with the exact uploaded image.`;
-  };
-
-  // Gemini AI Background Removal: sends uploaded image to Gemini for real editing
-  const handleGeminiRemoveBg = async () => {
-    if (!rawImageSrc) return;
-    setIsRemovingBg(true);
-    setBgRemoveResult(null);
-    try {
-      const res = await fetch('/api/admin/generate-packshot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: rawImageSrc,
-          mimeType: 'image/jpeg',
-          productName,
-          brand: selectedBrand,
-          category: selectedCategory,
-          customApiKey: geminiApiKey,
-          editPrompt: geminiEditPrompt,
-        }),
-      });
-      const json = await res.json();
-      if (json.success && json.imageUrl) {
-        setGeminiCleanImageSrc(json.imageUrl); // Lock in Gemini result
-        setStudioImageSrc(json.imageUrl);
-        setBgRemoveResult('success');
-      } else if (json.source === 'no-api-key') {
-        setBgRemoveResult('no-key');
-      } else {
-        setBgRemoveResult('error');
-      }
-    } catch {
-      setBgRemoveResult('error');
-    } finally {
-      setIsRemovingBg(false);
-    }
-  };
-
-  // AUTO background removal: runs immediately on upload if Gemini API key is connected
-  const autoRemoveBackground = async (base64: string, fName: string) => {
-    setIsRemovingBg(true);
-    setBgRemoveResult(null);
-    try {
-      // Use the smart website-context-aware prompt
-      const smartPrompt = buildSmartWebsitePrompt(
-        fName.replace(/\.[^/.]+$/, ''),
-        '',
-        'Kerala Indian grocery'
-      );
-      setGeminiEditPrompt(smartPrompt); // Show what we're sending
-      const res = await fetch('/api/admin/generate-packshot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: base64,
-          mimeType: 'image/jpeg',
-          productName: fName.replace(/\.[^/.]+$/, ''),
-          brand: '',
-          category: 'Kerala Indian grocery',
-          customApiKey: geminiApiKey,
-          editPrompt: smartPrompt,
-        }),
-      });
-      const json = await res.json();
-      if (json.success && json.imageUrl) {
-        setGeminiCleanImageSrc(json.imageUrl); // Lock in - canvas won't overwrite
-        setStudioImageSrc(json.imageUrl);
-        setBgRemoveResult('success');
-      } else if (json.source === 'no-api-key') {
-        setBgRemoveResult('no-key');
-      } else {
-        setBgRemoveResult('error');
-      }
-    } catch {
-      setBgRemoveResult('error');
-    } finally {
-      setIsRemovingBg(false);
-    }
+    return `Create a pure solid white studio packshot (#FFFFFF) for ${productDesc} (${catHint}) for ${websiteContext}.
+Preserve exact packaging artwork, colors, and logos.
+Remove flyer text, phone numbers, prices, and backgrounds.
+Add subtle natural contact drop shadow directly below the packet.
+Output square 1000x1000 pixel professional UK supermarket listing image.`;
   };
 
   // Run AI Vision / Metadata Detection
@@ -436,30 +337,26 @@ Do NOT recreate or redraw the product - work with the exact uploaded image.`;
       });
 
       const json = await res.json();
-
       if (json.success && json.data) {
         const d = json.data;
         setAiSource(json.source);
-        setProductName(d.name || file.name.replace(/\.[^/.]+$/, ''));
-        setSelectedBrand(d.brand || 'Pavizham');
-        setSelectedCategory(d.category || 'Rice & Rice Products');
-        setPackSize(d.sizeWeight || '20 LB (9.07 kg)');
-        setPrice(d.suggestedPrice ? String(d.suggestedPrice) : '19.99');
-        setOfferPrice(d.suggestedPrice ? String((d.suggestedPrice * 0.92).toFixed(2)) : '18.49');
-        setBarcode(d.barcode || '890' + Math.floor(1000000000 + Math.random() * 9000000000));
-        setAllergens(Array.isArray(d.allergens) ? d.allergens.join(', ') : d.allergens || 'Naturally Gluten Free');
-        setDescription(d.description || '');
-        setSeoTitle(d.seoTitle || `${d.name} UK | Kerala Super Store`);
-        setSlug(d.slug || d.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
-        setTags(Array.isArray(d.tags) ? d.tags.join(', ') : d.tags || '');
-        // Update smart prompt with now-known product details
+        if (d.name) setProductName(d.name);
+        if (d.brand) setSelectedBrand(d.brand);
+        if (d.category) setSelectedCategory(d.category);
+        if (d.sizeWeight) setPackSize(d.sizeWeight);
+        if (d.suggestedPrice) {
+          setPrice(String(d.suggestedPrice));
+          setOfferPrice(String((d.suggestedPrice * 0.92).toFixed(2)));
+        }
+        if (d.barcode) setBarcode(d.barcode);
+        if (d.allergens) setAllergens(Array.isArray(d.allergens) ? d.allergens.join(', ') : d.allergens);
+        if (d.description) setDescription(d.description);
+        if (d.seoTitle) setSeoTitle(d.seoTitle);
+        if (d.slug) setSlug(d.slug);
+        if (d.tags) setTags(Array.isArray(d.tags) ? d.tags.join(', ') : d.tags);
+
         const updatedPrompt = buildSmartWebsitePrompt(d.name || '', d.brand || selectedBrand, d.category || selectedCategory);
         setGeminiEditPrompt(updatedPrompt);
-        // If Gemini already produced a clean image, re-run with better product details
-        if (geminiCleanImageSrc && geminiApiKey) {
-          // Re-process with exact product details now available
-          setTimeout(() => handleGeminiRemoveBg(), 100);
-        }
       }
     } catch {
       setAiSource('smart-catalog-ai');
@@ -468,42 +365,67 @@ Do NOT recreate or redraw the product - work with the exact uploaded image.`;
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      setBgRemoveResult(null);
-      setBgRemoveMethod(null);
-      setStudioImageSrc(null);
-      setGeminiCleanImageSrc(null);
-      setAiPackshotSrc(null);
-      setAiTransparentSrc(null);
-      setActiveViewMode('packshot');
-      setBgMode('white');
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const base64 = ev.target?.result as string;
-        setRawImageSrc(base64);
-        setStudioImageSrc(base64);
-        // Show pristine original on canvas as instant preview without altering any colors
-        processImageOnCanvas(base64, 0, 0, 0, 0, 100, 'white');
-        // Build smart website prompt (for Gemini fallback)
-        setGeminiEditPrompt(buildSmartWebsitePrompt(file.name.replace(/\.[^/.]+$/, ''), '', ''));
-        // 1. Parallel: Detect product metadata text (Vision AI)
-        runAiAnalysis(file, base64);
-        // 2. Parallel: AUTOMATIC REAL AI NEURAL NETWORK BACKGROUND REMOVAL!
-        runLocalBgRemoval(base64);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleProcessUploadedFile = (file: File) => {
+    setFileName(file.name);
+    setBgRemoveResult(null);
+    setBgRemoveMethod(null);
+    setStudioImageSrc(null);
+    setGeminiCleanImageSrc(null);
+    setAiPackshotSrc(null);
+    setAiTransparentSrc(null);
+    setActiveViewMode('packshot');
+    setBgMode('white');
+    
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result as string;
+      setRawImageSrc(base64);
+      setStudioImageSrc(base64);
+      processImageOnCanvas(base64, 0, 0, 0, 0, 100, 'white');
+      setGeminiEditPrompt(buildSmartWebsitePrompt(file.name.replace(/\.[^/.]+$/, ''), '', ''));
+      runAiAnalysis(file, base64);
+      runLocalBgRemoval(base64);
+    };
+    reader.readAsDataURL(file);
   };
 
-  // Quick Preset Handlers for 1-click Brand Switch
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleProcessUploadedFile(file);
+  };
+
   const handleSelectBrandChip = (brandName: string) => {
     setSelectedBrand(brandName);
     if (!productName.toLowerCase().includes(brandName.toLowerCase())) {
-      setProductName(`${brandName} ${productName.replace(/^(Pavizham|Nirapara|Eastern|Double Horse|Brahmins|Melam)\s*/i, '')}`);
+      setProductName(`${brandName} ${productName.replace(/^(Pavizham|Nirapara|Eastern|Double Horse|Brahmins|Melam)\s*/i, '')}`.trim());
     }
+  };
+
+  // Google Images Search
+  const handleSearchGoogleImages = async (customQ?: string) => {
+    const q = (customQ || googleSearchQuery || `${selectedBrand} ${productName}`).trim();
+    if (!q) return;
+    setIsSearchingGoogle(true);
+    setStudioTab('google');
+    try {
+      const res = await fetch(`/api/admin/search-images?name=${encodeURIComponent(productName || q)}&brand=${encodeURIComponent(selectedBrand || '')}&limit=8`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.images)) {
+        setGoogleImageResults(data.images);
+      }
+    } catch (err) {
+      console.error('Failed to search Google images:', err);
+    } finally {
+      setIsSearchingGoogle(false);
+    }
+  };
+
+  const handleSelectGoogleImage = (imgUrl: string) => {
+    setStudioImageSrc(imgUrl);
+    setGeminiCleanImageSrc(imgUrl);
+    setRawImageSrc(imgUrl);
+    setActiveViewMode('packshot');
+    setStudioTab('studio');
   };
 
   // Publish Product to live Storefront
@@ -516,8 +438,8 @@ Do NOT recreate or redraw the product - work with the exact uploaded image.`;
     const cleanSlug = slug || `${cleanBrand}-${cleanName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const cleanSeoTitle = seoTitle || `${cleanName} (${packSize || ''}) | Buy Online UK | Kerala Superstore Manchester`.trim();
     const cleanSeoDesc = description.trim() 
-      ? `${description.trim()} Available for fast UK delivery with Cash on Delivery.`
-      : `Buy authentic ${cleanName} (${packSize || 'Kerala Grocery'}). Fast delivery across Manchester & UK nationwide with Cash on Delivery from Kerala Superstore.`;
+      ? `${description.trim()} Fast UK nationwide delivery with Cash on Delivery.`
+      : `Buy authentic ${cleanName} (${packSize || 'Kerala Grocery'}). Fast delivery across Manchester & UK nationwide from Kerala Superstore.`;
     const defaultSeoTags = [
       cleanBrand.toLowerCase(),
       selectedCategory.toLowerCase(),
@@ -554,7 +476,6 @@ Do NOT recreate or redraw the product - work with the exact uploaded image.`;
       createdAt: new Date().toISOString(),
     };
 
-    // Save to localStorage so storefront immediately shows it
     try {
       const existing = localStorage.getItem('kss_products');
       const list: Product[] = existing ? JSON.parse(existing) : INITIAL_PRODUCTS;
@@ -564,575 +485,914 @@ Do NOT recreate or redraw the product - work with the exact uploaded image.`;
       window.dispatchEvent(new Event('kss_products_updated'));
     } catch {}
 
+    try {
+      fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product: newProduct }),
+      }).catch(() => {});
+    } catch {}
+
     setPublishedSuccess(true);
   };
 
+  // Switch display mode
+  const handleSetViewMode = (mode: 'packshot' | 'transparent' | 'original') => {
+    setActiveViewMode(mode);
+    if (mode === 'packshot') {
+      setBgMode('white');
+      if (aiPackshotSrc) {
+        setStudioImageSrc(aiPackshotSrc);
+      } else if (rawImageSrc) {
+        processImageOnCanvas(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight, scale, 'white');
+      }
+    } else if (mode === 'transparent') {
+      setBgMode('transparent');
+      if (aiTransparentSrc) {
+        setStudioImageSrc(aiTransparentSrc);
+      } else if (rawImageSrc) {
+        processImageOnCanvas(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight, scale, 'transparent');
+      }
+    } else {
+      setBgMode('white');
+      if (rawImageSrc) {
+        processImageOnCanvas(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight, scale, 'white');
+      }
+    }
+  };
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-16">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-slate-900">AI Product Studio &amp; Auto-Packshot</h1>
-            <span className="bg-emerald-600 text-white font-extrabold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              Free AI White Packshot
-            </span>
+    <div className="flex flex-col h-full max-h-full overflow-hidden">
+      
+      {/* Hidden File Inputs for Browse & Mobile Camera */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileUpload}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileUpload}
+      />
+
+      {/* Top Header Bar: Compact, zero wasted height */}
+      <div className="shrink-0 bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-3 z-10 shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-emerald-800 text-white flex items-center justify-center font-black shrink-0 shadow-xs">
+            <Sparkles className="w-4 h-4 text-amber-300" />
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Upload any flyer or packet photo. Auto-generates clean product packshots on pure white background (#FFF) without messy flyers or discount badges!
-          </p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm sm:text-base font-black text-slate-900 truncate">
+                AI Product Studio
+              </h1>
+              <span className="hidden sm:inline-block bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
+                Free White Packshot
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 truncate hidden md:block">
+              Auto background removal &amp; studio packshot generation for UK catalog
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Mobile Step Segmented Switcher (Visible only on mobile) */}
+        <div className="flex lg:hidden items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0">
+          <button
+            type="button"
+            onClick={() => setMobileStep('studio')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+              mobileStep === 'studio' 
+                ? 'bg-white text-emerald-900 shadow-xs' 
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Camera className="w-3.5 h-3.5 text-emerald-700" />
+            <span>1. Photo</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileStep('details')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+              mobileStep === 'details' 
+                ? 'bg-white text-emerald-900 shadow-xs' 
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5 text-emerald-700" />
+            <span>2. Details</span>
+            {price && <span className="text-[10px] text-emerald-700 font-bold">£{offerPrice || price}</span>}
+          </button>
+        </div>
+
+        {/* Right Action Icons (API key modal + Catalog) */}
+        <div className="hidden sm:flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setShowKeyModal(true)}
-            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Google Gemini Vision API Key"
           >
             <Key className="w-3.5 h-3.5 text-amber-600" />
-            <span>{geminiApiKey ? 'Gemini API: Connected' : 'Connect Gemini API Key'}</span>
+            <span className="text-[11px]">{geminiApiKey ? 'Gemini: Active' : 'Gemini Key'}</span>
           </button>
 
           <Link
             href="/admin/products"
-            className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all"
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all"
           >
             All Products
           </Link>
         </div>
       </div>
 
-      {/* Published Success Alert */}
+      {/* Published Success Alert Banner */}
       {publishedSuccess && (
-        <div className="p-4 bg-emerald-50 border-2 border-emerald-500 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
-          <div className="flex items-center gap-2.5 text-emerald-900 font-bold text-xs sm:text-sm">
-            <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
-            <span>Product published successfully! It is now live in your customer storefront catalog.</span>
+        <div className="shrink-0 mx-4 mt-2 p-3 bg-emerald-50 border border-emerald-400 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Product published successfully to customer storefront!</span>
           </div>
           <div className="flex items-center gap-2">
             <Link
               href="/"
               target="_blank"
-              className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-xs"
+              className="px-3 py-1 bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold rounded-lg shadow-xs flex items-center gap-1"
             >
-              View on Website ↗
+              <span>View Store</span>
+              <ExternalLink className="w-3 h-3" />
             </Link>
             <button
               onClick={() => {
                 setPublishedSuccess(false);
                 setRawImageSrc(null);
                 setStudioImageSrc(null);
+                setProductName('');
               }}
-              className="px-3.5 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+              className="px-3 py-1 bg-white border border-slate-300 text-slate-700 text-[11px] font-bold rounded-lg cursor-pointer"
             >
-              Add Another Item
+              Add Another
             </button>
           </div>
         </div>
       )}
 
-      {/* Main 2-Column Studio Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* Main Fitted 2-Column Split Body */}
+      <div className="flex-1 min-h-0 p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 overflow-hidden">
         
-        {/* LEFT COLUMN: Studio Image & Background Removal Suite */}
-        <div className="lg:col-span-5 bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2 font-black text-sm text-slate-900">
-              <Camera className="w-4 h-4 text-emerald-700" />
-              <span>1. Image Upload &amp; Clean Packshot</span>
+        {/* LEFT COLUMN: STUDIO, LIVE CROP & BACKGROUND REMOVAL */}
+        <div className={`lg:col-span-5 h-full flex flex-col bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden ${
+          mobileStep === 'details' ? 'hidden lg:flex' : 'flex'
+        }`}>
+          
+          {/* Studio Sub-tabs Header */}
+          <div className="shrink-0 bg-slate-50 border-b border-slate-200 px-3 py-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setStudioTab('studio')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  studioTab === 'studio' 
+                    ? 'bg-white text-emerald-900 border border-slate-200 shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Camera className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Packshot</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setStudioTab('crop');
+                  setShowCropGuides(true);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  studioTab === 'crop' 
+                    ? 'bg-white text-emerald-900 border border-slate-200 shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Crop className="w-3.5 h-3.5 text-violet-600" />
+                <span>Live Crop</span>
+                {(cropTop > 0 || cropBottom > 0 || cropLeft > 0 || cropRight > 0) && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-violet-600" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStudioTab('google')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  studioTab === 'google' 
+                    ? 'bg-white text-blue-900 border border-slate-200 shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5 text-blue-600" />
+                <span>Google</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStudioTab('prompt')}
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  studioTab === 'prompt' 
+                    ? 'bg-white text-purple-900 border border-slate-200 shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="AI Studio Prompt"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                <span className="hidden sm:inline">Prompt</span>
+              </button>
             </div>
-            {studioImageSrc && (
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                ✅ Your Photo · White Canvas
-              </span>
-            )}
+
+            {/* Upload & Mobile Camera Buttons */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                title="Take photo using mobile camera"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Camera</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+              >
+                <UploadCloud className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Upload</span>
+              </button>
+            </div>
           </div>
 
-          {/* Upload Dropzone */}
-          <label className="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/40 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
-            <UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-emerald-600 transition-colors" />
-            <span className="mt-1.5 text-xs font-black text-slate-800 group-hover:text-emerald-900">
-              Upload Flyer or Packet Photo
-            </span>
-            <span className="text-[10px] text-slate-400">
-              Auto-detects Pavizham, Nirapara, Eastern, Double Horse, etc.
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-          </label>
-
-          {/* Live Studio Canvas Preview */}
-          <div className="space-y-2.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-bold text-slate-700">
-              <span>Preview Mode:</span>
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+          {/* Canvas & Live Preview Viewport */}
+          <div className="flex-1 min-h-0 relative flex flex-col items-center justify-center p-3 bg-slate-100/70 overflow-hidden">
+            
+            {/* View Mode Pills (Floating overlay at top of canvas) */}
+            <div className="absolute top-3 inset-x-3 flex items-center justify-between z-20 pointer-events-none">
+              <div className="pointer-events-auto flex items-center gap-1 bg-white/90 backdrop-blur-md p-1 rounded-xl border border-slate-200/90 shadow-xs">
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveViewMode('packshot');
-                    setBgMode('white');
-                    if (aiPackshotSrc) setStudioImageSrc(aiPackshotSrc);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
-                    activeViewMode === 'packshot' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  onClick={() => handleSetViewMode('packshot')}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
+                    activeViewMode === 'packshot' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Sparkles className="w-3 h-3 text-amber-500" />
-                  <span>AI Packshot (#FFF)</span>
+                  <Sparkles className="w-3 h-3 text-amber-300" />
+                  <span>AI Packshot</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveViewMode('transparent');
-                    setBgMode('transparent');
-                    if (aiTransparentSrc) setStudioImageSrc(aiTransparentSrc);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
-                    activeViewMode === 'transparent' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  onClick={() => handleSetViewMode('transparent')}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
+                    activeViewMode === 'transparent' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <span>🏁 Cutout (PNG)</span>
+                  <span>Cutout (PNG)</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveViewMode('original');
-                    setBgMode('white');
-                    if (rawImageSrc) {
-                      processImageOnCanvas(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight, scale, 'white');
-                    }
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
-                    activeViewMode === 'original' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  onClick={() => handleSetViewMode('original')}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center gap-1 ${
+                    activeViewMode === 'original' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <span>📸 Original</span>
+                  <span>Original</span>
                 </button>
               </div>
+
+              {/* Status Badge */}
+              {bgRemoveResult === 'success' && (
+                <div className="bg-emerald-100/90 border border-emerald-300 text-emerald-800 text-[10px] font-extrabold px-2 py-1 rounded-xl shadow-xs flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                  <span className="hidden sm:inline">Studio Clean</span>
+                </div>
+              )}
             </div>
 
-            {/* 1:1 Aspect Frame with Solid White Background */}
-            <div className={`w-full aspect-square rounded-2xl border-2 border-slate-200 overflow-hidden relative shadow-inner flex items-center justify-center ${
-              bgMode === 'white' ? 'bg-white' : 'bg-[linear-gradient(45deg,#f0f0f0_25%,transparent_25%),linear-gradient(-45deg,#f0f0f0_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f0f0f0_75%),linear-gradient(-45deg,transparent_75%,#f0f0f0_75%)] bg-[size:16px_16px]'
+            {/* The Main Packshot Preview Container (Constrained aspect ratio to fit available height) */}
+            <div className={`relative w-full max-w-[340px] aspect-square rounded-2xl border-2 border-slate-200 overflow-hidden shadow-inner flex items-center justify-center transition-all ${
+              bgMode === 'white' 
+                ? 'bg-white' 
+                : bgMode === 'offwhite'
+                ? 'bg-slate-50'
+                : 'bg-[linear-gradient(45deg,#f0f0f0_25%,transparent_25%),linear-gradient(-45deg,#f0f0f0_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f0f0f0_75%),linear-gradient(-45deg,transparent_75%,#f0f0f0_75%)] bg-[size:16px_16px]'
             }`}>
               {studioImageSrc ? (
-                <Image
-                  src={studioImageSrc}
-                  alt="Studio Cleaned Packshot"
-                  fill
-                  className="object-contain p-4"
-                  unoptimized
-                />
+                <>
+                  <Image
+                    src={studioImageSrc}
+                    alt="Product Studio Packshot"
+                    fill
+                    className="object-contain p-2"
+                    unoptimized
+                  />
+
+                  {/* Live Visual Crop Mask Overlay (Visible when crop tab is active) */}
+                  {studioTab === 'crop' && (cropTop > 0 || cropBottom > 0 || cropLeft > 0 || cropRight > 0) && (
+                    <div 
+                      className="absolute inset-0 pointer-events-none border-2 border-dashed border-violet-500/80 bg-violet-900/10 transition-all"
+                      style={{
+                        top: `${cropTop}%`,
+                        bottom: `${cropBottom}%`,
+                        left: `${cropLeft}%`,
+                        right: `${cropRight}%`,
+                      }}
+                    >
+                      <span className="absolute top-1 left-1 bg-violet-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs">
+                        Active Crop
+                      </span>
+                    </div>
+                  )}
+                </>
               ) : (
-                <div className="text-center p-6 text-slate-400 space-y-1">
-                  <div className="text-3xl">📦</div>
-                  <div className="text-xs font-bold">No Image Uploaded</div>
-                  <div className="text-[10px]">Upload a photo or flyer above to generate clean packshot</div>
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-center p-6 text-slate-400 space-y-2 cursor-pointer hover:text-emerald-700 transition-colors"
+                >
+                  <div className="w-12 h-12 mx-auto rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-2xl shadow-xs">
+                    📸
+                  </div>
+                  <div className="text-xs font-bold text-slate-700">Tap to Upload or Snap Photo</div>
+                  <div className="text-[10px] text-slate-400 max-w-[200px] mx-auto">
+                    Take a photo of any grocery flyer or packet on your shelf
+                  </div>
                 </div>
               )}
 
-              {/* Spinner Overlay - shows when local AI or analysis is running */}
+              {/* Live Neural Progress Card (Floating bottom banner) */}
               {(isRemovingBg || isAnalyzing) && (
-                <div className="absolute inset-0 bg-white/92 backdrop-blur-sm flex flex-col items-center justify-center gap-3 p-5 text-center">
-                  <div className="relative">
-                    <RefreshCw className="w-10 h-10 text-emerald-600 animate-spin" />
-                    <Sparkles className="w-4 h-4 text-amber-500 absolute -top-1 -right-1 animate-bounce" />
-                  </div>
-                  <span className="text-xs font-black text-slate-900">
-                    {isRemovingBg ? '🪄 AI Removing Background...' : '🔍 Reading Product Details...'}
-                  </span>
-                  {isRemovingBg && (
-                    <div className="w-full max-w-[240px] space-y-2">
-                      {/* Live progress bar — updated via DOM ref for instant repaints */}
-                      <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden shadow-inner">
-                        <div
-                          ref={progressBarRef}
-                          className="h-2.5 rounded-full bg-gradient-to-r from-violet-500 via-blue-500 to-emerald-500"
-                          style={{ width: '0%', transition: 'width 0.3s ease-out' }}
-                        />
-                      </div>
-                      {/* Live stage label — updated via DOM ref */}
-                      <p ref={progressLabelRef} className="text-[10px] font-semibold text-slate-600 min-h-[14px]">
-                        Initialising AI...
-                      </p>
+                <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-xl rounded-xl p-2.5 z-30 space-y-1 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="flex items-center justify-between text-[10px] font-black text-slate-800">
+                    <div className="flex items-center gap-1.5">
+                      <RefreshCw className="w-3 h-3 text-emerald-600 animate-spin" />
+                      <span>{isRemovingBg ? '🪄 Neural AI Isolating Product...' : '🔍 Scanning Label Details...'}</span>
                     </div>
-                  )}
-                  {isAnalyzing && (
-                    <span className="text-[10px] text-slate-500 max-w-[220px] leading-relaxed">
-                      Scanning product label for auto-fill...
+                    <span className="text-[10px] text-emerald-700 font-bold">
+                      {bgProgressPct}%
                     </span>
-                  )}
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      ref={progressBarRef}
+                      className="h-1.5 rounded-full bg-gradient-to-r from-violet-500 via-blue-500 to-emerald-500 transition-all duration-300"
+                      style={{ width: `${bgProgressPct}%` }}
+                    />
+                  </div>
+                  <p ref={progressLabelRef} className="text-[9px] text-slate-500 truncate">
+                    {bgProgressText || 'Processing image...'}
+                  </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* AI BACKGROUND REMOVAL CONTROLS */}
-          {rawImageSrc && (
-            <div className="space-y-3">
-
-              {/* PRIMARY: Local AI Status Card */}
-              <div className={`p-4 rounded-2xl border-2 space-y-3 text-xs ${
-                bgRemoveResult === 'success' 
-                  ? 'bg-emerald-50 border-emerald-400' 
-                  : bgRemoveResult === 'error'
-                  ? 'bg-orange-50 border-orange-300'
-                  : isRemovingBg
-                  ? 'bg-blue-50 border-blue-300'
-                  : 'bg-gradient-to-br from-violet-50 to-emerald-50 border-emerald-300'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                    <Wand2 className="w-4 h-4 text-violet-600" />
-                    <span>Neural AI Background Removal</span>
-                  </span>
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                    isRemovingBg ? 'bg-blue-200 text-blue-900 animate-pulse' :
-                    bgRemoveResult === 'success' ? 'bg-emerald-200 text-emerald-900' :
-                    bgRemoveResult === 'error' ? 'bg-red-200 text-red-800' :
-                    'bg-violet-100 text-violet-800'
-                  }`}>
-                    {isRemovingBg ? '⏳ Processing...' : 
-                     bgRemoveResult === 'success' ? `✅ Studio Packshot Ready` : 
-                     bgRemoveResult === 'error' ? '❌ Failed' : '📸 Original Photo Active'}
-                  </span>
-                </div>
-
-                {/* Processing or success view */}
-                {!isRemovingBg && bgRemoveResult === null && (
-                  <div className="space-y-2.5">
-                    <div className="bg-white/80 text-slate-700 p-2.5 rounded-xl text-[11px]">
-                      📸 <strong>Original Photo loaded.</strong> Click below to run AI Background Removal.
-                    </div>
+          {/* Bottom Controls Panel (Switches with active tab, compact height) */}
+          <div className="shrink-0 bg-white border-t border-slate-200 p-2.5 space-y-2">
+            
+            {/* TAB 1: STUDIO CONTROLS */}
+            {studioTab === 'studio' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => rawImageSrc && runLocalBgRemoval(rawImageSrc)}
-                      className="w-full py-2.5 px-3 bg-gradient-to-r from-violet-600 to-emerald-600 hover:from-violet-700 hover:to-emerald-700 text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all hover:scale-[1.01]"
+                      disabled={isRemovingBg || !rawImageSrc}
+                      className="px-3 py-1.5 bg-gradient-to-r from-violet-600 to-emerald-600 hover:from-violet-700 hover:to-emerald-700 disabled:opacity-50 text-white rounded-xl font-black text-[11px] flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                      <span>✨ Run AI Background Removal</span>
+                      <span>{bgRemoveResult === 'success' ? 'Re-run AI BG Removal' : 'Run AI BG Removal'}</span>
                     </button>
-                  </div>
-                )}
-                {bgRemoveResult === 'success' && (
-                  <div className="space-y-2">
-                    <div className="bg-emerald-100/90 text-emerald-900 p-2.5 rounded-xl text-[11px] font-bold flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                        <span>AI Neural Network isolated product. White packaging &amp; text 100% preserved.</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
+                    
+                    {/* Background Tone Selector */}
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
                       <button
                         type="button"
-                        onClick={() => rawImageSrc && runLocalBgRemoval(rawImageSrc)}
-                        className="py-1.5 px-3 bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 rounded-xl text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+                        onClick={() => { setBgMode('white'); handleSetViewMode('packshot'); }}
+                        className={`w-5 h-5 rounded-md border text-[9px] font-bold flex items-center justify-center transition-all ${
+                          bgMode === 'white' ? 'bg-white border-emerald-600 shadow-xs text-emerald-700' : 'bg-white border-slate-300 text-transparent'
+                        }`}
+                        title="Pure White #FFF"
                       >
-                        <RefreshCw className="w-3 h-3 text-emerald-600" />
-                        <span>Re-run AI</span>
+                        W
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setBgMode('offwhite'); handleSetViewMode('packshot'); }}
+                        className={`w-5 h-5 rounded-md border text-[9px] font-bold flex items-center justify-center transition-all ${
+                          bgMode === 'offwhite' ? 'bg-slate-100 border-emerald-600 shadow-xs text-emerald-700' : 'bg-slate-100 border-slate-300 text-transparent'
+                        }`}
+                        title="Off-White Studio"
+                      >
+                        S
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setBgMode('transparent'); handleSetViewMode('transparent'); }}
+                        className={`w-5 h-5 rounded-md border text-[9px] font-bold flex items-center justify-center transition-all ${
+                          bgMode === 'transparent' ? 'bg-slate-200 border-emerald-600 shadow-xs text-emerald-700' : 'bg-slate-200 border-slate-300 text-transparent'
+                        }`}
+                        title="Transparent Cutout"
+                      >
+                        T
                       </button>
                     </div>
                   </div>
-                )}
-                {bgRemoveResult === 'error' && (
-                  <div className="space-y-2">
-                    <p className="text-orange-800 font-bold">⚠️ AI removal failed. Original photo is still active.</p>
+
+                  {/* Switch to crop button */}
+                  <button
+                    type="button"
+                    onClick={() => setStudioTab('crop')}
+                    className="text-slate-600 hover:text-violet-700 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Crop className="w-3.5 h-3.5 text-violet-600" />
+                    <span>Fine Crop</span>
+                    <ChevronRight className="w-3 h-3 text-slate-400" />
+                  </button>
+                </div>
+
+                {/* 1-Tap Crop Preset Quick Chips */}
+                <div className="grid grid-cols-4 gap-1.5 pt-1 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPresetAndRun(28, 48, 18, 18)}
+                    className="py-1 px-1.5 bg-slate-50 hover:bg-violet-50 hover:border-violet-300 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 text-center truncate cursor-pointer transition-colors"
+                  >
+                    📱 Screenshot
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPresetAndRun(22, 28, 16, 28)}
+                    className="py-1 px-1.5 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 text-center truncate cursor-pointer transition-colors"
+                  >
+                    ✂️ Flyer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPresetAndRun(15, 15, 15, 15)}
+                    className="py-1 px-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 text-center truncate cursor-pointer transition-colors"
+                  >
+                    🔲 Square
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPresetAndRun(0, 0, 0, 0)}
+                    className="py-1 px-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 text-center truncate cursor-pointer transition-colors"
+                  >
+                    🔄 Full
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: LIVE CROP CONTROLS */}
+            {studioTab === 'crop' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-black text-slate-800">
+                  <span className="flex items-center gap-1 text-violet-700">
+                    <Crop className="w-3.5 h-3.5" />
+                    <span>Live Framing &amp; Flyer Crop</span>
+                  </span>
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => rawImageSrc && runLocalBgRemoval(rawImageSrc)}
-                      disabled={isRemovingBg}
-                      className="w-full py-2 px-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-black text-[11px] flex items-center justify-center gap-1.5 cursor-pointer"
+                      onClick={() => { setCropTop(0); setCropBottom(0); setCropLeft(0); setCropRight(0); setScale(100); }}
+                      className="text-[10px] text-slate-400 hover:text-slate-700 underline cursor-pointer"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Retry AI Removal</span>
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStudioTab('studio')}
+                      className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md cursor-pointer"
+                    >
+                      Done
                     </button>
                   </div>
-                )}
-              </div>
-
-              {/* Manual Framing & Crop Fallback */}
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                    <Crop className="w-4 h-4 text-slate-500" />
-                    <span>Framing &amp; Flyer Crop</span>
-                  </span>
-                  <button type="button" onClick={() => { setCropTop(0); setCropBottom(0); setCropLeft(0); setCropRight(0); setScale(100); }}
-                    className="text-[10px] text-slate-400 hover:text-slate-700 underline cursor-pointer">Reset</button>
                 </div>
 
-                <p className="text-[10px] text-slate-500">
-                  Use sliders to crop out flyer borders, price stickers, or adjust the packet zoom.
-                </p>
-
-              {/* Flyer Crop Presets */}
-              <div className="grid grid-cols-3 gap-1.5">
-                <button type="button"
-                  onClick={() => { setCropTop(24); setCropBottom(28); setCropLeft(18); setCropRight(38); }}
-                  className="py-1.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black">
-                  ✂️ Cut Flyer Badges
-                </button>
-                <button type="button"
-                  onClick={() => { setCropTop(10); setCropBottom(10); setCropLeft(6); setCropRight(6); }}
-                  className="py-1.5 px-2 rounded-xl bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 text-[10px] font-bold">
-                  Light Crop
-                </button>
-                <button type="button"
-                  onClick={() => { setCropTop(0); setCropBottom(0); setCropLeft(0); setCropRight(0); }}
-                  className="py-1.5 px-2 rounded-xl bg-white border border-slate-200 hover:border-slate-400 text-slate-700 text-[10px] font-bold">
-                  No Crop
-                </button>
-              </div>
-
-              {/* Scale */}
-              <div className="space-y-0.5">
-                <div className="flex justify-between text-[11px] font-semibold text-slate-600">
-                  <span>Packet Size in Frame</span>
-                  <span className="font-black text-emerald-800">{scale}%</span>
-                </div>
-                <input type="range" min="50" max="150" value={scale}
-                  onChange={(e) => setScale(Number(e.target.value))}
-                  className="w-full accent-emerald-700 cursor-pointer" />
-              </div>
-
-              {/* Fine Crop */}
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1 pt-1 border-t border-slate-200">
-                {([['Top', cropTop, setCropTop], ['Bottom', cropBottom, setCropBottom], ['Left', cropLeft, setCropLeft], ['Right', cropRight, setCropRight]] as [string, number, (v: number) => void][]).map(([label, val, setter]) => (
-                  <div key={label}>
-                    <span className="text-[10px] font-bold text-slate-500">Crop {label}: {val}%</span>
-                    <input type="range" min="0" max="50" value={val}
-                      onChange={(e) => setter(Number(e.target.value))}
-                      className="w-full accent-emerald-700" />
-                  </div>
-                ))}
-              </div>
-            </div>
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT COLUMN: AI Extracted Details & Live Store Catalog Form */}
-        <div className="lg:col-span-7 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2 font-black text-sm text-slate-900">
-              <Sparkles className="w-4 h-4 text-emerald-700" />
-              <span>2. AI Verified Catalog Review &amp; Pricing</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-              <span>{aiSource === 'gemini-live' ? 'Live Gemini Vision OCR' : 'Kerala Super Store Catalog AI'}</span>
-            </div>
-          </div>
-
-          <form onSubmit={handlePublishProduct} className="space-y-4">
-            
-            {/* Product Title */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Product Title (Storefront Name) *
-              </label>
-              <input
-                type="text"
-                required
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
-                placeholder="e.g. Pavizham Palakkadan Matta Rice 20 LB"
-                className="w-full text-xs font-semibold p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden transition-all text-slate-900"
-              />
-            </div>
-
-            {/* Quick Brand Preset Chips */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Brand Selection:
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {POPULAR_BRANDS.map((b) => (
-                  <button
-                    key={b}
-                    type="button"
-                    onClick={() => handleSelectBrandChip(b)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                      selectedBrand.toLowerCase() === b.toLowerCase()
-                        ? 'bg-emerald-800 text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    {b}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Category and Pack Size */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Category *
-                </label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full text-xs font-semibold p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
+                {/* 4-Edge Mini Sliders in 2x2 Grid */}
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                  {([['Top', cropTop, setCropTop], ['Bottom', cropBottom, setCropBottom], ['Left', cropLeft, setCropLeft], ['Right', cropRight, setCropRight]] as [string, number, (v: number) => void][]).map(([label, val, setter]) => (
+                    <div key={label} className="space-y-0.5">
+                      <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                        <span>{label}</span>
+                        <span className="text-violet-700">{val}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="50"
+                        value={val}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          setter(v);
+                          if (rawImageSrc) {
+                            processImageOnCanvas(
+                              rawImageSrc, 
+                              label === 'Top' ? v : cropTop, 
+                              label === 'Bottom' ? v : cropBottom, 
+                              label === 'Left' ? v : cropLeft, 
+                              label === 'Right' ? v : cropRight, 
+                              scale, 
+                              bgMode
+                            );
+                          }
+                        }}
+                        className="w-full h-1 accent-violet-600 cursor-pointer"
+                      />
+                    </div>
                   ))}
-                </select>
-              </div>
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Pack Size / Weight *
-                </label>
-                <div className="flex gap-2">
+                {/* Zoom & Apply */}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
+                    <ZoomIn className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <input
+                      type="range"
+                      min="60"
+                      max="140"
+                      value={scale}
+                      onChange={(e) => {
+                        const s = Number(e.target.value);
+                        setScale(s);
+                        if (rawImageSrc) processImageOnCanvas(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight, s, bgMode);
+                      }}
+                      className="w-full h-1 accent-emerald-700 cursor-pointer"
+                    />
+                    <span className="text-[10px] font-bold text-slate-600 w-8 text-right">{scale}%</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!rawImageSrc) return;
+                      const cropped = await getCroppedImageBase64(rawImageSrc, cropTop, cropBottom, cropLeft, cropRight);
+                      runLocalBgRemoval(cropped);
+                      setStudioTab('studio');
+                    }}
+                    className="px-3 py-1.5 bg-violet-700 hover:bg-violet-600 text-white font-bold text-[11px] rounded-xl cursor-pointer shadow-xs transition-all shrink-0 flex items-center gap-1"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-300" />
+                    <span>Apply &amp; Cutout</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: GOOGLE IMAGES FINDER */}
+            {studioTab === 'google' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
                   <input
                     type="text"
-                    required
-                    value={packSize}
-                    onChange={(e) => setPackSize(e.target.value)}
-                    placeholder="20 LB / 5 kg / 1 kg"
-                    className="w-full text-xs font-semibold p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                    value={googleSearchQuery || `${selectedBrand} ${productName}`.trim()}
+                    onChange={(e) => setGoogleSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSearchGoogleImages(e.currentTarget.value);
+                      }
+                    }}
+                    placeholder="Search brand & product (e.g. Nirapara Matta Rice 5kg)"
+                    className="flex-1 text-xs px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
-                  <div className="flex gap-1 shrink-0">
-                    {['20 LB', '10 kg', '5 kg', '1 kg', '500 g'].map((size) => (
+                  <button
+                    type="button"
+                    onClick={() => handleSearchGoogleImages()}
+                    disabled={isSearchingGoogle}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1 cursor-pointer"
+                  >
+                    {isSearchingGoogle ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                    <span>Search</span>
+                  </button>
+                </div>
+
+                {googleImageResults.length > 0 && (
+                  <div className="grid grid-cols-4 gap-1.5 max-h-28 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200">
+                    {googleImageResults.map((img, idx) => (
                       <button
-                        key={size}
+                        key={idx}
                         type="button"
-                        onClick={() => setPackSize(size)}
-                        className="px-2 py-1 bg-slate-100 hover:bg-emerald-100 text-[10px] font-bold rounded-lg text-slate-700"
+                        onClick={() => handleSelectGoogleImage(img.imageUrl)}
+                        className="group relative aspect-square rounded-lg border border-slate-200 hover:border-emerald-500 overflow-hidden bg-white p-0.5 flex items-center justify-center transition-all cursor-pointer"
+                        title={img.title}
                       >
-                        {size}
+                        <img
+                          src={img.imageUrl}
+                          alt={img.title}
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                        />
                       </button>
                     ))}
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 4: AI PROMPT */}
+            {studioTab === 'prompt' && (
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-700 text-[11px]">AI Packshot Prompt:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const effectivePrompt = geminiEditPrompt || buildSmartWebsitePrompt(productName || 'Kerala Grocery Item', selectedBrand, selectedCategory);
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(effectivePrompt);
+                        setCopiedPrompt(true);
+                        setTimeout(() => setCopiedPrompt(false), 2000);
+                      }
+                    }}
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer ${
+                      copiedPrompt ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                    }`}
+                  >
+                    {copiedPrompt ? <CheckCircle2 className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedPrompt ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+                <div className="bg-slate-900 text-slate-200 p-2 rounded-xl font-mono text-[9px] leading-relaxed max-h-20 overflow-y-auto whitespace-pre-wrap select-all">
+                  {geminiEditPrompt || buildSmartWebsitePrompt(productName || 'Kerala Grocery Item', selectedBrand, selectedCategory)}
                 </div>
               </div>
+            )}
+
+          </div>
+
+          {/* Mobile Step 1 Next Button (Only visible on mobile when in Step 1) */}
+          <div className="lg:hidden shrink-0 p-3 bg-emerald-50 border-t border-emerald-200 flex items-center justify-between">
+            <div className="text-xs font-bold text-emerald-900">
+              Photo ready? Proceed to details
             </div>
+            <button
+              type="button"
+              onClick={() => setMobileStep('details')}
+              className="px-4 py-2 bg-emerald-800 text-white rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <span>Next: Details</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
 
-            {/* Pricing and Stock Card */}
-            <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200/70 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-emerald-950">
-                  Admin Pricing &amp; UK Inventory (£ GBP)
-                </span>
-                <span className="text-[10px] bg-emerald-200/60 text-emerald-900 px-2 py-0.5 rounded-full font-bold">
-                  UK Supermarket Rate
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Regular Price (£) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full text-xs font-black p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-hidden"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Offer Price (£)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={offerPrice}
-                    onChange={(e) => setOfferPrice(e.target.value)}
-                    className="w-full text-xs font-black p-2.5 bg-white border border-slate-300 rounded-xl text-amber-700 focus:ring-2 focus:ring-emerald-500 outline-hidden"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Initial Stock *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                    className="w-full text-xs font-bold p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-hidden"
-                  />
-                </div>
-              </div>
+        {/* RIGHT COLUMN: CATALOG REVIEW & PRICING FORM */}
+        <div className={`lg:col-span-7 h-full flex flex-col bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden ${
+          mobileStep === 'studio' ? 'hidden lg:flex' : 'flex'
+        }`}>
+          
+          {/* Form Header */}
+          <div className="shrink-0 bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-700" />
+              <span className="font-black text-xs sm:text-sm text-slate-900">
+                2. AI Verified Catalog Review &amp; Pricing
+              </span>
             </div>
-
-            {/* Natasha's Law Allergen Declaration */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                <span>Allergen Warning (UK Natasha&apos;s Law Compliant)</span>
-              </label>
-              <input
-                type="text"
-                value={allergens}
-                onChange={(e) => setAllergens(e.target.value)}
-                placeholder="e.g. Naturally Gluten Free / Contains Mustard / Sesame"
-                className="w-full text-xs font-semibold p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
-              />
+            <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+              <ShieldCheck className="w-3 h-3 text-emerald-700" />
+              <span>{aiSource === 'gemini-live' ? 'Gemini OCR' : 'Kerala Super Store AI'}</span>
             </div>
+          </div>
 
-            {/* Product Description */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Product Description
-              </label>
-              <textarea
-                rows={3}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Authentic Kerala grocery item delivered fresh across the UK..."
-                className="w-full text-xs font-medium p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
-              />
-            </div>
-
-            {/* Slug & Barcode */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-500">
+          {/* Form Scrollable Body: Fits perfectly without page scrolling */}
+          <form onSubmit={handlePublishProduct} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              
+              {/* Product Title */}
               <div>
-                <span className="font-bold text-[11px] block text-slate-600 mb-0.5">Barcode / EAN:</span>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Product Title (Storefront Name) *
+                </label>
                 <input
                   type="text"
-                  value={barcode}
-                  onChange={(e) => setBarcode(e.target.value)}
-                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  required
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  placeholder="e.g. Pavizham Palakkadan Matta Rice (Long Grain Vadi)"
+                  className="w-full text-xs font-semibold p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden transition-all text-slate-900"
                 />
               </div>
+
+              {/* Brand Selector: Compact horizontal chip bar */}
               <div>
-                <span className="font-bold text-[11px] block text-slate-600 mb-0.5">URL Slug:</span>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-slate-700">
+                    Brand: <span className="text-emerald-700 font-black">{selectedBrand}</span>
+                  </label>
+                </div>
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+                  {POPULAR_BRANDS.map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => handleSelectBrandChip(b)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                        selectedBrand.toLowerCase() === b.toLowerCase()
+                          ? 'bg-emerald-800 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Category and Pack Size */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full text-xs font-semibold p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Pack Size / Weight *
+                  </label>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      required
+                      value={packSize}
+                      onChange={(e) => setPackSize(e.target.value)}
+                      placeholder="20 LB / 5 kg"
+                      className="w-full text-xs font-semibold p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                    />
+                    <div className="flex gap-1 shrink-0">
+                      {['20 LB', '10 kg', '5 kg', '1 kg'].map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => setPackSize(size)}
+                          className="px-1.5 py-1 bg-slate-100 hover:bg-emerald-100 text-[9px] font-bold rounded-lg text-slate-700"
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing & Stock Card (High density, high contrast) */}
+              <div className="bg-emerald-50/60 p-3 rounded-xl border border-emerald-200/80 space-y-2">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-black text-emerald-950">
+                    Admin Pricing &amp; UK Inventory (£ GBP)
+                  </span>
+                  <span className="text-[9px] bg-emerald-200/60 text-emerald-900 px-2 py-0.5 rounded-full font-bold">
+                    UK Supermarket Rate
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
+                      Regular Price (£) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      className="w-full text-xs font-black p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
+                      Offer Price (£)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={offerPrice}
+                      onChange={(e) => setOfferPrice(e.target.value)}
+                      className="w-full text-xs font-black p-2 bg-white border border-slate-300 rounded-lg text-amber-700 focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-700 mb-0.5">
+                      Initial Stock *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={stock}
+                      onChange={(e) => setStock(e.target.value)}
+                      className="w-full text-xs font-bold p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Natasha's Law Allergen Declaration */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Allergen Warning (UK Natasha&apos;s Law Compliant)</span>
+                </label>
                 <input
                   type="text"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-[11px]"
+                  value={allergens}
+                  onChange={(e) => setAllergens(e.target.value)}
+                  placeholder="e.g. Naturally Gluten Free / Contains Mustard / Sesame"
+                  className="w-full text-xs font-semibold p-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
                 />
               </div>
+
+              {/* Product Description */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Product Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Authentic Pavizham Palakkadan Matta Rice parboiled in pure water..."
+                  className="w-full text-xs font-medium p-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden resize-none"
+                />
+              </div>
+
+              {/* Slug & Barcode */}
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+                <div>
+                  <span className="font-bold text-[10px] block text-slate-600 mb-0.5">Barcode / EAN:</span>
+                  <input
+                    type="text"
+                    value={barcode}
+                    onChange={(e) => setBarcode(e.target.value)}
+                    className="w-full text-xs p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-mono text-[11px]"
+                  />
+                </div>
+                <div>
+                  <span className="font-bold text-[10px] block text-slate-600 mb-0.5">URL Slug:</span>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    className="w-full text-xs p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+
             </div>
 
-            {/* Submit & Publish Button */}
-            <div className="pt-2">
+            {/* Bottom Fixed Action Footer */}
+            <div className="shrink-0 p-3 bg-slate-50 border-t border-slate-200 flex items-center gap-2">
+              {/* Mobile Back Button (Only on mobile) */}
+              <button
+                type="button"
+                onClick={() => setMobileStep('studio')}
+                className="lg:hidden px-3 py-3 bg-white border border-slate-300 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Photo</span>
+              </button>
+
+              {/* Publish Button */}
               <button
                 type="submit"
-                className="w-full py-3.5 px-6 bg-emerald-800 hover:bg-emerald-700 text-white rounded-2xl font-black text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-3 px-5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <CheckCircle2 className="w-5 h-5 text-emerald-300" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-300" />
                 <span>Publish Product to Storefront (£{offerPrice || price})</span>
               </button>
             </div>
           </form>
         </div>
+
       </div>
 
       {/* Gemini API Key Modal */}
@@ -1162,7 +1422,7 @@ Do NOT recreate or redraw the product - work with the exact uploaded image.`;
               >
                 aistudio.google.com
               </a>
-              . This enables live OCR analysis directly from packaging photos. Stored safely in your browser.
+              . This enables OCR analysis directly from packaging photos. Stored safely in your browser.
             </p>
 
             <div>
@@ -1182,14 +1442,14 @@ Do NOT recreate or redraw the product - work with the exact uploaded image.`;
               <button
                 type="button"
                 onClick={() => setShowKeyModal(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => handleSaveApiKey(geminiApiKey)}
-                className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-800 hover:bg-emerald-700 text-white shadow-xs"
+                className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-800 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
               >
                 Save Key
               </button>

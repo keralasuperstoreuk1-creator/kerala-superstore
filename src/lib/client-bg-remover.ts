@@ -2,19 +2,158 @@
  * High-Performance Client-Side Smart Background Isolator & Studio Packshot Generator
  * 
  * Works 100% offline and in all browsers (no Python or external API key needed).
- * Detects background boundary colors, removes outer background / flyers,
- * and creates transparent cutouts and 1000x1000 pure white packshots with ground shadows.
+ * 1. Primary: @imgly/background-removal (WebAssembly / ONNX Neural Network) for razor-sharp cutouts
+ * 2. Fallback: Edge color boundary flood fill & feathering
+ * 3. Outputs: Transparent PNG cutout + 1000x1000 pure white studio packshot with soft natural ground shadow
  */
 
 export interface BackgroundRemovalResult {
   success: boolean;
   transparent: string;
   packshot: string;
-  source: 'server-u2net' | 'client-smart-segmentation' | 'client-canvas';
+  source: 'client-imgly-ai' | 'server-u2net' | 'client-smart-segmentation' | 'client-canvas';
 }
 
 /**
- * Isolates background using multi-sample border color clustering and edge feathering
+ * Converts a Blob to a base64 Data URL
+ */
+export function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Composites a transparent product cutout onto a 1000x1000 pure solid white (#FFFFFF)
+ * canvas with subtle retail studio ground contact shadow.
+ */
+export function createStudioPackshotFromCutout(
+  cutoutDataUrl: string,
+  width = 1000,
+  height = 1000
+): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(cutoutDataUrl);
+
+      // 1. Pure solid white studio background
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+
+      // 2. Scale & center product (occupies ~82% of frame)
+      const targetDim = width * 0.82;
+      let dw = targetDim;
+      let dh = targetDim;
+      const asp = img.width / (img.height || 1);
+      if (asp > 1) {
+        dh = dw / asp;
+      } else {
+        dw = dh * asp;
+      }
+
+      const dx = (width - dw) / 2;
+      const dy = (height - dh) / 2;
+
+      // 3. Dual-layer soft ground shadow for ultra-realistic e-commerce depth
+      ctx.save();
+      // Contact ambient occlusion shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.14)';
+      ctx.shadowBlur = 24;
+      ctx.shadowOffsetY = 16;
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.restore();
+
+      // 4. Sharp crisp product overlay
+      ctx.drawImage(img, dx, dy, dw, dh);
+
+      resolve(canvas.toDataURL('image/jpeg', 0.95));
+    };
+    img.onerror = () => resolve(cutoutDataUrl);
+    img.src = cutoutDataUrl;
+  });
+}
+
+/**
+ * State-of-the-art Neural Network AI Background Removal
+ * Powered by @imgly/background-removal inside the browser with zero API cost.
+ */
+export async function removeBackgroundWithAi(
+  imageSrc: string,
+  onProgress?: (msg: string, pct: number) => void
+): Promise<BackgroundRemovalResult> {
+  try {
+    if (onProgress) onProgress('🚀 Initializing Neural AI engine...', 12);
+
+    // Dynamic import to prevent SSR bundling issues
+    const { removeBackground } = await import('@imgly/background-removal');
+
+    let inputSource: Blob | string = imageSrc;
+    if (typeof imageSrc === 'string' && imageSrc.startsWith('data:')) {
+      try {
+        const res = await fetch(imageSrc);
+        inputSource = await res.blob();
+      } catch {
+        inputSource = imageSrc;
+      }
+    }
+
+    if (onProgress) onProgress('🧠 Segmenting product packaging...', 28);
+
+    const removePromise = removeBackground(inputSource, {
+      progress: (key: string, current: number, total: number) => {
+        if (!onProgress) return;
+        const ratio = total > 0 ? current / total : 0.5;
+        const pct = Math.round(ratio * 100);
+        if (key.includes('fetch')) {
+          onProgress(`📥 Loading AI Model (${pct}%)...`, Math.min(45, Math.round(pct * 0.45)));
+        } else if (key.includes('compute') || key.includes('inference')) {
+          onProgress(`🧠 AI Isolating Product Packshot (${pct}%)...`, Math.min(88, Math.round(45 + pct * 0.43)));
+        } else {
+          onProgress(`🎨 Refining Edge Details (${pct}%)...`, 85);
+        }
+      },
+      output: {
+        format: 'image/png',
+        quality: 0.95,
+      }
+    });
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('AI neural model network timeout, using instant segmentation')), 7000);
+    });
+
+    const blobResult = await Promise.race([removePromise, timeoutPromise]);
+
+    if (onProgress) onProgress('✨ Generating 1000x1000 Studio Packshot...', 92);
+    const transparentDataUrl = await blobToDataUrl(blobResult);
+    const packshotDataUrl = await createStudioPackshotFromCutout(transparentDataUrl, 1000, 1000);
+
+    if (onProgress) onProgress('✅ AI Studio Packshot Ready!', 100);
+
+    return {
+      success: true,
+      transparent: transparentDataUrl,
+      packshot: packshotDataUrl,
+      source: 'client-imgly-ai',
+    };
+  } catch (aiErr) {
+    console.warn('Imgly AI removal encountered error, falling back to smart canvas segmentation:', aiErr);
+    if (onProgress) onProgress('⚡ Applying smart edge segmentation...', 70);
+    return removeBackgroundOnCanvas(imageSrc);
+  }
+}
+
+/**
+ * Fallback: Isolates background using multi-sample border color clustering and edge feathering
  */
 export function removeBackgroundOnCanvas(imageSrc: string): Promise<BackgroundRemovalResult> {
   return new Promise((resolve) => {
@@ -146,51 +285,13 @@ export function removeBackgroundOnCanvas(imageSrc: string): Promise<BackgroundRe
         const transparentDataUrl = canvas.toDataURL('image/png');
 
         // 2. Composite onto 1000x1000 Pure White Studio Packshot with soft ground drop shadow
-        const studioCanvas = document.createElement('canvas');
-        studioCanvas.width = 1000;
-        studioCanvas.height = 1000;
-        const studioCtx = studioCanvas.getContext('2d');
-        if (!studioCtx) {
-          return resolve({
+        createStudioPackshotFromCutout(transparentDataUrl, 1000, 1000).then((packshotDataUrl) => {
+          resolve({
             success: true,
             transparent: transparentDataUrl,
-            packshot: transparentDataUrl,
+            packshot: packshotDataUrl,
             source: 'client-smart-segmentation',
           });
-        }
-
-        studioCtx.fillStyle = '#FFFFFF';
-        studioCtx.fillRect(0, 0, 1000, 1000);
-
-        const targetDim = 820;
-        let dw = targetDim;
-        let dh = targetDim;
-        const asp = procW / procH;
-        if (asp > 1) {
-          dh = dw / asp;
-        } else {
-          dw = dh * asp;
-        }
-
-        const dx = (1000 - dw) / 2;
-        const dy = (1000 - dh) / 2;
-
-        // Add soft realistic studio shadow
-        studioCtx.save();
-        studioCtx.shadowColor = 'rgba(0, 0, 0, 0.14)';
-        studioCtx.shadowBlur = 24;
-        studioCtx.shadowOffsetY = 16;
-        studioCtx.drawImage(canvas, dx, dy, dw, dh);
-        studioCtx.restore();
-
-        studioCtx.drawImage(canvas, dx, dy, dw, dh);
-        const packshotDataUrl = studioCanvas.toDataURL('image/jpeg', 0.95);
-
-        resolve({
-          success: true,
-          transparent: transparentDataUrl,
-          packshot: packshotDataUrl,
-          source: 'client-smart-segmentation',
         });
       } catch (err) {
         resolve({

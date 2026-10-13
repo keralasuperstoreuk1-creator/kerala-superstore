@@ -130,67 +130,25 @@ export default function AiImageStudioUpload({
     });
   }, []);
 
-  // Neural Network AI Background Removal (Calls Local /api/admin/remove-bg)
+  // Neural Network AI Background Removal (Powered by on-device AI)
   const runAiRemoval = useCallback(async (base64Data: string) => {
     setIsProcessing(true);
     setProcessSuccess(false);
     setProcessError(false);
-    setProgressText('🚀 Initializing AI neural net (U²-Net)...');
+    setProgressText('🚀 Starting Neural AI engine...');
     setProgressPct(15);
 
-    // Yield small delay so React renders overlay
-    await new Promise((r) => setTimeout(r, 60));
-    if (progressBarRef.current) progressBarRef.current.style.width = '15%';
-    if (progressLabelRef.current) progressLabelRef.current.textContent = '🧠 AI neural network isolating product...';
-
-    // Interval to smoothly increment progress bar while model executes
-    let simPct = 15;
-    const interval = setInterval(() => {
-      simPct = Math.min(88, simPct + 12);
-      if (progressBarRef.current) progressBarRef.current.style.width = `${simPct}%`;
-      if (progressLabelRef.current) {
-        if (simPct > 60) {
-          progressLabelRef.current.textContent = '🎨 Preserving white packaging & product details...';
-        } else if (simPct > 35) {
-          progressLabelRef.current.textContent = '✂️ Removing background cleanly...';
-        }
-      }
-    }, 400);
-
     try {
-      // 1. Try server-side removal with 4s timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const { removeBackgroundWithAi } = await import('@/lib/client-bg-remover');
+      const result = await removeBackgroundWithAi(base64Data, (status, pct) => {
+        setProgressText(status);
+        setProgressPct(pct);
+        if (progressBarRef.current) progressBarRef.current.style.width = `${pct}%`;
+        if (progressLabelRef.current) progressLabelRef.current.textContent = status;
+      });
 
-      const res = await fetch('/api/admin/remove-bg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64Data }),
-        signal: controller.signal,
-      }).catch(() => null);
-
-      clearTimeout(timeoutId);
-      clearInterval(interval);
-
-      let transparentResult = '';
-      let packshotResult = '';
-
-      if (res && res.ok) {
-        const data = await res.json();
-        if (data.success && data.transparent && data.packshot && data.source === 'u2net-ai-neural') {
-          transparentResult = data.transparent;
-          packshotResult = data.packshot;
-        }
-      }
-
-      // 2. Client-side smart segmentation fallback if server didn't supply clean packshot
-      if (!transparentResult || !packshotResult) {
-        if (progressLabelRef.current) progressLabelRef.current.textContent = '⚡ Applying smart studio packshot framing...';
-        const { removeBackgroundOnCanvas } = await import('@/lib/client-bg-remover');
-        const clientRes = await removeBackgroundOnCanvas(base64Data);
-        transparentResult = clientRes.transparent;
-        packshotResult = clientRes.packshot;
-      }
+      const transparentResult = result.transparent;
+      const packshotResult = result.packshot;
 
       if (progressBarRef.current) progressBarRef.current.style.width = '100%';
       if (progressLabelRef.current) progressLabelRef.current.textContent = '✅ Studio Cutout & Packshot Ready!';
@@ -217,9 +175,7 @@ export default function AiImageStudioUpload({
       });
 
     } catch (err) {
-      clearInterval(interval);
-      console.error('AI background removal fallback:', err);
-      // Even on outer error, generate a clean packshot on canvas
+      console.error('AI background removal error:', err);
       try {
         const { removeBackgroundOnCanvas } = await import('@/lib/client-bg-remover');
         const fallback = await removeBackgroundOnCanvas(base64Data);
@@ -233,6 +189,13 @@ export default function AiImageStudioUpload({
             onImageChange(r2Url, 'packshot');
           }
         });
+      } catch (fallbackErr) {
+        setProcessError(true);
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [defaultMode, onImageChange, uploadToCloudR2]);
       } catch {
         setProcessError(true);
         setActiveMode('original');

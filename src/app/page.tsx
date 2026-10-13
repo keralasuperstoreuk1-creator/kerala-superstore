@@ -46,7 +46,7 @@ import { CATEGORIES, BRANDS, INITIAL_PRODUCTS } from '@/lib/mock-data';
 import { Product, Category } from '@/types';
 import { useStoreConfig } from '@/context/StoreConfigContext';
 import { useCart } from '@/context/CartContext';
-import { matchProductToCategory } from '@/lib/product-matching';
+import { matchProductToCategory, matchProductSearch } from '@/lib/product-matching';
 
 export default function HomePage() {
   const { config } = useStoreConfig();
@@ -137,15 +137,7 @@ export default function HomePage() {
       if (selectedBrand && p.brand !== selectedBrand) return false;
       if (onlyOffers && !p.offerPrice && !p.isOffer) return false;
       if (onlyInStock && p.stock <= 0) return false;
-      if (hasSearch) {
-        const q = searchQuery.toLowerCase().trim();
-        // Combined searchable profile: name, brand, category, weight/size, description, and tags
-        const searchableText = `${p.name} ${p.brand} ${p.category} ${p.categorySlug} ${p.sizeWeight || ''} ${p.description || ''} ${(p.tags || []).join(' ')}`.toLowerCase();
-        // Multi-term search: every typed word must match somewhere in the product's attributes
-        const terms = q.split(/\s+/).filter(Boolean);
-        const matchesAllTerms = terms.every((term) => searchableText.includes(term));
-        if (!matchesAllTerms) return false;
-      }
+      if (hasSearch && !matchProductSearch(p, searchQuery)) return false;
       return true;
     }).sort((a, b) => {
       // Prioritize In-Stock items first at top
@@ -156,14 +148,10 @@ export default function HomePage() {
       }
 
       if (sortBy === 'price-asc') {
-        const pA = a.offerPrice ?? a.price;
-        const pB = b.offerPrice ?? b.price;
-        return pA - pB;
+        return (Number(a.price) || 0) - (Number(b.price) || 0);
       }
       if (sortBy === 'price-desc') {
-        const pA = a.offerPrice ?? a.price;
-        const pB = b.offerPrice ?? b.price;
-        return pB - pA;
+        return (Number(b.price) || 0) - (Number(a.price) || 0);
       }
       if (sortBy === 'name') {
         return a.name.localeCompare(b.name);
@@ -178,10 +166,22 @@ export default function HomePage() {
     return products.filter((p) => Boolean((p.offerPrice && p.offerPrice < p.price) || p.isOffer));
   }, [products]);
 
+  // Progressive rendering for instantaneous 60fps load speeds (36 items per batch)
+  const [visibleCount, setVisibleCount] = useState<number>(36);
+
+  // Reset pagination batch when filters or searches change
+  useEffect(() => {
+    setVisibleCount(36);
+  }, [selectedCategory, selectedBrand, searchQuery, onlyOffers, onlyInStock, sortBy]);
+
+  const displayedProducts = useMemo(() => {
+    return filteredProducts.slice(0, visibleCount);
+  }, [filteredProducts, visibleCount]);
+
   // Brand items count
   const availableBrandsWithCount = useMemo(() => {
     const list = selectedCategory
-      ? products.filter((p) => p.categorySlug === selectedCategory)
+      ? products.filter((p) => matchProductToCategory(p, selectedCategory))
       : products;
     
     const countMap: Record<string, number> = {};
@@ -322,14 +322,41 @@ export default function HomePage() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onOpenDetails={(p) => setActiveProduct(p)}
-                  />
-                ))}
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                  {displayedProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onOpenDetails={(p) => setActiveProduct(p)}
+                    />
+                  ))}
+                </div>
+
+                {filteredProducts.length > visibleCount && (
+                  <div className="pt-4 pb-2 text-center space-y-2">
+                    <p className="text-xs text-slate-500 font-medium">
+                      Showing <strong className="text-slate-800">{displayedProducts.length}</strong> of <strong className="text-slate-800">{filteredProducts.length}</strong> matching groceries
+                    </p>
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        onClick={() => setVisibleCount((prev) => Math.min(prev + 36, filteredProducts.length))}
+                        className="px-6 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+                      >
+                        <span>Load More Results</span>
+                        <ChevronRight className="w-3.5 h-3.5 rotate-90" />
+                      </button>
+                      {filteredProducts.length > visibleCount + 36 && (
+                        <button
+                          onClick={() => setVisibleCount(filteredProducts.length)}
+                          className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                        >
+                          Show All ({filteredProducts.length})
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </section>
@@ -645,14 +672,41 @@ export default function HomePage() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onOpenDetails={(p) => setActiveProduct(p)}
-                    />
-                  ))}
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                    {displayedProducts.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onOpenDetails={(p) => setActiveProduct(p)}
+                      />
+                    ))}
+                  </div>
+
+                  {filteredProducts.length > visibleCount && (
+                    <div className="pt-6 pb-4 text-center space-y-2 border-t border-slate-100">
+                      <p className="text-xs text-slate-500 font-medium">
+                        Showing <strong className="text-slate-800 font-bold">{displayedProducts.length}</strong> of <strong className="text-slate-800 font-bold">{filteredProducts.length}</strong> groceries
+                      </p>
+                      <div className="flex items-center justify-center gap-3">
+                        <button
+                          onClick={() => setVisibleCount((prev) => Math.min(prev + 36, filteredProducts.length))}
+                          className="px-6 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+                        >
+                          <span>Load More Groceries</span>
+                          <ChevronRight className="w-3.5 h-3.5 rotate-90" />
+                        </button>
+                        {filteredProducts.length > visibleCount + 36 && (
+                          <button
+                            onClick={() => setVisibleCount(filteredProducts.length)}
+                            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                          >
+                            View All ({filteredProducts.length})
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -9,7 +9,6 @@ import { ToastNotificationBanner } from "@/components/ToastNotificationBanner";
 import { NotificationBellModal } from "@/components/NotificationBellModal";
 import { AppDownloadModal } from "@/components/AppDownloadModal";
 import { StructuredData } from "@/components/StructuredData";
-import AiCustomerChat from "@/components/AiCustomerChat";
 
 export const viewport: Viewport = {
   themeColor: "#064e3b",
@@ -130,7 +129,6 @@ export default function RootLayout({
                 <NotificationBellModal />
                 <AppDownloadModal />
                 <StructuredData />
-                <AiCustomerChat />
                 {children}
               </AppDownloadProvider>
             </SpecialsNotificationProvider>

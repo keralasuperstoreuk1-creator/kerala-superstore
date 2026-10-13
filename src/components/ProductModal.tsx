@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
+import { getProductDisplayPricing } from '@/lib/pricing';
 
 interface ProductModalProps {
   product: Product | null;
@@ -29,7 +30,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) 
 
   if (!product) return null;
 
-  const currentPrice = product.offerPrice ?? product.price;
+  const pricing = getProductDisplayPricing(product);
+  const currentPrice = pricing.sellingPrice;
 
   const handleAdd = () => {
     addToCart(product, qty);
@@ -92,12 +94,26 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) 
             <div className="text-xs font-semibold text-slate-500 mt-0.5">Pack Size: {product.sizeWeight}</div>
 
             {/* Price Box */}
-            <div className="flex items-baseline gap-2 mt-3">
-              <span className="text-2xl font-black text-slate-900">£{currentPrice.toFixed(2)}</span>
-              {product.offerPrice && (
-                <span className="text-sm text-slate-400 line-through">£{product.price.toFixed(2)}</span>
+            <div className="flex flex-wrap items-baseline gap-2 mt-3">
+              <span className="text-2xl font-black text-slate-900">£{pricing.sellingPrice.toFixed(2)}</span>
+              {pricing.hasDiscount && pricing.cutPrice && (
+                <span className="text-sm text-slate-400 line-through font-medium">£{pricing.cutPrice.toFixed(2)}</span>
               )}
-              <span className="text-xs text-emerald-800 font-semibold bg-emerald-50 px-2 py-0.5 rounded">In Stock</span>
+              {pricing.hasDiscount && (
+                <span className="text-[10px] font-black bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-200">
+                  Save {pricing.discountPercent}%
+                </span>
+              )}
+              {product.stock > 0 ? (
+                <span className="text-xs text-emerald-800 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/80 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span>In Stock ({product.stock} units available)</span>
+                </span>
+              ) : (
+                <span className="text-xs text-slate-600 font-bold bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200 flex items-center gap-1">
+                  <span>Out of Stock</span>
+                </span>
+              )}
             </div>
 
             {/* Description */}
