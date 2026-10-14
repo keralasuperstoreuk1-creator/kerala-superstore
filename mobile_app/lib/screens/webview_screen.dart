@@ -7,8 +7,8 @@ class StorefrontScreen extends StatefulWidget {
 
   const StorefrontScreen({
     super.key,
-    // Replace with your live deployed domain or local dev IP
-    this.initialUrl = 'http://192.168.8.145:3026', 
+    // Live production domain for Kerala Superstore UK
+    this.initialUrl = 'https://keralasuperstore.com', 
   });
 
   @override
