@@ -840,6 +840,8 @@ export default function PosTerminalPage() {
       setActiveUser(switchTargetUser);
       setActivePosUser(switchTargetUser);
       setCashierName(`${switchTargetUser.name} (${switchTargetUser.role.toUpperCase()})`);
+      setSearchQuery('');
+      setSelectedCategory('All');
       setUserSwitchModalOpen(false);
       setSwitchTargetUser(null);
       setSwitchSecretInput('');
@@ -2309,10 +2311,39 @@ export default function PosTerminalPage() {
                     <span className="text-xs font-bold">Loading 3,000+ items from Manchester POS database...</span>
                   </div>
                 ) : filteredProducts.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-2">
-                    <AlertCircle className="w-8 h-8 text-amber-500" />
-                    <span className="text-sm font-bold text-slate-400">No items match your filter.</span>
-                    <span className="text-xs">Try searching by barcode or a different category.</span>
+                  <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-3 py-16">
+                    <AlertCircle className="w-10 h-10 text-amber-500" />
+                    <div className="text-center space-y-1">
+                      <span className="text-base font-bold text-slate-300 block">
+                        No items match &quot;{searchQuery || selectedCategory}&quot;
+                      </span>
+                      <span className="text-xs text-slate-400 block max-w-sm">
+                        {searchQuery.toLowerCase().includes('admin') || searchQuery.toLowerCase().includes('cashier') || searchQuery.toLowerCase().includes('login')
+                          ? 'Looking to switch cashier or log in as Store Administrator? Tap the user pill in the top-right header.'
+                          : 'Try searching by barcode, product name, or reset the search filter.'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2">
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
+                        >
+                          Clear Search &amp; Show All Products
+                        </button>
+                      )}
+                      {selectedCategory !== 'All' && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategory('All')}
+                          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold border border-slate-700 transition-all cursor-pointer"
+                        >
+                          Show All Categories
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
