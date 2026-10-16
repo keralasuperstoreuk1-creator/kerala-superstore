@@ -5614,7 +5614,24 @@ export default function PosTerminalPage() {
                 )}
               </div>
 
-              <div className="text-center pt-3 border-t border-dashed border-slate-300 text-[10px] text-slate-600">
+              {/* Direct Bank Transfer Details */}
+              <div className="border-t border-dashed border-slate-300 pt-2 text-[9.5px] text-slate-800 space-y-0.5">
+                <p className="font-bold text-center uppercase tracking-wider text-[10px] text-slate-900">Direct Bank Transfer</p>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Name:</span>
+                  <span className="font-bold">Kerala superstore Ltd</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Sort code:</span>
+                  <span className="font-bold font-mono">04-00-03</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">ACC.No:</span>
+                  <span className="font-bold font-mono">44347284</span>
+                </div>
+              </div>
+
+              <div className="text-center pt-2.5 border-t border-dashed border-slate-300 text-[10px] text-slate-600">
                 <p className="font-bold">Thank you for shopping at Kerala Superstore UK!</p>
                 <p className="font-bold">www.keralasuperstore.com</p>
               </div>

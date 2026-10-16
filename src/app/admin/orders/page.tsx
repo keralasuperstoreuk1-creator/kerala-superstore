@@ -698,7 +698,24 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              <div className="text-center pt-3 border-t border-dashed border-black text-[9px]">
+              {/* Bank Transfer Details */}
+              <div className="border-t border-dashed border-black pt-2 text-[9px] text-black space-y-0.5">
+                <p className="font-black text-center uppercase">Direct Bank Transfer</p>
+                <div className="flex justify-between">
+                  <span>Name:</span>
+                  <span className="font-bold">Kerala superstore Ltd</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Sort code:</span>
+                  <span className="font-bold font-mono">04-00-03</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>ACC.No:</span>
+                  <span className="font-bold font-mono">44347284</span>
+                </div>
+              </div>
+
+              <div className="text-center pt-2.5 border-t border-dashed border-black text-[9px]">
                 <p>Thank you for shopping authentic Kerala groceries!</p>
                 <p>www.keralasuperstore.com</p>
               </div>
@@ -760,7 +777,24 @@ export default function AdminOrdersPage() {
                 </tbody>
               </table>
 
-              <div className="flex justify-end pt-4 border-t">
+              <div className="flex justify-between items-start pt-4 border-t">
+                {/* Bank Transfer Details on Packing Slip */}
+                <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 text-xs text-slate-700 w-72">
+                  <p className="font-bold text-slate-900 uppercase text-[11px] mb-1">Direct Bank Transfer Details</p>
+                  <div className="flex justify-between py-0.5">
+                    <span className="text-slate-500">Name:</span>
+                    <span className="font-bold text-slate-900">Kerala superstore Ltd</span>
+                  </div>
+                  <div className="flex justify-between py-0.5">
+                    <span className="text-slate-500">Sort code:</span>
+                    <span className="font-mono font-bold text-slate-900">04-00-03</span>
+                  </div>
+                  <div className="flex justify-between py-0.5">
+                    <span className="text-slate-500">ACC.No:</span>
+                    <span className="font-mono font-bold text-slate-900">44347284</span>
+                  </div>
+                </div>
+
                 <div className="w-64 space-y-1 text-xs">
                   <div className="flex justify-between text-sm font-black pt-2 border-t">
                     <span>Grand Total:</span>
