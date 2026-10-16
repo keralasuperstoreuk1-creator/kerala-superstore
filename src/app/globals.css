@@ -415,18 +415,35 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 /* Subtle Secondary Buttons, Pills & Dividers */
-.pos-light .bg-slate-800 {
+.pos-light .bg-slate-800,
+.pos-light .bg-slate-800\/80,
+.pos-light .bg-slate-800\/90 {
   background-color: #f1f5f9 !important;
   border-color: #cbd5e1 !important;
   color: #1e293b !important;
 }
 
-.pos-light .hover\:bg-slate-800:hover {
+.pos-light #pos-active-user-pill {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08) !important;
+}
+
+.pos-light #pos-active-user-pill:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+}
+
+.pos-light .hover\:bg-slate-800:hover,
+.pos-light .hover\:bg-slate-800\/80:hover {
   background-color: #e2e8f0 !important;
   color: #0f172a !important;
 }
 
-.pos-light .hover\:bg-slate-700:hover {
+.pos-light .hover\:bg-slate-700:hover,
+.pos-light .hover\:bg-slate-700\/80:hover,
+.pos-light .hover\:bg-slate-700\/90:hover {
   background-color: #cbd5e1 !important;
   color: #0f172a !important;
 }

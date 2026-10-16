@@ -1914,13 +1914,17 @@ export default function PosTerminalPage() {
       {/* 1. LEFT ICON NAVIGATION SIDEBAR (Matching Modern FreshPos Layout) */}
       <aside className="w-16 sm:w-20 bg-slate-900 border-r border-slate-800 flex flex-col items-center justify-between py-4 shrink-0 z-30">
         <div className="flex flex-col items-center gap-6 w-full">
-          {/* Logo Brand Icon */}
+          {/* Official Store Logo */}
           <Link
             href="/"
-            className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-emerald-950/50 hover:scale-105 transition-transform"
+            className="w-12 h-12 rounded-2xl bg-white p-1 flex items-center justify-center shadow-lg shadow-emerald-950/40 hover:scale-105 transition-transform border border-emerald-500/30 overflow-hidden shrink-0"
             title="Kerala Superstore Main Website"
           >
-            K
+            <img
+              src="/logo.png"
+              alt="Kerala Superstore Official Logo"
+              className="w-full h-full object-contain"
+            />
           </Link>
 
           {/* Navigation Buttons */}
@@ -2116,7 +2120,7 @@ export default function PosTerminalPage() {
           <div className="flex items-center gap-2.5 text-right">
             {/* Live Clock */}
             <div className="hidden xl:flex flex-col items-end">
-              <span className="text-[10px] text-slate-400 font-mono" suppressHydrationWarning>
+              <span className={`text-[10px] font-mono font-semibold ${themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'}`} suppressHydrationWarning>
                 {currentTime}
               </span>
             </div>
@@ -2124,42 +2128,57 @@ export default function PosTerminalPage() {
             {/* Active Till User & Quick Shift Switcher */}
             <button
               type="button"
+              id="pos-active-user-pill"
               onClick={() => {
                 setSwitchTargetUser(null);
                 setSwitchSecretInput('');
                 setSwitchError(null);
                 setUserSwitchModalOpen(true);
               }}
-              className="px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-700/80 text-white border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-xs"
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-xs ${
+                themeMode === 'light'
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300'
+                  : 'bg-slate-800/90 hover:bg-slate-700/90 text-white border border-slate-700'
+              }`}
               title="Click to Switch Cashier / Log In"
             >
               <div
-                className={`w-2 h-2 rounded-full ${
+                className={`w-2.5 h-2.5 rounded-full ${
                   activeUser.role === 'admin'
-                    ? 'bg-amber-400'
+                    ? 'bg-amber-500 shadow-amber-500/50 shadow-sm'
                     : activeUser.role === 'manager'
-                    ? 'bg-blue-400'
-                    : 'bg-emerald-400'
-                } animate-pulse`}
+                    ? 'bg-blue-500 shadow-blue-500/50 shadow-sm'
+                    : 'bg-emerald-500 shadow-emerald-500/50 shadow-sm'
+                } animate-pulse shrink-0`}
               />
               <div className="flex flex-col items-start leading-none text-left">
-                <span className="text-[11px] font-black text-white flex items-center gap-1">
-                  <span>{activeUser.name}</span>
+                <span className="text-[11px] font-black flex items-center gap-1.5">
+                  <span className={themeMode === 'light' ? 'text-slate-950 font-black' : 'text-white'}>
+                    {activeUser.name}
+                  </span>
                   <span
-                    className={`text-[9px] uppercase px-1.5 py-0.2 rounded font-extrabold ${
+                    className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-black tracking-wider ${
                       activeUser.role === 'admin'
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        ? themeMode === 'light'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                         : activeUser.role === 'manager'
-                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                        ? themeMode === 'light'
+                          ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                          : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                        : themeMode === 'light'
+                        ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                         : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                     }`}
                   >
                     {activeUser.role}
                   </span>
                 </span>
-                <span className="text-[9px] text-slate-400 font-mono mt-0.5">Switch User ▾</span>
+                <span className={`text-[9px] font-mono mt-0.5 ${themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
+                  Switch User ▾
+                </span>
               </div>
-              <ArrowRightLeft className="w-3 h-3 text-slate-400 ml-0.5" />
+              <ArrowRightLeft className={`w-3.5 h-3.5 ml-0.5 shrink-0 ${themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'}`} />
             </button>
 
             {/* Admin & Staff User Management Button */}
