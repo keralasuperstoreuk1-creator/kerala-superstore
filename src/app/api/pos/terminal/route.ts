@@ -377,8 +377,8 @@ export async function GET(req: NextRequest) {
           })).sort((a, b) => b.value - a.value),
           lowStockItems,
         },
-        recentTransactions: filteredTxs.slice(-25).reverse(),
-        recentReturns: filteredReturns.slice(-25).reverse(),
+        recentTransactions: filteredTxs.slice(-300).reverse(),
+        recentReturns: filteredReturns.slice(-100).reverse(),
       });
     }
 

@@ -319,6 +319,8 @@ export default function PosTerminalPage() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [salesSearchQuery, setSalesSearchQuery] = useState('');
+  const [salesReportViewMode, setSalesReportViewMode] = useState<'bills' | 'items'>('bills');
+  const [billSearchQuery, setBillSearchQuery] = useState('');
   const [salesReportModalOpen, setSalesReportModalOpen] = useState(false);
 
   // Closing Stock Filter states
@@ -669,6 +671,39 @@ export default function PosTerminalPage() {
     return Array.from(set).sort();
   }, [products]);
 
+  // Aggregate bills for the report period (with local storage backup)
+  const reportBills = useMemo(() => {
+    const list: any[] = [];
+    const seen = new Set<string>();
+
+    if (reportData && Array.isArray(reportData.recentTransactions)) {
+      reportData.recentTransactions.forEach((tx: any) => {
+        const id = tx.receiptNumber || tx.id;
+        if (id && !seen.has(id)) {
+          seen.add(id);
+          list.push(tx);
+        }
+      });
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        const localSaved = JSON.parse(localStorage.getItem('kss_pos_saved_receipts') || '[]');
+        if (Array.isArray(localSaved)) {
+          localSaved.forEach((tx: any) => {
+            const id = tx.receiptNumber || tx.id;
+            if (id && !seen.has(id)) {
+              seen.add(id);
+              list.push(tx);
+            }
+          });
+        }
+      } catch {}
+    }
+
+    return list;
+  }, [reportData]);
+
   // Load Total Sales & Period Report
   const fetchReport = async (periodOverride?: string, fromDate?: string, toDate?: string) => {
     setLoadingReport(true);
@@ -744,6 +779,39 @@ export default function PosTerminalPage() {
       }
     } catch {
       alert('Failed to export Sales CSV.');
+    }
+  };
+
+  // Reprint Previous Sale Receipt from Report or History
+  const handleReprintReceipt = (tx: any) => {
+    try {
+      if (typeof playBeep === 'function') {
+        try { playBeep(900, 'sine', 0.1); } catch {}
+      }
+      const formattedItems = (tx.items || []).map((it: any) => ({
+        barcode: it.barcode || '',
+        name: it.name || it.productName || 'Item',
+        price: Number(it.price) || 0,
+        qty: Number(it.qty) || Number(it.quantity) || 1,
+        vatRate: Number(it.vatRate) || 0,
+        sizeWeight: it.sizeWeight || 'Standard',
+      }));
+
+      setLastReceipt({
+        receiptNumber: tx.receiptNumber || `KSS-${Date.now().toString().slice(-6)}`,
+        date: tx.timestamp ? new Date(tx.timestamp).toLocaleString('en-GB') : (tx.date || new Date().toLocaleString('en-GB')),
+        cashier: tx.cashier || cashierName,
+        items: formattedItems,
+        subtotal: Number(tx.subtotal) || Number(tx.total) || 0,
+        vatTotal: Number(tx.vatTotal) || 0,
+        total: Number(tx.total) || 0,
+        paymentMethod: tx.paymentMethod || 'cash',
+        cashGiven: tx.cashTendered !== undefined ? Number(tx.cashTendered) : Number(tx.total),
+        changeDue: tx.changeDue !== undefined ? Number(tx.changeDue) : 0,
+      });
+      setReceiptModalOpen(true);
+    } catch (err) {
+      console.error('Reprint receipt error:', err);
     }
   };
 
@@ -1500,10 +1568,10 @@ export default function PosTerminalPage() {
 
       if (res.ok) {
         const result = await res.json();
-        playBeep(1100, 'sine', 0.18);
-        setLastReceipt({
+        const receiptData = {
           receiptNumber: result.receiptNumber || `KSS-${Date.now().toString().slice(-6)}`,
           date: new Date().toLocaleString('en-GB'),
+          timestamp: new Date().toISOString(),
           cashier: cashierName,
           items: [...cart],
           subtotal,
@@ -1512,7 +1580,14 @@ export default function PosTerminalPage() {
           paymentMethod,
           cashTendered: cashNum,
           changeDue: change,
-        });
+        };
+        setLastReceipt(receiptData);
+
+        try {
+          const existing = JSON.parse(localStorage.getItem('kss_pos_saved_receipts') || '[]');
+          const updated = [receiptData, ...existing.filter((r: any) => r.receiptNumber !== receiptData.receiptNumber)].slice(0, 200);
+          localStorage.setItem('kss_pos_saved_receipts', JSON.stringify(updated));
+        } catch {}
 
         // Deduct local stock immediately for instantaneous responsiveness
         setProducts((prev) =>
@@ -4896,32 +4971,152 @@ export default function PosTerminalPage() {
                       </div>
                     </div>
 
-                    {/* Sold Products Ranking Table */}
+                    {/* Daily Bills (with Reprint) & Sold Products Ranking Dual View */}
                     <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg space-y-4">
+                      {/* View Switcher: Bills & Receipts vs Sold Items */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-                        <div>
-                          <h3 className="text-sm font-black text-white flex items-center gap-2">
-                            <span>Sold Items Breakdown</span>
-                            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                              {(reportData.allSoldItems || reportData.topItems || []).length} Product Lines
-                            </span>
-                          </h3>
-                          <p className="text-xs text-slate-400">All items sold during {reportData.periodLabel || salesPeriod}</p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSalesReportViewMode('bills')}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                              salesReportViewMode === 'bills'
+                                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30'
+                                : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                            }`}
+                          >
+                            <Receipt className="w-4 h-4 text-emerald-300" />
+                            <span>Daily Bills &amp; Receipts ({reportBills.length})</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setSalesReportViewMode('items')}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                              salesReportViewMode === 'items'
+                                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30'
+                                : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                            }`}
+                          >
+                            <Package className="w-4 h-4 text-amber-300" />
+                            <span>Sold Items Breakdown ({(reportData.allSoldItems || reportData.topItems || []).length})</span>
+                          </button>
                         </div>
 
                         <div className="relative w-full sm:w-64">
                           <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                           <input
                             type="text"
-                            value={salesSearchQuery}
-                            onChange={(e) => setSalesSearchQuery(e.target.value)}
-                            placeholder="Filter sold items..."
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                            value={salesReportViewMode === 'bills' ? billSearchQuery : salesSearchQuery}
+                            onChange={(e) => {
+                              if (salesReportViewMode === 'bills') {
+                                setBillSearchQuery(e.target.value);
+                              } else {
+                                setSalesSearchQuery(e.target.value);
+                              }
+                            }}
+                            placeholder={salesReportViewMode === 'bills' ? 'Search bill # (e.g. KSS-...), cashier...' : 'Filter sold items...'}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
                           />
                         </div>
                       </div>
 
-                      {(() => {
+                      {/* VIEW 1: DAILY BILLS & RECEIPTS WITH REPRINT BUTTON */}
+                      {salesReportViewMode === 'bills' && (() => {
+                        const filteredBills = reportBills.filter((b: any) => {
+                          if (!billSearchQuery.trim()) return true;
+                          const q = billSearchQuery.toLowerCase();
+                          const rc = (b.receiptNumber || '').toLowerCase();
+                          const cs = (b.cashier || '').toLowerCase();
+                          const pm = (b.paymentMethod || '').toLowerCase();
+                          const tot = String(b.total || '');
+                          return rc.includes(q) || cs.includes(q) || pm.includes(q) || tot.includes(q);
+                        });
+
+                        return filteredBills.length > 0 ? (
+                          <div className="overflow-x-auto max-h-96 overflow-y-auto no-scrollbar">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider">
+                                  <th className="py-2.5 px-3">Receipt No</th>
+                                  <th className="py-2.5 px-3">Date &amp; Time</th>
+                                  <th className="py-2.5 px-3">Cashier</th>
+                                  <th className="py-2.5 px-3">Items Purchased</th>
+                                  <th className="py-2.5 px-3 text-center">Payment</th>
+                                  <th className="py-2.5 px-3 text-right">Total (£)</th>
+                                  <th className="py-2.5 px-3 text-center">Action</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+                                {filteredBills.map((bill: any, idx: number) => {
+                                  const itemCount = Array.isArray(bill.items)
+                                    ? bill.items.reduce((s: number, i: any) => s + (Number(i.qty) || 1), 0)
+                                    : 0;
+                                  const firstItem = bill.items?.[0]?.name || 'Items';
+                                  const itemsText = Array.isArray(bill.items) && bill.items.length > 1
+                                    ? `${firstItem} + ${bill.items.length - 1} more (${itemCount} pcs)`
+                                    : `${firstItem} (${itemCount} pcs)`;
+
+                                  const dateStr = bill.timestamp
+                                    ? new Date(bill.timestamp).toLocaleString('en-GB')
+                                    : bill.date || 'Recent';
+
+                                  return (
+                                    <tr key={bill.receiptNumber || idx} className="hover:bg-slate-800/50 transition-colors">
+                                      <td className="py-2.5 px-3 font-bold text-white">
+                                        <span className="px-2 py-0.5 rounded-lg bg-emerald-950/70 border border-emerald-500/30 text-emerald-300">
+                                          {bill.receiptNumber}
+                                        </span>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-slate-300 text-[10px] font-sans">
+                                        {dateStr}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-slate-400 text-[10px] font-sans">
+                                        {bill.cashier || 'Admin'}
+                                      </td>
+                                      <td className="py-2.5 px-3 font-sans text-slate-200 text-xs truncate max-w-xs" title={bill.items?.map((it: any) => `${it.qty}x ${it.name}`).join(', ')}>
+                                        {itemsText}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-center">
+                                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${
+                                          bill.paymentMethod === 'card'
+                                            ? 'bg-blue-950 text-blue-300 border border-blue-500/30'
+                                            : 'bg-teal-950 text-teal-300 border border-teal-500/30'
+                                        }`}>
+                                          {bill.paymentMethod || 'cash'}
+                                        </span>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-bold text-white text-xs">
+                                        £{Number(bill.total || 0).toFixed(2)}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleReprintReceipt(bill)}
+                                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 mx-auto shadow-md transition-all cursor-pointer hover:scale-105"
+                                          title="Reprint official thermal receipt"
+                                        >
+                                          <Printer className="w-3.5 h-3.5" />
+                                          <span>Reprint</span>
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="py-12 text-center text-slate-500 space-y-2">
+                            <Receipt className="w-8 h-8 mx-auto text-slate-600" />
+                            <p className="text-xs font-bold text-slate-400">No bills found matching &quot;{billSearchQuery}&quot;.</p>
+                            <p className="text-[11px] text-slate-500">Completed counter sales will appear here for instant reprint.</p>
+                          </div>
+                        );
+                      })()}
+
+                      {/* VIEW 2: SOLD PRODUCTS BREAKDOWN */}
+                      {salesReportViewMode === 'items' && (() => {
                         const items = (reportData.allSoldItems || reportData.topItems || []).filter((it: any) => {
                           if (!salesSearchQuery.trim()) return true;
                           const q = salesSearchQuery.toLowerCase();
