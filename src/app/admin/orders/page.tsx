@@ -715,7 +715,22 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              <div className="text-center pt-2.5 border-t border-dashed border-black text-[9px]">
+              {/* Instagram QR Code Follow Section */}
+              <div className="text-center pt-2 border-t border-dashed border-black space-y-1">
+                <p className="font-black text-[9px] uppercase tracking-wider">
+                  Follow Us On Instagram
+                </p>
+                <img
+                  src="/instagram-qr.png"
+                  alt="Follow @KERALASUPERSTORE on Instagram"
+                  className="w-20 h-20 mx-auto object-contain"
+                />
+                <p className="font-black font-mono text-[9px] tracking-wider">
+                  @KERALASUPERSTORE
+                </p>
+              </div>
+
+              <div className="text-center pt-2 border-t border-dashed border-black text-[9px]">
                 <p>Thank you for shopping authentic Kerala groceries!</p>
                 <p>www.keralasuperstore.com</p>
               </div>

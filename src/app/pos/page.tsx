@@ -432,6 +432,14 @@ export default function PosTerminalPage() {
               filter: grayscale(100%) contrast(160%);
               -webkit-filter: grayscale(100%) contrast(160%);
             }
+            img.receipt-qr {
+              display: block;
+              margin: 4px auto 2px auto;
+              max-width: ${paperWidth === '80mm' ? '85px' : '65px'};
+              height: auto;
+              filter: contrast(130%);
+              -webkit-filter: contrast(130%);
+            }
             .text-center { text-align: center; }
             .text-right { text-align: right; }
             .font-black, .font-bold { font-weight: 900; }
@@ -5826,7 +5834,22 @@ export default function PosTerminalPage() {
                 </div>
               </div>
 
-              <div className="text-center pt-2.5 border-t border-dashed border-slate-300 text-[10px] text-slate-600">
+              {/* Instagram QR Code Follow Section */}
+              <div className="text-center pt-2.5 border-t border-dashed border-slate-300 space-y-1">
+                <p className="font-bold text-[9px] uppercase tracking-wider text-slate-700">
+                  Follow Us On Instagram
+                </p>
+                <img
+                  src="/instagram-qr.png"
+                  alt="Follow @KERALASUPERSTORE on Instagram"
+                  className="receipt-qr w-24 h-24 mx-auto object-contain"
+                />
+                <p className="font-bold font-mono text-[9px] text-slate-900 tracking-wider">
+                  @KERALASUPERSTORE
+                </p>
+              </div>
+
+              <div className="text-center pt-2 border-t border-dashed border-slate-300 text-[10px] text-slate-600">
                 <p className="font-bold">Thank you for shopping at Kerala Superstore UK!</p>
                 <p className="font-bold">www.keralasuperstore.com</p>
               </div>
