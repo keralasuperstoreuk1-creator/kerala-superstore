@@ -42,3 +42,8 @@ next-env.d.ts
 
 # scripts
 /scripts/
+
+# executables and heavy installers (hosted on GitHub Releases, NOT Vercel)
+*.exe
+/public/downloads/*.exe
+
