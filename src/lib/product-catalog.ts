@@ -47,7 +47,7 @@ const KNOWN_BRANDS = [
   'Grandma', 'Periyar', 'Pavizham', 'Daily Fresh', 'Priya', 'Everest', 'MDH',
   'Milma', 'Elite', 'Kitchen Treasures', 'Ajmi', 'Surabhi', 'MTR', 'Ashirvaad',
   'Kannan Devan', 'AVT', 'Tata Tea', 'Bru', 'Wagh Bakri', 'Heera', 'TRS', 'Natco',
-  'Nandini', 'Ujala', 'Lion Dates', 'Amul', 'Govind'
+  'Nandini', 'Ujala', 'Lion Dates', 'Amul', 'Govind', 'Zion Arts'
 ];
 
 // Product packshot image match table based on keywords
@@ -85,6 +85,11 @@ const IMAGE_KEYWORD_MAP: Array<{ regex: RegExp; image: string }> = [
   { regex: /appam chatti/i, image: '/products/appam-chatti.png' },
   { regex: /uruli|bronze/i, image: '/products/bronze-uruli.png' },
   { regex: /tea|chai|munnar/i, image: '/products/tea-munnar.png' },
+  { regex: /mother mary|mary statue/i, image: '/products/religious/mother-mary-2ft.jpg' },
+  { regex: /st\.?\s*joseph|joseph/i, image: '/products/religious/st-joseph-child-jesus-1-5ft.jpg' },
+  { regex: /jesus|christ/i, image: '/products/religious/jesus-lilies-2ft.jpg' },
+  { regex: /holy family/i, image: '/products/religious/holy-family-1-5ft.jpg' },
+  { regex: /angel|praying angel/i, image: '/products/religious/praying-angel-1ft.jpg' },
 ];
 
 /**
@@ -104,14 +109,17 @@ export function autoEnrichPosProduct(item: PosSyncItem): Product {
   }
 
   // 2. Extract Size/Weight (e.g. 5kg, 1kg, 500g, 200g, 100g, 1L, 500ml)
-  const weightMatch = cleanDesc.match(/(\d+(\.\d+)?\s*(kg|g|gm|l|ltr|litre|ml|pack|pcs|piece))/i);
+  const weightMatch = cleanDesc.match(/(\d+(\.\d+)?\s*(kg|g|gm|l|ltr|litre|ml|pack|pcs|piece|feet|ft))/i);
   const sizeWeight = weightMatch ? weightMatch[0].toUpperCase().replace(/\s+/, '') : 'Standard Pack';
 
   // 3. Detect Category
   let category = 'Spices & Whole Condiments';
   let categorySlug = 'spices-and-whole-condiments';
 
-  if (/rice|matta|jeerakasala|kaima|ponni|idli rice|sona masoori/i.test(cleanDesc)) {
+  if (/statue|mary|jesus|joseph|angel|holy family|crucifix|cross|rosary|religious|prayer/i.test(cleanDesc)) {
+    category = 'Religious';
+    categorySlug = 'religious';
+  } else if (/rice|matta|jeerakasala|kaima|ponni|idli rice|sona masoori/i.test(cleanDesc)) {
     category = 'Rice & Rice Products';
     categorySlug = 'rice-and-rice-products';
   } else if (/dal|payar|kadala|moong|urad|toor|chana|gram/i.test(cleanDesc)) {
