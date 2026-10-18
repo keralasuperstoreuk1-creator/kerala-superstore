@@ -103,6 +103,13 @@ export function matchProductToCategory(product: Product, categorySlugOrName: str
     return kwRegex.test(pName) || kwRegex.test(pCat);
   }
 
+  // 11. Religious Items (cat-11)
+  if (target.includes('relig') || target.includes('statue') || target.includes('christian')) {
+    const isRelTag = (product.tags || []).some(t => /relig|statue|christian|church|prayer|marian|catholic/i.test(t));
+    const relRegex = /\b(statue|mary|jesus|joseph|angel|holy family|crucifix|cross|rosary|christian|prayer altar|zion arts)\b/i;
+    return isRelTag || relRegex.test(pName) || relRegex.test(pCat) || pSlug.includes('relig');
+  }
+
   // Direct matches
   if (pSlug === target || pCat === target) return true;
   if (pSlug.includes(target) || target.includes(pSlug)) return true;
@@ -193,6 +200,13 @@ export function matchProductToVariety(product: Product, variety: string): boolea
   if (v.includes('vanpayar')) {
     return /\b(vanpayar|cowpea|red\s*cowpea|chowli|lobia)\b/i.test(pName);
   }
+
+  // Religious statue varieties
+  if (v.includes('mary')) return /mary/i.test(pName);
+  if (v.includes('joseph')) return /joseph/i.test(pName);
+  if (v.includes('jesus')) return /jesus|christ/i.test(pName) && !/joseph|family/i.test(pName);
+  if (v.includes('family')) return /family/i.test(pName);
+  if (v.includes('angel')) return /angel/i.test(pName);
 
   // Generic fallback: check if the variety phrase is in product name
   const words = v.split(/[\s/()]+/).filter(w => w.length > 2);

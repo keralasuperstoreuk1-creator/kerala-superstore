@@ -64,6 +64,13 @@ export const FeaturedArchedCategories: React.FC<FeaturedArchedCategoriesProps> =
       defaultImage: '/categories/round-breakfast.jpg',
       itemCount: 30,
     },
+    {
+      id: 'cat-11',
+      name: 'Religious Statues',
+      slug: 'religious',
+      defaultImage: '/products/religious/mother-mary-2ft.jpg',
+      itemCount: 5,
+    },
   ];
 
   // Store for admin-customized images: { [slug]: string }

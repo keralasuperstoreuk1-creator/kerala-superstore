@@ -337,6 +337,7 @@ export function matchProductToCategory(product: Product, categorySlugOrName: str
   if (target.includes('kitchen') && (pSlug.includes('kitchen') || pCat.includes('kitchen') || pName.includes('uruli') || pName.includes('chatti') || pName.includes('maker') || pName.includes('kudam'))) return true;
   if (target.includes('breakfast') && (pSlug.includes('breakfast') || pCat.includes('breakfast') || pName.includes('podi') || pName.includes('puttu') || pName.includes('appam') || pName.includes('rava') || pName.includes('suji'))) return true;
   if (target.includes('spice') && (pSlug.includes('spice') || pCat.includes('spice') || pName.includes('pepper') || pName.includes('cardamom') || pName.includes('clove') || pName.includes('cinnamon') || pName.includes('anise'))) return true;
+  if ((target.includes('relig') || target.includes('statue')) && (pSlug.includes('relig') || pCat.includes('relig') || pName.includes('statue') || pName.includes('mary') || pName.includes('jesus') || pName.includes('joseph') || pName.includes('angel') || pName.includes('holy family') || (product.tags || []).some(t => t.toLowerCase().includes('relig')))) return true;
 
   return false;
 }

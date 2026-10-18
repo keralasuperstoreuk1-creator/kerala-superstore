@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   ArrowRight,
   ShieldCheck,
-  ShoppingBag
+  ShoppingBag,
+  Church
 } from 'lucide-react';
 import { CATEGORIES } from '@/lib/mock-data';
 import { Category, HeroSlide, SpotlightPromoConfig } from '@/types';
@@ -177,6 +178,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
     if (slug.includes('oils')) return <Droplet className="w-4 h-4 text-cyan-600" />;
     if (slug.includes('pickles')) return <CookingPot className="w-4 h-4 text-red-600" />;
     if (slug.includes('frozen')) return <Snowflake className="w-4 h-4 text-blue-600" />;
+    if (slug.includes('relig')) return <Church className="w-4 h-4 text-purple-600" />;
     return <Coffee className="w-4 h-4 text-yellow-600" />;
   };
 
@@ -197,7 +199,7 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
 
           {/* Category List */}
           <div className="flex-1 divide-y divide-slate-100 flex flex-col justify-between py-1 overflow-hidden">
-            {categoriesList.slice(0, 8).map((cat) => {
+            {categoriesList.slice(0, 11).map((cat) => {
               const isSelected = selectedCategory === cat.slug;
               return (
                 <button

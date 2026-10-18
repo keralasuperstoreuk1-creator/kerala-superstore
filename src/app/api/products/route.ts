@@ -75,9 +75,26 @@ export async function GET(req: NextRequest) {
         if (dbProducts && dbProducts.length > 0) {
           let mapped: Product[] = dbProducts.map((p: any) => {
             let detectedBrand = 'Kerala Superstore';
-            if (p.tags && Array.isArray(p.tags) && p.tags.length > 0 && p.tags[0]) {
-              detectedBrand = p.tags[0];
+            if (p.tags && Array.isArray(p.tags) && p.tags.length > 0) {
+              const brandTag = p.tags.find((t: string) => !['religious', 'statue', 'christian', 'catholic'].includes(String(t).toLowerCase()));
+              if (brandTag) detectedBrand = brandTag;
             }
+            if (/zion/i.test(p.name || '') || (p.tags && Array.isArray(p.tags) && p.tags.some((t: string) => /zion/i.test(t)))) {
+              detectedBrand = 'Zion Arts';
+            }
+
+            let category = p.category || 'General Grocery';
+            let categorySlug = p.category_slug || 'grocery';
+
+            // Detect Religious category from tags or product name
+            const isReligious = (p.tags && Array.isArray(p.tags) && p.tags.some((t: string) => /religious|statue|christian|church|altar|prayer/i.test(t))) ||
+              /\b(statue|mother mary|child jesus|holy family|praying angel)\b/i.test(p.name || '');
+
+            if (isReligious) {
+              category = 'Religious';
+              categorySlug = 'religious';
+            }
+
             const price = Number(p.price) || 0;
             const offerPriceNum = p.offer_price ? Number(p.offer_price) : undefined;
             // Only consider offerPrice if it's strictly a discount lower than selling price
@@ -88,8 +105,8 @@ export async function GET(req: NextRequest) {
               name: p.name,
               slug: p.slug,
               brand: detectedBrand,
-              category: p.category || 'General Grocery',
-              categorySlug: p.category_slug || 'grocery',
+              category,
+              categorySlug,
               sizeWeight: p.size_weight || 'Standard',
               price,
               offerPrice: validOffer,
