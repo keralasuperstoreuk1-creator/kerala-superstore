@@ -25,6 +25,15 @@ export const metadata: Metadata = {
   },
   description: "Buy authentic Kerala Matta rice, curry powders, banana chips, pickles, and frozen snacks in Manchester & across the UK. Cash on Delivery and fast nationwide delivery.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: '/branding/kerala-superstore-round-logo.png' },
+      { url: '/favicon.ico' },
+    ],
+    apple: [
+      { url: '/branding/kerala-superstore-round-logo.png' },
+    ],
+  },
   alternates: {
     canonical: "https://keralasuperstore.com",
   },
