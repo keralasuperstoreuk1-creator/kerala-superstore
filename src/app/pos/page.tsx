@@ -736,11 +736,194 @@ export default function PosTerminalPage() {
         if (from) url += `&fromDate=${encodeURIComponent(from)}`;
         if (to) url += `&toDate=${encodeURIComponent(to)}`;
       }
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setReportData(data);
+      let serverData: any = null;
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          serverData = await res.json();
+        }
+      } catch (e) {
+        console.warn('Server report fetch error, calculating from local receipts:', e);
       }
+
+      // Merge local sales receipts & returns stored on this counter terminal
+      let localReceipts: any[] = [];
+      let localReturns: any[] = [];
+      try {
+        localReceipts = JSON.parse(localStorage.getItem('kss_pos_saved_receipts') || '[]');
+        localReturns = JSON.parse(localStorage.getItem('kss_pos_saved_returns') || '[]');
+      } catch {}
+
+      // Period matching helpers
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const yesterdayDate = new Date(now);
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      const matchesPeriod = (ts?: string) => {
+        if (!ts) return false;
+        const dStr = String(ts).split('T')[0];
+        const d = new Date(ts);
+        if (p === 'today') return dStr === todayStr || String(ts).includes(now.toLocaleDateString('en-GB'));
+        if (p === 'yesterday') return dStr === yesterdayStr;
+        if (p === 'week') return !isNaN(d.getTime()) && d >= sevenDaysAgo;
+        if (p === 'month') return !isNaN(d.getTime()) && d >= thirtyDaysAgo;
+        if (p === 'all') return true;
+        if (p === 'custom' && fromDate) {
+          const to = toDate || todayStr;
+          return dStr >= fromDate && dStr <= to;
+        }
+        return dStr === todayStr;
+      };
+
+      // 1. Merge transactions (de-duplicated)
+      const allTxMap = new Map<string, any>();
+      if (serverData?.recentTransactions && Array.isArray(serverData.recentTransactions)) {
+        serverData.recentTransactions.forEach((tx: any) => {
+          const key = tx.receiptNumber || tx.id;
+          if (key) allTxMap.set(key, tx);
+        });
+      }
+      localReceipts.forEach((r: any) => {
+        const key = r.receiptNumber || r.id;
+        if (key) allTxMap.set(key, r);
+      });
+
+      const periodTxs = Array.from(allTxMap.values()).filter((t: any) => matchesPeriod(t.timestamp || t.date));
+
+      // 2. Merge returns (de-duplicated)
+      const allRetMap = new Map<string, any>();
+      if (serverData?.returns && Array.isArray(serverData.returns)) {
+        serverData.returns.forEach((ret: any) => {
+          const key = ret.returnSlipNumber || ret.id;
+          if (key) allRetMap.set(key, ret);
+        });
+      }
+      localReturns.forEach((ret: any) => {
+        const key = ret.returnSlipNumber || ret.id;
+        if (key) allRetMap.set(key, ret);
+      });
+
+      const periodReturns = Array.from(allRetMap.values()).filter((r: any) => matchesPeriod(r.timestamp || r.date));
+
+      // 3. Calculate financial totals with full Cash vs Card breakdown
+      let cashSales = 0;
+      let cardSales = 0;
+      let totalSales = 0;
+      let vatCollected = 0;
+      let cashOrdersCount = 0;
+      let cardOrdersCount = 0;
+
+      const itemSalesMap: Record<string, { barcode: string; name: string; qty: number; revenue: number; price: number }> = {};
+
+      periodTxs.forEach((tx: any) => {
+        const tTotal = Number(tx.total) || 0;
+        const tVat = Number(tx.vatTotal) || 0;
+        const method = String(tx.paymentMethod || 'cash').toLowerCase();
+
+        totalSales += tTotal;
+        vatCollected += tVat;
+
+        if (method === 'card') {
+          cardSales += tTotal;
+          cardOrdersCount++;
+        } else {
+          cashSales += tTotal;
+          cashOrdersCount++;
+        }
+
+        if (Array.isArray(tx.items)) {
+          tx.items.forEach((it: any) => {
+            const bc = String(it.barcode || it.sku || it.name || 'item');
+            const qty = Number(it.qty) || 1;
+            const rev = Number(it.total) || (Number(it.price) * qty) || 0;
+            if (!itemSalesMap[bc]) {
+              itemSalesMap[bc] = {
+                barcode: bc,
+                name: it.name || 'Product',
+                qty: 0,
+                revenue: 0,
+                price: Number(it.price) || 0,
+              };
+            }
+            itemSalesMap[bc].qty += qty;
+            itemSalesMap[bc].revenue += rev;
+          });
+        }
+      });
+
+      let cashRefunds = 0;
+      let cardRefunds = 0;
+      let totalRefunds = 0;
+      let cashRefundsCount = 0;
+      let cardRefundsCount = 0;
+
+      periodReturns.forEach((r: any) => {
+        const refAmt = Number(r.totalRefund || r.refundAmount) || 0;
+        const refMethod = String(r.refundMethod || 'cash').toLowerCase();
+        totalRefunds += refAmt;
+        if (refMethod === 'card') {
+          cardRefunds += refAmt;
+          cardRefundsCount++;
+        } else {
+          cashRefunds += refAmt;
+          cashRefundsCount++;
+        }
+      });
+
+      const netSales = Math.max(0, totalSales - totalRefunds);
+      const netCash = cashSales - cashRefunds;
+      const netCard = cardSales - cardRefunds;
+      const transactionCount = periodTxs.length;
+      const returnCount = periodReturns.length;
+      const averageBasket = transactionCount > 0 ? totalSales / transactionCount : 0;
+
+      const allSoldItems = Object.values(itemSalesMap).sort((a, b) => b.revenue - a.revenue);
+      const topItems = allSoldItems.slice(0, 10);
+
+      const periodLabels: Record<string, string> = {
+        today: 'Today',
+        yesterday: 'Yesterday',
+        week: 'This Week (Last 7 Days)',
+        month: 'This Month (Last 30 Days)',
+        all: 'All Time Total',
+        custom: `Custom (${fromDate || ''} - ${toDate || todayStr})`,
+      };
+
+      setReportData({
+        success: true,
+        period: p,
+        periodLabel: periodLabels[p] || 'Today',
+        totalSales: Math.round(totalSales * 100) / 100,
+        cashSales: Math.round(cashSales * 100) / 100,
+        cardSales: Math.round(cardSales * 100) / 100,
+        cashOrdersCount,
+        cardOrdersCount,
+        totalRefunds: Math.round(totalRefunds * 100) / 100,
+        cashRefunds: Math.round(cashRefunds * 100) / 100,
+        cardRefunds: Math.round(cardRefunds * 100) / 100,
+        cashRefundsCount,
+        cardRefundsCount,
+        netSales: Math.round(netSales * 100) / 100,
+        netCash: Math.round(netCash * 100) / 100,
+        netCard: Math.round(netCard * 100) / 100,
+        transactionCount,
+        returnCount,
+        averageBasket: Math.round(averageBasket * 100) / 100,
+        vatCollected: Math.round(vatCollected * 100) / 100,
+        allSoldItems,
+        topItems,
+        recentTransactions: periodTxs.slice(0, 100),
+        returns: periodReturns.slice(0, 100),
+        closingStockSkus: serverData?.closingStockSkus || products.length,
+        closingStockUnits: serverData?.closingStockUnits,
+        closingStockRetailValue: serverData?.closingStockRetailValue,
+        outOfStockCount: serverData?.outOfStockCount,
+        lowStockCount: serverData?.lowStockCount,
+      });
     } catch (err) {
       console.error('Report fetch error:', err);
     } finally {
@@ -749,6 +932,14 @@ export default function PosTerminalPage() {
   };
 
   const fetchDailyReport = () => fetchReport();
+
+  // Auto-refresh live report when entering reports tab
+  useEffect(() => {
+    if (activeTab === 'reports') {
+      fetchReport();
+    }
+  }, [activeTab]);
+
 
   // Export Total Sales to CSV
   const handleDownloadSalesCsv = () => {
@@ -1142,8 +1333,9 @@ export default function PosTerminalPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         playBeep(1100, 'sine', 0.25);
-        setLastReturnSlip({
+        const slipData = {
           ...data.returnSlip,
+          returnSlipNumber: data.returnSlip?.returnSlipNumber || `RET-${Date.now().toString().slice(-6)}`,
           date: new Date().toLocaleDateString('en-GB', {
             day: '2-digit',
             month: 'short',
@@ -1151,7 +1343,20 @@ export default function PosTerminalPage() {
             hour: '2-digit',
             minute: '2-digit',
           }),
-        });
+          timestamp: new Date().toISOString(),
+          refundMethod: returnRefundMethod,
+          totalRefund: totalReturnRefund,
+          items: [...returnCart],
+          cashier: cashierName,
+        };
+
+        try {
+          const existingRet = JSON.parse(localStorage.getItem('kss_pos_saved_returns') || '[]');
+          const updatedRet = [slipData, ...existingRet.filter((r: any) => r.returnSlipNumber !== slipData.returnSlipNumber)].slice(0, 100);
+          localStorage.setItem('kss_pos_saved_returns', JSON.stringify(updatedRet));
+        } catch {}
+
+        setLastReturnSlip(slipData);
         setReturnSlipModalOpen(true);
         fetchTerminalData();
         fetchReturnsHistory();
@@ -1625,6 +1830,7 @@ export default function PosTerminalPage() {
         setCart([]);
         setPaymentModalOpen(false);
         setReceiptModalOpen(true);
+        fetchReport();
       } else {
         alert('Payment processing failed. Please retry.');
       }
@@ -4931,9 +5137,11 @@ export default function PosTerminalPage() {
                         <div className="text-2xl font-black text-emerald-400 mt-1 font-mono">
                           £{(reportData.totalSales || 0).toFixed(2)}
                         </div>
-                        <span className="text-[10px] text-slate-500">
-                          {reportData.transactionCount || 0} counter orders
-                        </span>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+                          <span className="text-teal-400 font-semibold">Cash: £{(reportData.cashSales || 0).toFixed(2)}</span>
+                          <span>•</span>
+                          <span className="text-blue-400 font-semibold">Card: £{(reportData.cardSales || 0).toFixed(2)}</span>
+                        </div>
                       </div>
 
                       <div className="bg-slate-900 border border-rose-500/30 p-4 rounded-2xl bg-rose-950/10 shadow-sm">
@@ -4943,9 +5151,11 @@ export default function PosTerminalPage() {
                         <div className="text-2xl font-black text-rose-400 mt-1 font-mono">
                           -£{(reportData.totalRefunds || 0).toFixed(2)}
                         </div>
-                        <span className="text-[10px] text-rose-300/70">
-                          {reportData.returnCount || 0} refund slips
-                        </span>
+                        <div className="flex items-center gap-1.5 text-[10px] text-rose-300/80 mt-0.5">
+                          <span>Cash: -£{(reportData.cashRefunds || 0).toFixed(2)}</span>
+                          <span>•</span>
+                          <span>Card: -£{(reportData.cardRefunds || 0).toFixed(2)}</span>
+                        </div>
                       </div>
 
                       <div className="bg-slate-900 border border-emerald-500/30 p-4 rounded-2xl bg-emerald-950/10 shadow-sm">
@@ -4960,12 +5170,12 @@ export default function PosTerminalPage() {
 
                       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          Cash in Drawer
+                          Cash in Drawer (To Count)
                         </span>
                         <div className="text-2xl font-black text-teal-300 mt-1 font-mono">
                           £{(reportData.netCash !== undefined ? reportData.netCash : (reportData.cashSales || 0) - (reportData.cashRefunds || 0)).toFixed(2)}
                         </div>
-                        <span className="text-[10px] text-slate-500">Cash minus cash refunds</span>
+                        <span className="text-[10px] text-slate-500">{reportData.cashOrdersCount || 0} Cash Sales minus Refunds</span>
                       </div>
 
                       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm">
@@ -4975,7 +5185,7 @@ export default function PosTerminalPage() {
                         <div className="text-2xl font-black text-blue-400 mt-1 font-mono">
                           £{(reportData.netCard !== undefined ? reportData.netCard : (reportData.cardSales || 0) - (reportData.cardRefunds || 0)).toFixed(2)}
                         </div>
-                        <span className="text-[10px] text-slate-500">Card terminal settlements</span>
+                        <span className="text-[10px] text-slate-500">{reportData.cardOrdersCount || 0} Card terminal settlements</span>
                       </div>
                     </div>
 
@@ -6904,41 +7114,77 @@ export default function PosTerminalPage() {
                 <span>Cashier: {activeUser.name}</span>
               </div>
 
-              {/* Financial Turnover Summary */}
-              <div className="border-t border-b border-dashed border-slate-300 py-2 space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span>Gross Sales:</span>
-                  <span className="font-bold">£{(reportData.totalSales || 0).toFixed(2)}</span>
+              {/* Financial Turnover Summary with Cash & Credit Card Split */}
+              <div className="border-t border-b border-dashed border-slate-300 py-2 space-y-2 text-xs">
+                {/* 1. SALES BREAKDOWN */}
+                <div className="pb-1.5 border-b border-dashed border-slate-300 space-y-0.5">
+                  <div className="font-black uppercase text-[10px] text-slate-900 tracking-wider">
+                    [ SALES BREAKDOWN ]
+                  </div>
+                  <div className="flex justify-between text-[10px]">
+                    <span>Cash Sales ({reportData.cashOrdersCount || 0} bills):</span>
+                    <span className="font-bold">£{(reportData.cashSales || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px]">
+                    <span>Card / Credit ({reportData.cardOrdersCount || 0} bills):</span>
+                    <span className="font-bold">£{(reportData.cardSales || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-black text-xs pt-1 border-t border-dotted border-slate-300">
+                    <span>GROSS SALES TOTAL:</span>
+                    <span>£{(reportData.totalSales || 0).toFixed(2)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-rose-600">
-                  <span>Sales Returns ({reportData.returnCount || 0}):</span>
-                  <span>-£{(reportData.totalRefunds || 0).toFixed(2)}</span>
+
+                {/* 2. RETURNS BREAKDOWN */}
+                <div className="pb-1.5 border-b border-dashed border-slate-300 space-y-0.5">
+                  <div className="font-black uppercase text-[10px] text-slate-900 tracking-wider">
+                    [ RETURNS &amp; REFUNDS ]
+                  </div>
+                  <div className="flex justify-between text-[10px]">
+                    <span>Cash Refunds ({reportData.cashRefundsCount || 0} slips):</span>
+                    <span>-£{(reportData.cashRefunds || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px]">
+                    <span>Card Refunds ({reportData.cardRefundsCount || 0} slips):</span>
+                    <span>-£{(reportData.cardRefunds || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-black text-xs pt-1 border-t border-dotted border-slate-300">
+                    <span>TOTAL REFUNDS:</span>
+                    <span>-£{(reportData.totalRefunds || 0).toFixed(2)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-200">
-                  <span>NET TURNOVER:</span>
-                  <span className="text-emerald-700 font-mono">
-                    £{(reportData.netSales !== undefined ? reportData.netSales : Math.max(0, (reportData.totalSales || 0) - (reportData.totalRefunds || 0))).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-[10px] text-slate-600">
-                  <span>Cash Drawer Net:</span>
-                  <span>£{(reportData.netCash || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-slate-600">
-                  <span>Card Machine Total:</span>
-                  <span>£{(reportData.netCard || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-slate-600">
-                  <span>Total Transactions:</span>
-                  <span>{reportData.transactionCount || 0} orders</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-slate-600">
-                  <span>Average Basket:</span>
-                  <span>£{(reportData.averageBasket || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-slate-600">
-                  <span>HMRC VAT (20%):</span>
-                  <span>£{(reportData.vatCollected || 0).toFixed(2)}</span>
+
+                {/* 3. TILL SETTLEMENT / TAKINGS */}
+                <div className="space-y-0.5">
+                  <div className="font-black uppercase text-[10px] text-slate-900 tracking-wider">
+                    [ TILL BALANCING &amp; TAKINGS ]
+                  </div>
+                  <div className="flex justify-between text-[11px] font-bold">
+                    <span>Cash in Drawer (To Count):</span>
+                    <span className="font-mono font-black">£{(reportData.netCash || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] font-bold">
+                    <span>Card Machine Total:</span>
+                    <span className="font-mono font-black">£{(reportData.netCard || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-400">
+                    <span>NET TURNOVER:</span>
+                    <span className="font-mono">
+                      £{(reportData.netSales !== undefined ? reportData.netSales : Math.max(0, (reportData.totalSales || 0) - (reportData.totalRefunds || 0))).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-600 pt-0.5">
+                    <span>Total Orders:</span>
+                    <span>{reportData.transactionCount || 0} orders</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-600">
+                    <span>Average Basket:</span>
+                    <span>£{(reportData.averageBasket || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-600">
+                    <span>HMRC VAT (20%):</span>
+                    <span>£{(reportData.vatCollected || 0).toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
 
