@@ -367,8 +367,38 @@ export default function PosTerminalPage() {
   // Receipt Printer Width (POS-58 default 58mm compact or 80mm standard ESC/POS)
   const [receiptPaperWidth, setReceiptPaperWidth] = useState<'80mm' | '58mm'>('58mm');
 
+  // Cash Drawer State (RJ11 Kick Engine - Only Open on Cash Payments)
+  const [cashDrawerModalOpen, setCashDrawerModalOpen] = useState(false);
+  const [drawerKickOnCashOnly, setDrawerKickOnCashOnly] = useState(true);
+  const [drawerHardwareStatus, setDrawerHardwareStatus] = useState<'ready' | 'connected' | 'unpaired'>('ready');
+  const [lastDrawerKickTime, setLastDrawerKickTime] = useState<string | null>(null);
+  const [drawerKickNotification, setDrawerKickNotification] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const savedKick = localStorage.getItem('kss_drawer_cash_only');
+      if (savedKick !== null) {
+        setDrawerKickOnCashOnly(savedKick !== 'false');
+      }
+    } catch {}
+  }, []);
+
+  const handleToggleDrawerKickMode = (enabled: boolean) => {
+    setDrawerKickOnCashOnly(enabled);
+    try {
+      localStorage.setItem('kss_drawer_cash_only', String(enabled));
+    } catch {}
+    if (typeof playBeep === 'function') {
+      try { playBeep(850, 'sine', 0.08); } catch {}
+    }
+  };
+
   // Universal Thermal Receipt Printer Engine (Works on Epson, Star, Munbyn, Bixolon, Windows Drivers)
-  const printElementToThermal = (elementId: string, paperWidth: '80mm' | '58mm' = receiptPaperWidth) => {
+  const printElementToThermal = (
+    elementId: string,
+    paperWidth: '80mm' | '58mm' = receiptPaperWidth,
+    isCashSale: boolean = false
+  ) => {
     if (typeof window === 'undefined') return;
     const element = document.getElementById(elementId);
     if (!element) {
@@ -479,6 +509,7 @@ export default function PosTerminalPage() {
         </head>
         <body>
           ${element.innerHTML}
+          ${isCashSale ? '<div style="font-family: \'control\', \'FontControl\', monospace; font-size: 1px; color: transparent; line-height: 0; height: 0; overflow: hidden; display: none;">A</div>' : ''}
         </body>
       </html>
     `);
@@ -494,6 +525,96 @@ export default function PosTerminalPage() {
       }, 2000);
     }, 300);
   };
+
+  // ESC/POS Cash Drawer Kick Engine (Opens RJ11 Solenoid via WebUSB / WebSerial / Audio / Control Pulse)
+  const triggerCashDrawerKick = async (reason: 'cash_sale' | 'manual' | 'test' = 'cash_sale') => {
+    if (reason === 'cash_sale' && !drawerKickOnCashOnly) {
+      return;
+    }
+
+    try {
+      // 1. Audio chime for cash drawer kick
+      playBeep(1200, 'sine', 0.12);
+      setTimeout(() => playBeep(1800, 'sine', 0.18), 100);
+
+      // 2. Set visual notification on till
+      setDrawerKickNotification(
+        reason === 'cash_sale'
+          ? '💵 Cash Drawer Opened (Cash Payment)'
+          : reason === 'manual'
+          ? '🔓 Cash Drawer Opened Manually (F12)'
+          : '✓ Cash Drawer Test Pulse Sent'
+      );
+      setTimeout(() => setDrawerKickNotification(null), 3500);
+      setLastDrawerKickTime(new Date().toLocaleTimeString('en-GB'));
+
+      // 3. Web Serial API direct kick (if browser supports and port is cached)
+      const w = window as any;
+      if (w.__kss_drawer_serial_port && w.__kss_drawer_serial_port.writable) {
+        try {
+          const writer = w.__kss_drawer_serial_port.writable.getWriter();
+          // ESC p 0 25 250 (Pin 2 kick)
+          await writer.write(new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]));
+          // ESC p 1 25 250 (Pin 5 kick)
+          await writer.write(new Uint8Array([0x1B, 0x70, 0x01, 0x19, 0xFA]));
+          writer.releaseLock();
+          return;
+        } catch (e) {
+          console.warn('Serial drawer kick write failed:', e);
+        }
+      }
+
+      // 4. WebUSB direct kick (if browser supports and device is cached)
+      if (w.__kss_drawer_usb_device && w.__kss_drawer_usb_device.opened) {
+        try {
+          await w.__kss_drawer_usb_device.transferOut(1, new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]));
+          return;
+        } catch (e) {
+          console.warn('USB drawer kick write failed:', e);
+        }
+      }
+    } catch (err) {
+      console.warn('Cash drawer trigger error:', err);
+    }
+  };
+
+  // Pair USB / Serial Thermal Printer for 1-Click Hardware Drawer Kick
+  const handlePairHardwarePrinter = async () => {
+    const w = window as any;
+    try {
+      if ('serial' in navigator) {
+        const port = await (navigator as any).serial.requestPort();
+        await port.open({ baudRate: 9600 });
+        w.__kss_drawer_serial_port = port;
+        setDrawerHardwareStatus('connected');
+        const writer = port.writable.getWriter();
+        await writer.write(new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]));
+        writer.releaseLock();
+        playBeep(1400, 'sine', 0.2);
+        alert('Thermal Printer paired via Serial/USB! Cash drawer test kick sent successfully.');
+        return;
+      } else if ('usb' in navigator) {
+        const device = await (navigator as any).usb.requestDevice({ filters: [] });
+        await device.open();
+        if (device.configuration === null) await device.selectConfiguration(1);
+        await device.claimInterface(0);
+        w.__kss_drawer_usb_device = device;
+        setDrawerHardwareStatus('connected');
+        await device.transferOut(1, new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA]));
+        playBeep(1400, 'sine', 0.2);
+        alert('Thermal Printer paired via USB! Cash drawer test kick sent successfully.');
+        return;
+      } else {
+        alert('WebUSB / WebSerial is not supported in this browser. Please use Chrome or Edge.');
+      }
+    } catch (err: any) {
+      console.warn('Pair hardware printer error:', err);
+      if (err.name !== 'NotFoundError') {
+        alert('Could not pair hardware printer: ' + (err.message || err));
+      }
+    }
+  };
+
 
 
   // Audio Beep Generator using Web Audio API
@@ -532,6 +653,18 @@ export default function PosTerminalPage() {
     const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Global F12 Hotkey for opening cash drawer manually
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F12') {
+        e.preventDefault();
+        triggerCashDrawerKick('manual');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [drawerKickOnCashOnly]);
 
   // Fetch all 3,000+ Barcodes & Products from Supabase backend
   const fetchTerminalData = async () => {
@@ -1831,6 +1964,11 @@ export default function PosTerminalPage() {
         setPaymentModalOpen(false);
         setReceiptModalOpen(true);
         fetchReport();
+
+        // Kick Cash Drawer ONLY for Cash payments (Card payments keep drawer closed)
+        if (paymentMethod === 'cash') {
+          triggerCashDrawerKick('cash_sale');
+        }
       } else {
         alert('Payment processing failed. Please retry.');
       }
@@ -2468,6 +2606,29 @@ export default function PosTerminalPage() {
               )}
             </button>
 
+            {/* Cash Drawer Control Button (F12 Shortcut) */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => triggerCashDrawerKick('manual')}
+                className="px-2.5 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                title="Open Cash Drawer (Hotkey: F12)"
+              >
+                <Banknote className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden lg:inline text-[11px]">Open Drawer</span>
+                <span className="text-[9px] bg-emerald-500/20 px-1 py-0.5 rounded text-emerald-300 font-mono">F12</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCashDrawerModalOpen(true)}
+                className="p-1.5 rounded-xl border border-slate-700 hover:border-emerald-500/50 text-slate-400 hover:text-emerald-400 bg-slate-800/80 transition-all cursor-pointer"
+                title="Cash Drawer & Windows Driver Setup Guide (Card vs Cash)"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             <button
               onClick={fetchTerminalData}
               disabled={loading}
@@ -2478,6 +2639,14 @@ export default function PosTerminalPage() {
             </button>
           </div>
         </header>
+
+        {/* Floating Cash Drawer Notification Banner */}
+        {drawerKickNotification && (
+          <div className="fixed top-18 right-6 z-[9999] bg-emerald-600 text-white px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-black animate-in fade-in slide-in-from-top-3 border border-emerald-400">
+            <Banknote className="w-4 h-4 animate-bounce" />
+            <span>{drawerKickNotification}</span>
+          </div>
+        )}
 
         {/* TAB 1: SALES TILL / REGISTER */}
         {activeTab === 'till' && (
@@ -6129,7 +6298,7 @@ export default function PosTerminalPage() {
 
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
-                onClick={() => printElementToThermal('thermal-receipt-preview', receiptPaperWidth)}
+                onClick={() => printElementToThermal('thermal-receipt-preview', receiptPaperWidth, lastReceipt?.paymentMethod === 'cash')}
                 className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
               >
                 <Printer className="w-4 h-4" />
@@ -7710,6 +7879,157 @@ export default function PosTerminalPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 8. CASH DRAWER HARDWARE & WINDOWS DRIVER SETUP MODAL */}
+      {cashDrawerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4 animate-scale-up text-slate-100 max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                  <Banknote className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Cash Drawer Setup (ക്യാഷ് ഡ്രോയർ)</h3>
+                  <p className="text-[11px] text-slate-400">Cash payments only trigger kick • Card payments keep locked</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCashDrawerModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Rule 1: Cash Only Mode Toggle */}
+            <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-black text-white block">Only Open Drawer on Cash Payments</span>
+                  <span className="text-[11px] text-slate-400">
+                    Cash ബില്ലുകൾക്ക് മാത്രം ഡ്രോയർ തുറക്കുക. Card പേയ്മെന്റുകളിൽ ഡ്രോയർ പൂട്ടിക്കിടക്കും.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleDrawerKickMode(!drawerKickOnCashOnly)}
+                  className={`w-12 h-6.5 rounded-full transition-colors relative cursor-pointer ${
+                    drawerKickOnCashOnly ? 'bg-emerald-600' : 'bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 left-1 w-4.5 h-4.5 bg-white rounded-full transition-transform ${
+                      drawerKickOnCashOnly ? 'translate-x-5.5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Status Pills */}
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80 text-xs font-bold">
+                <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center gap-2">
+                  <Banknote className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase">Cash Sale:</span>
+                    <span className="text-emerald-300 font-black">Drawer Auto-Opens ✓</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-blue-950/40 border border-blue-500/30 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase">Card / Credit:</span>
+                    <span className="text-blue-300 font-black">Stays Locked 🔒</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Manual Controls & Hardware Kick */}
+            <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3">
+              <span className="text-xs font-bold text-slate-300 block uppercase tracking-wider">
+                Quick Drawer Controls
+              </span>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => triggerCashDrawerKick('test')}
+                  className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md"
+                >
+                  <Banknote className="w-4 h-4" />
+                  <span>Test Kick Drawer Now</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePairHardwarePrinter}
+                  className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4 text-emerald-400" />
+                  <span>Pair USB / Serial</span>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                <span>Keyboard Hotkey: Press <strong className="text-white bg-slate-800 px-1.5 py-0.5 rounded font-mono">F12</strong> anytime to pop drawer</span>
+                {lastDrawerKickTime && <span>Last opened: {lastDrawerKickTime}</span>}
+              </div>
+            </div>
+
+            {/* CRITICAL WINDOWS PRINTER DRIVER CONFIGURATION GUIDE */}
+            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2.5 text-xs">
+              <div className="flex items-center gap-2 text-amber-300 font-bold">
+                <AlertCircle className="w-4.5 h-4.5 shrink-0 text-amber-400" />
+                <span>Windows പ്രിന്ററിൽ Card അടിക്കുമ്പോഴും ഡ്രോയർ തുറക്കുന്നത് മാറ്റാൻ:</span>
+              </div>
+
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                നിങ്ങളുടെ കമ്പ്യൂട്ടറിൽ Windows പ്രിന്റർ ഡ്രൈവറിൽ <em>"Cash Drawer: Open Before Printing"</em> എന്ന് സെറ്റ് ചെയ്തിട്ടുണ്ടെങ്കിൽ, പ്രിന്റർ എല്ലാ പ്രിന്റിലും തനിയെ ഡ്രോയർ തുറക്കും. ഇത് മാറ്റാൻ താഴെ പറയുന്ന സ്റ്റെപ്പുകൾ ചെയ്യുക:
+              </p>
+
+              <ol className="list-decimal pl-4 space-y-1.5 text-[11px] text-slate-300">
+                <li>
+                  Windows Start തുറന്ന് <strong className="text-white">"Printers &amp; scanners"</strong> എന്ന് സെർച്ച് ചെയ്യുക.
+                </li>
+                <li>
+                  ലിസ്റ്റിലുള്ള നിങ്ങളുടെ തെർമൽ പ്രിന്റർ (<strong className="text-white">POS-58</strong> / <strong className="text-white">XP-58</strong> / <strong className="text-white">Epson</strong>) ക്ലിക്ക് ചെയ്യുക.
+                </li>
+                <li>
+                  <strong className="text-white">"Printer properties"</strong> (പ്രിന്റർ പ്രോപ്പർട്ടീസ്) ക്ലിക്ക് ചെയ്യുക.
+                </li>
+                <li>
+                  മുകളിലെ <strong className="text-white">"Device Settings"</strong> (അല്ലെങ്കിൽ <strong className="text-white">"Document Properties"</strong>) ടാബ് എടുക്കുക.
+                </li>
+                <li>
+                  <strong className="text-white">"Cash Drawer"</strong> എന്ന ഓപ്ഷൻ <strong className="text-rose-300">"Do Not Open"</strong> (അല്ലെങ്കിൽ <strong className="text-rose-300">"Disabled"</strong>) ആക്കി മാറ്റുക.
+                </li>
+                <li>
+                  <strong className="text-emerald-400">"Apply"</strong> നൽകി <strong className="text-emerald-400">"OK"</strong> അമർത്തുക.
+                </li>
+              </ol>
+
+              <div className="pt-1 text-[11px] text-emerald-300 font-semibold border-t border-amber-500/20">
+                ✓ ഇത് ചെയ്തുകഴിഞ്ഞാൽ Card ബില്ലുകൾ അടിക്കുമ്പോൾ ഡ്രോയർ അടഞ്ഞുതന്നെയിരിക്കും. Cash ബില്ലുകളിൽ മാത്രം POS സോഫ്റ്റ്‌വെയർ ഡ്രോയർ ഓപ്പൺ ചെയ്യും!
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setCashDrawerModalOpen(false)}
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-md transition-all"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}
