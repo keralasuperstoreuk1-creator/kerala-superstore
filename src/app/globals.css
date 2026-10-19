@@ -307,8 +307,8 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     width: 100% !important;
   }
 
-  /* When printing, hide all non-receipt elements */
-  nav, header, aside, .modal-backdrop, button, .no-print {
+  /* When printing, hide all non-receipt elements and background screen */
+  nav, header, aside, main, .modal-backdrop, button, .no-print {
     display: none !important;
   }
 
@@ -323,7 +323,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     width: 100% !important;
     max-width: 78mm !important;
     margin: 0 auto !important;
-    padding: 2mm 3mm 16mm 3mm !important;
+    padding: 1mm 2mm 2mm 2mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     border: none !important;
@@ -331,7 +331,8 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     border-radius: 0 !important;
     font-family: 'Courier New', Courier, monospace, system-ui !important;
     font-size: 11px !important;
-    line-height: 1.25 !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
     visibility: visible !important;
     display: block !important;
   }
@@ -341,18 +342,21 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   #thermal-closing-stock-preview.paper-58mm {
     max-width: 52mm !important;
     font-size: 9.5px !important;
-    padding: 1mm 2mm 12mm 2mm !important;
+    padding: 1mm 2mm 2mm 2mm !important;
   }
 
-  /* All children inside receipt */
+  /* All children inside receipt - Deep solid black, no faint greys */
   #thermal-receipt-preview *,
   #thermal-return-preview *,
   #thermal-closing-stock-preview *,
   .pos-printable-receipt * {
     color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    font-weight: 700 !important;
     background: transparent !important;
     box-shadow: none !important;
     text-shadow: none !important;
+    border-color: #000000 !important;
   }
 
   /* Thermal printer logo optimization: crisp monochrome high-contrast */

@@ -571,7 +571,7 @@ export async function GET(req: NextRequest) {
       store: {
         name: 'Kerala Superstore UK',
         branch: 'Manchester Superstore (Till 01)',
-        address: '148 Moston Lane, Manchester, M9 8DX',
+        address: 'Unit 2, 73 Old Market Street, Manchester, M9 8DX',
         phone: '+44 7749 132122',
         vatNumber: 'GB 384 9201 55',
         currency: 'GBP',

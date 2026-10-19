@@ -150,7 +150,7 @@ export default function PosTerminalPage() {
   const [storeInfo, setStoreInfo] = useState<StoreInfo>({
     name: 'Kerala Superstore UK',
     branch: 'Manchester Superstore (Till 01)',
-    address: '148 Moston Lane, Manchester, M9 8DX',
+    address: 'Unit 2, 73 Old Market Street, Manchester, M9 8DX',
     phone: '+44 7749 132122',
     vatNumber: 'GB 384 9201 55',
     currency: 'GBP',
@@ -364,8 +364,8 @@ export default function PosTerminalPage() {
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
-  // Receipt Printer Width (80mm standard or 58mm compact ESC/POS)
-  const [receiptPaperWidth, setReceiptPaperWidth] = useState<'80mm' | '58mm'>('80mm');
+  // Receipt Printer Width (POS-58 default 58mm compact or 80mm standard ESC/POS)
+  const [receiptPaperWidth, setReceiptPaperWidth] = useState<'80mm' | '58mm'>('58mm');
 
   // Universal Thermal Receipt Printer Engine (Works on Epson, Star, Munbyn, Bixolon, Windows Drivers)
   const printElementToThermal = (elementId: string, paperWidth: '80mm' | '58mm' = receiptPaperWidth) => {
@@ -408,65 +408,77 @@ export default function PosTerminalPage() {
               margin: 0;
               size: ${paperWidth} auto;
             }
-            * {
+            *, *::before, *::after {
               box-sizing: border-box;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
+              color: #000000 !important;
+              -webkit-text-fill-color: #000000 !important;
+            }
+            html {
+              margin: 0 !important;
+              padding: 0 !important;
+              height: auto !important;
+              min-height: 0 !important;
             }
             body {
-              margin: 0;
-              padding: 2mm 3mm 16mm 3mm;
-              width: ${contentWidth};
-              max-width: ${contentWidth};
-              color: #000;
-              background: #fff;
+              margin: 0 !important;
+              padding: 1mm 2mm 2mm 2mm !important;
+              width: ${contentWidth} !important;
+              max-width: ${contentWidth} !important;
+              height: auto !important;
+              min-height: 0 !important;
+              color: #000000 !important;
+              background: #ffffff !important;
               font-family: 'Courier New', Courier, monospace, system-ui;
               font-size: ${fontSize};
-              line-height: 1.25;
+              font-weight: 700;
+              line-height: 1.2;
+              overflow: hidden !important;
+            }
+            p, span, div, h4, td, th {
+              color: #000000 !important;
+              font-weight: 700 !important;
+            }
+            .text-slate-600, .text-slate-700, .text-slate-800, .text-slate-900 {
+              color: #000000 !important;
+              font-weight: 700 !important;
+            }
+            .border-slate-200, .border-slate-300, .border-slate-400, .border-slate-500, .border-dashed {
+              border-color: #000000 !important;
+              border-style: dashed !important;
             }
             img.receipt-logo {
               display: block;
-              margin: 0 auto 6px auto;
+              margin: 0 auto 4px auto;
               max-width: ${logoWidth};
               height: auto;
-              filter: grayscale(100%) contrast(160%);
-              -webkit-filter: grayscale(100%) contrast(160%);
+              filter: grayscale(100%) contrast(200%) brightness(85%);
+              -webkit-filter: grayscale(100%) contrast(200%) brightness(85%);
             }
             img.receipt-qr {
               display: block;
-              margin: 4px auto 2px auto;
-              max-width: ${paperWidth === '80mm' ? '85px' : '65px'};
+              margin: 2px auto;
+              max-width: ${paperWidth === '80mm' ? '80px' : '60px'};
               height: auto;
-              filter: contrast(130%);
-              -webkit-filter: contrast(130%);
+              filter: contrast(180%) brightness(85%);
+              -webkit-filter: contrast(180%) brightness(85%);
             }
             .text-center { text-align: center; }
             .text-right { text-align: right; }
-            .font-black, .font-bold { font-weight: 900; }
+            .font-black, .font-bold { font-weight: 900 !important; }
             .font-mono { font-family: 'Courier New', Courier, monospace; }
             .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             .border-b, .border-t, .border-dashed {
-              border-bottom: 1px dashed #000;
+              border-bottom: 1px dashed #000 !important;
             }
             .border-t-dashed {
-              border-top: 1px dashed #000;
-            }
-            .receipt-cut-feed {
-              height: 16mm;
-              text-align: center;
-              font-size: 8px;
-              color: #999;
-              margin-top: 10px;
-              border-top: 1px dashed #bbb;
-              padding-top: 4px;
+              border-top: 1px dashed #000 !important;
             }
           </style>
         </head>
         <body>
           ${element.innerHTML}
-          <div class="receipt-cut-feed">
-            --- TEAR OR CUT HERE ---
-          </div>
         </body>
       </html>
     `);
@@ -2412,7 +2424,7 @@ export default function PosTerminalPage() {
             </div>
 
             {/* Right 35%: Billing Order Ticket (FreshPos Cart Panel) */}
-            <div className="w-[340px] sm:w-[380px] lg:w-[420px] bg-slate-900 flex flex-col shrink-0 border-l border-slate-800 shadow-2xl">
+            <div className="w-[340px] sm:w-[380px] lg:w-[420px] bg-slate-900 flex flex-col shrink-0 border-l border-slate-800 shadow-2xl print:hidden">
               {/* Ticket Header & Held Bills */}
               <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-2 shrink-0 bg-slate-900/90">
                 <div className="flex items-center gap-2">
