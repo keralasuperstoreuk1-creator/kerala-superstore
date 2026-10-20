@@ -5328,6 +5328,17 @@ export default function PosTerminalPage() {
                         <Download className="w-3.5 h-3.5 text-emerald-400" />
                         <span>Export CSV</span>
                       </button>
+
+                      <a
+                        href="https://github.com/keralasuperstoreuk1-creator/kerala-superstore/releases/download/v1.0.0/KSS-POS-Sync.exe"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-xs"
+                        title="Download shop PC live sync agent (KSS-POS-Sync.exe) to sync shop sales & stock"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Shop Sync Tool (.exe)</span>
+                      </a>
                     </div>
                   </div>
 
