@@ -118,8 +118,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
             width={360}
             height={360}
             className={`object-contain w-full h-full group-hover:scale-108 transition-transform duration-500 ${isOutOfStock ? 'grayscale-50 opacity-70' : ''}`}
-            loading="lazy"
-            onError={() => setImgSrc('/products/matta-rice.png')}
+            onError={(e) => {
+              setImgSrc('/products/matta-rice.png');
+              const target = e.currentTarget as HTMLImageElement;
+              if (target && target.src.indexOf('/products/matta-rice.png') === -1) {
+                target.src = '/products/matta-rice.png';
+              }
+            }}
           />
           
           {/* Pack Size Pill */}

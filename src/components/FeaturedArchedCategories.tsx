@@ -134,18 +134,25 @@ export const FeaturedArchedCategories: React.FC<FeaturedArchedCategoriesProps> =
         {categoryConfig.map((item, index) => {
           const isSelected = selectedCategory === item.slug;
           
-          // Determine active image: admin uploaded custom image -> fallback default
+          // Determine active image: admin uploaded custom image -> default round image
           const hasCustom = Boolean(customImages[item.slug]);
           const isFailed = Boolean(failedImages[item.slug]);
           
           let activeImageUrl = item.defaultImage;
           if (hasCustom && !isFailed) {
             activeImageUrl = customImages[item.slug];
-          } else if (isFailed) {
-            activeImageUrl = item.defaultImage;
           }
 
-          const isExternal = activeImageUrl.startsWith('http') || activeImageUrl.startsWith('data:');
+          // Category secondary fallback if round image fails
+          const secondaryFallback: Record<string, string> = {
+            'rice-and-rice-products': '/categories/rice.jpg',
+            'masala-and-curry-powders': '/categories/masala.jpg',
+            'crisps-and-snacks': '/categories/snacks.jpg',
+            'oils-and-ghee': '/categories/oils.jpg',
+            'spices-and-whole-condiments': '/categories/spices.jpg',
+            'breakfast-powders': '/categories/breakfast.jpg',
+            'religious': '/products/religious/mother-mary-2ft.jpg',
+          };
 
           return (
             <div
@@ -161,15 +168,21 @@ export const FeaturedArchedCategories: React.FC<FeaturedArchedCategoriesProps> =
                     : 'border-slate-200/90 hover:border-emerald-500'
                 }`}
               >
-                <Image
+                <img
                   src={activeImageUrl}
                   alt={item.name}
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
-                  sizes="(max-width: 640px) 30vw, (max-width: 1024px) 20vw, 16vw"
-                  onError={() => handleImageError(item.slug)}
-                  unoptimized={isExternal}
-                  priority={index < 4}
+                  loading={index < 4 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    const sec = secondaryFallback[item.slug] || '/categories/rice.jpg';
+                    if (target.src.indexOf(item.defaultImage) === -1) {
+                      target.src = item.defaultImage;
+                    } else if (target.src.indexOf(sec) === -1) {
+                      target.src = sec;
+                    }
+                  }}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out select-none"
                 />
 
                 {/* Selected badge overlay */}

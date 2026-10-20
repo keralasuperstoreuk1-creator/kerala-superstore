@@ -146,10 +146,16 @@ export const DealsOfTheWeekSection: React.FC<DealsOfTheWeekSectionProps> = ({
                   <div className="w-full aspect-square rounded-2xl bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden mb-4">
                     <div className="relative w-40 h-40 group-hover:scale-105 transition-transform duration-300">
                       <Image
-                        src={product.imageUrl}
+                        src={product.imageUrl || '/products/matta-rice.png'}
                         alt={product.name}
                         fill
                         className="object-contain"
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          if (target && target.src.indexOf('/products/matta-rice.png') === -1) {
+                            target.src = '/products/matta-rice.png';
+                          }
+                        }}
                       />
                     </div>
                   </div>

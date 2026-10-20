@@ -253,10 +253,16 @@ export const CartDrawer: React.FC = () => {
                         >
                           <div className="relative w-16 h-16 rounded-lg bg-white overflow-hidden border border-slate-200 shrink-0">
                             <Image
-                              src={item.product.imageUrl}
+                              src={item.product.imageUrl || '/products/matta-rice.png'}
                               alt={item.product.name}
                               fill
                               className="object-contain p-1"
+                              onError={(e) => {
+                                const target = e.currentTarget as HTMLImageElement;
+                                if (target && target.src.indexOf('/products/matta-rice.png') === -1) {
+                                  target.src = '/products/matta-rice.png';
+                                }
+                              }}
                             />
                           </div>
                           <div className="flex-1 min-w-0">
