@@ -1209,6 +1209,61 @@ export default function PosTerminalPage() {
     }
   };
 
+  // Delete an individual test bill from local storage & cloud persistence
+  const handleDeleteBill = async (receiptNum: string) => {
+    if (!receiptNum) return;
+    const ok = window.confirm(`ഈ ബിൽ (${receiptNum}) സ്ഥിരമായി ഡിലീറ്റ് ചെയ്യണോ?\n(Delete this bill permanently?)`);
+    if (!ok) return;
+
+    try {
+      const localSaved = JSON.parse(localStorage.getItem('kss_pos_saved_receipts') || '[]');
+      const updated = localSaved.filter((r: any) => r.receiptNumber !== receiptNum && r.id !== receiptNum);
+      localStorage.setItem('kss_pos_saved_receipts', JSON.stringify(updated));
+    } catch {}
+
+    try {
+      await fetch('/api/pos/terminal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_transaction', receiptNumber: receiptNum }),
+      });
+    } catch (err) {
+      console.warn('Server delete notice:', err);
+    }
+
+    if (typeof playBeep === 'function') {
+      try { playBeep(500, 'sine', 0.1); } catch {}
+    }
+
+    await fetchReport();
+  };
+
+  // Clear all sample test bills from local storage & cloud persistence
+  const handleClearAllTestBills = async () => {
+    const ok = window.confirm('എല്ലാ സാമ്പിൾ/ടെസ്റ്റ് ബില്ലുകളും പൂർണ്ണമായി ഡിലീറ്റ് ചെയ്യണോ?\n(Clear all test/sample sales bills?)');
+    if (!ok) return;
+
+    try {
+      localStorage.removeItem('kss_pos_saved_receipts');
+    } catch {}
+
+    try {
+      await fetch('/api/pos/terminal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clear_all_transactions' }),
+      });
+    } catch (err) {
+      console.warn('Server clear notice:', err);
+    }
+
+    if (typeof playBeep === 'function') {
+      try { playBeep(450, 'sine', 0.15); } catch {}
+    }
+
+    await fetchReport();
+  };
+
   // User Management Operations
   const handleConfirmSwitchUser = () => {
     if (!switchTargetUser) return;
@@ -5512,25 +5567,38 @@ export default function PosTerminalPage() {
                           </button>
                         </div>
 
-                        <div className="relative w-full sm:w-64">
-                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            value={salesReportViewMode === 'bills' ? billSearchQuery : salesSearchQuery}
-                            onChange={(e) => {
-                              if (salesReportViewMode === 'bills') {
-                                setBillSearchQuery(e.target.value);
-                              } else {
-                                setSalesSearchQuery(e.target.value);
-                              }
-                            }}
-                            placeholder={salesReportViewMode === 'bills' ? 'Search bill # (e.g. KSS-...), cashier...' : 'Filter sold items...'}
-                            className={`w-full rounded-xl pl-8 pr-3 py-1.5 text-xs font-mono focus:outline-none focus:border-emerald-500 transition-colors ${
-                              themeMode === 'light'
-                                ? 'bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400'
-                                : 'bg-slate-950 border border-slate-800 text-white placeholder:text-slate-500'
-                            }`}
-                          />
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          {salesReportViewMode === 'bills' && reportBills.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleClearAllTestBills}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 border border-rose-300/40 transition-all cursor-pointer whitespace-nowrap shadow-xs"
+                              title="Clear all test / sample bills"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Clear Test Sales</span>
+                            </button>
+                          )}
+                          <div className="relative w-full sm:w-64">
+                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              value={salesReportViewMode === 'bills' ? billSearchQuery : salesSearchQuery}
+                              onChange={(e) => {
+                                if (salesReportViewMode === 'bills') {
+                                  setBillSearchQuery(e.target.value);
+                                } else {
+                                  setSalesSearchQuery(e.target.value);
+                                }
+                              }}
+                              placeholder={salesReportViewMode === 'bills' ? 'Search bill # (e.g. KSS-...), cashier...' : 'Filter sold items...'}
+                              className={`w-full rounded-xl pl-8 pr-3 py-1.5 text-xs font-mono focus:outline-none focus:border-emerald-500 transition-colors ${
+                                themeMode === 'light'
+                                  ? 'bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400'
+                                  : 'bg-slate-950 border border-slate-800 text-white placeholder:text-slate-500'
+                              }`}
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -5620,15 +5688,25 @@ export default function PosTerminalPage() {
                                         £{Number(bill.total || 0).toFixed(2)}
                                       </td>
                                       <td className="py-2.5 px-3 text-center">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleReprintReceipt(bill)}
-                                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 mx-auto shadow-md transition-all cursor-pointer hover:scale-105"
-                                          title="Reprint official thermal receipt"
-                                        >
-                                          <Printer className="w-3.5 h-3.5" />
-                                          <span>Reprint</span>
-                                        </button>
+                                        <div className="flex items-center justify-center gap-1.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleReprintReceipt(bill)}
+                                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-md transition-all cursor-pointer hover:scale-105"
+                                            title="Reprint official thermal receipt"
+                                          >
+                                            <Printer className="w-3.5 h-3.5" />
+                                            <span>Reprint</span>
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteBill(bill.receiptNumber)}
+                                            className="p-1.5 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-all cursor-pointer border border-rose-300/30 hover:scale-105"
+                                            title="Delete this test bill (ബിൽ ഡിലീറ്റ് ചെയ്യുക)"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
                                       </td>
                                     </tr>
                                   );

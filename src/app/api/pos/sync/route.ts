@@ -3,6 +3,7 @@ import { getPosSyncState, applyPosInventorySync, PosSyncItem } from '@/lib/pos-s
 import { upsertPosProductsToCatalog, getUnifiedProductCatalog, autoEnrichPosProduct } from '@/lib/product-catalog';
 import { supabaseAdmin } from '@/lib/supabase';
 import { searchProductGoogleImage } from '@/lib/serper';
+import { isR2Configured, saveJsonToR2, getJsonFromR2 } from '@/lib/cloudflare-r2';
 
 const DEFAULT_POS_SECRET = process.env.POS_SYNC_SECRET || 'kss_pos_sync_key_2026_live';
 
@@ -138,7 +139,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Extract items array
+    // Extract items array and sales array
     let items: PosSyncItem[] = [];
     if (Array.isArray(body)) {
       items = body;
@@ -148,16 +149,88 @@ export async function POST(req: NextRequest) {
       items = [body.item];
     }
 
-    if (!items || items.length === 0) {
+    const sales = Array.isArray(body.sales) ? body.sales : [];
+
+    if ((!items || items.length === 0) && sales.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'No items provided in sync payload.' },
+        { success: false, error: 'No items or sales provided in sync payload.' },
         { status: 400 }
       );
     }
 
     const source = body.source || 'RetailV2-POS (Manchester)';
     const now = new Date().toISOString();
-    
+
+    // 0. Process Synced Store Sales (RetailV2 Transactions -> Web POS Daily Report)
+    let syncedSalesCount = 0;
+    if (sales.length > 0) {
+      const syncedSales = sales.map((s: any) => ({
+        id: `ret-${s.tranId || Date.now()}`,
+        receiptNumber: String(s.receiptNumber || (s.tranId ? `RET-${s.tranId}` : `RET-${Date.now()}`)),
+        timestamp: s.date ? new Date(s.date).toISOString() : now,
+        items: Array.isArray(s.items) && s.items.length > 0
+          ? s.items.map((it: any) => ({
+              barcode: String(it.barcode || ''),
+              name: String(it.name || it.description || 'Grocery Item'),
+              price: Number(it.price) || 0,
+              qty: Number(it.qty) || 1,
+              total: Number(it.total) || ((Number(it.price) || 0) * (Number(it.qty) || 1)),
+            }))
+          : [{ barcode: '', name: `Store Sale (${s.itemCount || 1} items)`, price: Number(s.totalAmount) || 0, qty: 1, total: Number(s.totalAmount) || 0 }],
+        subtotal: Number(s.subtotal || s.totalAmount || 0),
+        vatTotal: Number(s.vatTotal || 0),
+        total: Number(s.totalAmount) || 0,
+        paymentMethod: Number(s.card) > 0 ? 'card' : 'cash',
+        cashTendered: Number(s.cash || 0),
+        changeDue: Number(s.change || 0),
+        cashier: s.cashier || `Till #${s.tillId || 1} (Staff ${s.userCode || 1})`,
+      }));
+
+      syncedSalesCount = syncedSales.length;
+
+      if (isR2Configured()) {
+        try {
+          const existing = (await getJsonFromR2<any[]>('pos/transactions.json')) || [];
+          const existingMap = new Map();
+          existing.forEach((t: any) => {
+            const key = t.receiptNumber || t.id;
+            if (key) existingMap.set(key, t);
+          });
+          syncedSales.forEach((t: any) => {
+            const key = t.receiptNumber || t.id;
+            if (key) existingMap.set(key, t);
+          });
+          const merged = Array.from(existingMap.values())
+            .sort((a: any, b: any) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
+            .slice(0, 2000);
+          await saveJsonToR2('pos/transactions.json', merged);
+        } catch (r2Err) {
+          console.warn('Could not save synced sales to R2:', r2Err);
+        }
+      }
+
+      if (supabaseAdmin) {
+        try {
+          await supabaseAdmin.from('pos_sync_logs').insert({
+            timestamp: now,
+            type: 'sale',
+            message: `Synced ${syncedSales.length} live sales tickets from ${source}`,
+            item_count: syncedSales.length,
+          });
+        } catch (sbErr) {
+          console.warn('Supabase sales log notice:', sbErr);
+        }
+      }
+    }
+
+    if (!items || items.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: `Successfully processed ${syncedSalesCount} store sales transactions.`,
+        syncedSalesCount,
+      });
+    }
+
     // 1. Update POS Inventory Sync State (File Fallback)
     const updatedState = applyPosInventorySync(items, source);
 

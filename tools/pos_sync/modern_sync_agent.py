@@ -157,7 +157,61 @@ class PosSyncEngine:
             self.logger(f"Error querying Inventory: {e}", "error")
             return []
 
-    def push_to_website(self, items):
+    def fetch_sales_from_db(self, limit=100):
+        conn = self.get_db_connection()
+        if not conn:
+            return []
+        try:
+            cursor = conn.cursor()
+            query = f"""
+            SELECT TOP {int(limit)} Tran_ID, Till_ID, User_Code, Date, NoofItem, Cash, Card, Change, TotalAmount, TotalDiscount, IsRefund
+            FROM Transaction_Summary
+            WHERE IsDeleted = 0
+            ORDER BY Date DESC
+            """
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            sales = []
+            for row in rows:
+                tran_id = str(row[0]).strip()
+                date_val = str(row[3]) if row[3] else None
+                items = []
+                try:
+                    d_cur = conn.cursor()
+                    d_cur.execute("SELECT Barcode, Description, QTY, Price, VAT_Percentage FROM Transaction_Details WHERE Tran_ID = ?", tran_id)
+                    for d_row in d_cur.fetchall():
+                        items.append({
+                            "barcode": str(d_row[0]).strip() if d_row[0] else "",
+                            "name": str(d_row[1]).strip() if d_row[1] else "Item",
+                            "qty": float(d_row[2] or 1),
+                            "price": float(d_row[3] or 0),
+                            "vat": float(d_row[4] or 0)
+                        })
+                    d_cur.close()
+                except Exception:
+                    pass
+
+                sales.append({
+                    "tranId": tran_id,
+                    "tillId": row[1],
+                    "userCode": row[2],
+                    "date": date_val,
+                    "itemCount": float(row[4] or len(items)),
+                    "cash": float(row[5] or 0),
+                    "card": float(row[6] or 0),
+                    "change": float(row[7] or 0),
+                    "totalAmount": float(row[8] or 0),
+                    "totalDiscount": float(row[9] or 0),
+                    "isRefund": bool(row[10]),
+                    "items": items
+                })
+            conn.close()
+            return sales
+        except Exception as e:
+            self.logger(f"Error reading RetailV2 Sales: {e}", "warning")
+            return []
+
+    def push_to_website(self, items, sales=None):
         if not items:
             return False, "No items"
 
@@ -188,6 +242,16 @@ class PosSyncEngine:
 
         self.last_sync_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.total_synced = success_count
+
+        # Transmit sales tickets from store till to website daily report
+        if sales:
+            try:
+                sales_payload = {"source": "RetailV2-POS (Manchester)", "sales": sales}
+                s_res = requests.post(sync_url, json=sales_payload, headers=headers, timeout=15)
+                if s_res.status_code == 200:
+                    self.logger(f"Transmitted {len(sales)} live sales tickets to website report ✔", "success")
+            except Exception as se:
+                self.logger(f"Sales transmission notice: {se}", "warning")
 
         # 2. Direct Supabase Cloud Database Mirror (Permanent Zero-Latency Sync)
         sb_url = self.config.get("supabase_url", "").rstrip("/")
@@ -226,14 +290,49 @@ class PosSyncEngine:
                 if not hasattr(self, "_image_cache"):
                     self._image_cache = {}
 
-                def lookup_google_image(product_name):
+                # Load existing HTTP images from Supabase so we never overwrite them with placeholders
+                existing_http_images = {}
+                try:
+                    ex_res = requests.get(f"{sb_url}/rest/v1/products?select=barcode,image_url&image_url=like.http*&limit=10000", headers=sb_headers, timeout=10)
+                    if ex_res.status_code == 200:
+                        for row in ex_res.json():
+                            if row.get("barcode") and row.get("image_url"):
+                                existing_http_images[str(row["barcode"])] = row["image_url"]
+                except Exception:
+                    pass
+
+                POS_BRANDS = {
+                    'KT': 'Kitchen Treasures', 'GM': "Grandma's", 'BK': 'Bakers', 'GV': 'Green Valley',
+                    'NI': 'Nirapara', 'NR': 'Nirapara', 'DH': 'Double Horse', 'EM': 'Eastern',
+                    'BR': 'Brahmins', 'TN': 'Tasty Nibbles', 'KD': 'Kitchen Delight', 'HLDRM': 'Haldirams',
+                    'MC': 'Malabar Coast', 'ID': 'iD Fresh', 'PEGEON': 'Pigeon', 'PIGEON': 'Pigeon',
+                    'PALAT': 'Palat', 'LOYAL': 'Loyal', 'MAYIL': 'Mayil', 'AJMI': 'Ajmi',
+                    'PERIYAR': 'Periyar', 'MILMA': 'Milma', 'KPL': 'KPL Shudhi', 'SARAS': 'Saras',
+                    'NATCO': 'Natco', 'TRS': 'TRS', 'HEERA': 'Heera', 'BRITANNIA': 'Britannia',
+                    'PARLE': 'Parle', 'COLGATE': 'Colgate', 'SANTOOR': 'Santoor', 'PRIL': 'Pril',
+                    'DETTOL': 'Dettol', 'MEDIMIX': 'Medimix', 'CHANDRIKA': 'Chandrika'
+                }
+
+                def lookup_google_image(product_name, barcode_str=""):
+                    if barcode_str and barcode_str in existing_http_images:
+                        return existing_http_images[barcode_str]
                     if not serper_api_key:
                         return None
                     if product_name in self._image_cache:
                         return self._image_cache[product_name]
                     try:
-                        clean = re.sub(r'\b(kg|g|gm|ml|ltr|l|pcs|pack)\b', '', product_name, flags=re.I).strip()
-                        q = f"{clean} grocery packet packaging pouch"
+                        clean = re.sub(r'\s+(MT|MC|GV|FL|KT|RR|HD|A1|GM|BK|TN|KD|EM|DH|NI|BR|GV|DD|GW|PF|NIL|BK|OF)$', '', product_name, flags=re.I).strip()
+                        # Detect brand from abbreviation
+                        brand_found = None
+                        words = re.split(r'[\s\-_\/]+', product_name.strip())
+                        for w in reversed(words):
+                            if w.upper() in POS_BRANDS:
+                                brand_found = POS_BRANDS[w.upper()]
+                                break
+                        if brand_found and not re.search(rf'\b{re.escape(brand_found)}\b', clean, re.I):
+                            q = f"{brand_found} {clean} packaging"
+                        else:
+                            q = f"{clean} packaging"
                         p_res = requests.post(
                             "https://google.serper.dev/images",
                             json={"q": q, "num": 3},
@@ -293,7 +392,7 @@ class PosSyncEngine:
                     desc = item.get("description", "").strip()
                     bc = str(item.get("barcode", "")).strip()
                     if not desc or not bc: continue
-                    img = lookup_google_image(desc) or "/products/banana-chips.png"
+                    img = lookup_google_image(desc, bc) or "/products/banana-chips.png"
                     cat = "General Grocery"
                     catslug = "grocery"
                     for pattern, m_img, m_cat, m_slug in PATTERNS:
@@ -313,8 +412,6 @@ class PosSyncEngine:
                         "price": price,
                         "offer_price": web_p if web_p and web_p < price else None,
                         "stock_quantity": max(0, int(float(item.get("quantity", 0)))),
-                        "category": cat,
-                        "category_slug": catslug,
                         "image_url": img,
                         "status": "published",
                         "updated_at": now_iso
@@ -322,7 +419,9 @@ class PosSyncEngine:
 
                 for i in range(0, len(prod_rows), 200):
                     p_batch = prod_rows[i:i + 200]
-                    requests.post(f"{sb_url}/rest/v1/products?on_conflict=slug", json=p_batch, headers=sb_headers, timeout=20)
+                    p_res = requests.post(f"{sb_url}/rest/v1/products?on_conflict=slug", json=p_batch, headers=sb_headers, timeout=20)
+                    if p_res.status_code >= 400:
+                        self.logger(f"Products table mirror warning ({p_res.status_code}): {p_res.text[:100]}", "warning")
 
                 requests.post(f"{sb_url}/rest/v1/pos_sync_logs", json={
                     "timestamp": now_iso,
@@ -341,10 +440,13 @@ class PosSyncEngine:
             return
         self.is_syncing = True
         try:
-            self.logger("--- Starting Inventory Stock & Price Synchronization ---", "info")
+            self.logger("--- Starting Inventory Stock, Price & Sales Synchronization ---", "info")
             items = self.fetch_inventory_from_db()
+            sales = self.fetch_sales_from_db(limit=100)
+            if sales:
+                self.logger(f"Read {len(sales)} recent sales tickets from RetailV2.", "info")
             self.logger(f"Read {len(items):,} items from RetailV2.", "info")
-            ok, msg = self.push_to_website(items)
+            ok, msg = self.push_to_website(items, sales)
             if ok:
                 self.logger(f"✅ Sync Finished: {msg}", "success")
             else:

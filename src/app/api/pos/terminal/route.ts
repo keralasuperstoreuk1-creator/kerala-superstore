@@ -532,6 +532,47 @@ export async function POST(req: NextRequest) {
     // Invalidate memory catalog cache on any mutating action
     memoryCatalogCache = null;
 
+    // DELETE INDIVIDUAL TRANSACTION
+    if (action === 'delete_transaction') {
+      const receiptNumber = body.receiptNumber || body.id;
+      if (!receiptNumber) {
+        return NextResponse.json({ success: false, error: 'Receipt number required' }, { status: 400 });
+      }
+
+      inMemoryTransactions = inMemoryTransactions.filter(
+        (t) => t.receiptNumber !== receiptNumber && t.id !== receiptNumber
+      );
+
+      if (isR2Configured()) {
+        try {
+          const existing = (await getJsonFromR2<PosTransaction[]>(POS_TRANSACTIONS_R2_KEY)) || [];
+          const updated = existing.filter(
+            (t) => t.receiptNumber !== receiptNumber && t.id !== receiptNumber
+          );
+          await saveJsonToR2(POS_TRANSACTIONS_R2_KEY, updated);
+        } catch (r2Err) {
+          console.warn('Could not delete transaction from R2:', r2Err);
+        }
+      }
+
+      return NextResponse.json({ success: true, message: `Receipt ${receiptNumber} deleted.` });
+    }
+
+    // CLEAR ALL TRANSACTIONS (e.g. wipe sample test sales)
+    if (action === 'clear_all_transactions') {
+      inMemoryTransactions = [];
+
+      if (isR2Configured()) {
+        try {
+          await saveJsonToR2(POS_TRANSACTIONS_R2_KEY, []);
+        } catch (r2Err) {
+          console.warn('Could not clear transactions from R2:', r2Err);
+        }
+      }
+
+      return NextResponse.json({ success: true, message: 'All transactions cleared.' });
+    }
+
     // 1. CHECKOUT TRANSACTION (Sales at till)
     if (action === 'checkout') {
       const {
