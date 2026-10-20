@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import { useStoreConfig } from '@/context/StoreConfigContext';
 
 export const ThemeParticleEffect: React.FC = () => {
+  const pathname = usePathname();
   const { config } = useStoreConfig();
   const theme = config.theme;
   const [mounted, setMounted] = useState(false);
@@ -13,7 +15,7 @@ export const ThemeParticleEffect: React.FC = () => {
   }, []);
 
   const particles = useMemo(() => {
-    if (!mounted || theme === 'default') return [];
+    if (!mounted || theme === 'default' || pathname?.startsWith('/pos')) return [];
     return Array.from({ length: 24 }).map((_, i) => ({
       id: i,
       left: Math.random() * 100,
@@ -22,9 +24,9 @@ export const ThemeParticleEffect: React.FC = () => {
       delay: Math.random() * 5,
       rotation: Math.random() * 360,
     }));
-  }, [mounted, theme]);
+  }, [mounted, theme, pathname]);
 
-  if (!mounted || theme === 'default') return null;
+  if (!mounted || theme === 'default' || pathname?.startsWith('/pos')) return null;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-30 overflow-hidden" aria-hidden="true">

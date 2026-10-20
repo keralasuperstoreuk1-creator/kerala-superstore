@@ -208,6 +208,16 @@ export default function PosTerminalPage() {
     } catch {}
   }, []);
 
+  // Sync direct background to prevent white/dark flashes across browser repaint cycles
+  useEffect(() => {
+    const bg = themeMode === 'light' ? '#f1f5f9' : '#020617';
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.backgroundColor = bg;
+      document.body.classList.remove('pos-dark-active', 'pos-light-active');
+      document.body.classList.add(themeMode === 'light' ? 'pos-light-active' : 'pos-dark-active');
+    }
+  }, [themeMode]);
+
   const handleToggleTheme = () => {
     if (typeof playBeep === 'function') {
       try { playBeep(750, 'sine', 0.05); } catch {}
@@ -465,16 +475,16 @@ export default function PosTerminalPage() {
 
       // Items List
       const maxCol = paperWidth === '80mm' ? 44 : 32;
-      (receipt.items || []).forEach((it: any) => {
+      for (const it of (receipt.items || [])) {
         const nameQty = `${it.qty}x ${it.name}`;
         const priceStr = `£${(Number(it.price || 0) * Number(it.qty || 1)).toFixed(2)}`;
         const spaces = Math.max(1, maxCol - nameQty.length - priceStr.length);
         if (nameQty.length + priceStr.length < maxCol) {
-          writeText(`${nameQty}${' '.repeat(spaces)}${priceStr}\n`);
+          await writeText(`${nameQty}${' '.repeat(spaces)}${priceStr}\n`);
         } else {
-          writeText(`${nameQty.slice(0, Math.max(0, maxCol - priceStr.length - 1))} ${priceStr}\n`);
+          await writeText(`${nameQty.slice(0, Math.max(0, maxCol - priceStr.length - 1))} ${priceStr}\n`);
         }
-      });
+      }
 
       await writeText('--------------------------------\n');
 
@@ -2274,7 +2284,7 @@ export default function PosTerminalPage() {
 
   return (
     <div
-      className={`flex h-screen w-screen overflow-hidden font-sans select-none ${
+      className={`fixed inset-0 flex h-screen w-screen overflow-hidden font-sans select-none ${
         themeMode === 'light' ? 'pos-light bg-slate-100 text-slate-900' : 'pos-dark bg-slate-950 text-slate-100'
       }`}
     >
@@ -2335,7 +2345,7 @@ export default function PosTerminalPage() {
               <RotateCcw className="w-5 h-5" />
               <span className="text-[10px] font-bold">Returns</span>
               {returnCart.length > 0 && (
-                <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+                <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-rose-400" />
               )}
             </button>
 
@@ -2439,7 +2449,9 @@ export default function PosTerminalPage() {
       {/* 2. MAIN CENTER CONTENT AREA */}
       <main className="flex-1 flex flex-col overflow-hidden bg-slate-950">
         {/* Top Terminal Status Header */}
-        <header className="h-16 border-b border-slate-800 px-4 sm:px-6 flex items-center justify-between gap-4 bg-slate-900/60 backdrop-blur-md shrink-0">
+        <header className={`h-16 border-b px-4 sm:px-6 flex items-center justify-between gap-4 shrink-0 ${
+          themeMode === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+        }`}>
           <div className="flex items-center gap-3">
             <div className="flex flex-col">
               <span className="text-sm font-black text-white tracking-tight flex items-center gap-2">
@@ -2514,7 +2526,7 @@ export default function PosTerminalPage() {
                     : activeUser.role === 'manager'
                     ? 'bg-blue-500 shadow-blue-500/50 shadow-sm'
                     : 'bg-emerald-500 shadow-emerald-500/50 shadow-sm'
-                } animate-pulse shrink-0`}
+                } shrink-0`}
               />
               <div className="flex flex-col items-start leading-none text-left">
                 <span className="text-[11px] font-black flex items-center gap-1.5">
@@ -2650,7 +2662,7 @@ export default function PosTerminalPage() {
         {/* Floating Cash Drawer Notification Banner */}
         {drawerKickNotification && (
           <div className="fixed top-18 right-6 z-[9999] bg-emerald-600 text-white px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-black animate-in fade-in slide-in-from-top-3 border border-emerald-400">
-            <Banknote className="w-4 h-4 animate-bounce" />
+            <Banknote className="w-4 h-4 shrink-0" />
             <span>{drawerKickNotification}</span>
           </div>
         )}
@@ -3416,7 +3428,7 @@ export default function PosTerminalPage() {
                                       className="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded-md bg-emerald-950/90 text-emerald-300 border border-emerald-700/60"
                                       title={`Matched with existing store stock: ${item.matchedName} (Current Stock: ${item.currentStock || 0}, Current Price: £${(item.currentPrice || 0).toFixed(2)})`}
                                     >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                                       Existing Stock ({item.currentStock || 0})
                                     </span>
                                   ) : (
@@ -3754,7 +3766,7 @@ export default function PosTerminalPage() {
                     </div>
 
                     <div className="flex items-center gap-2 text-xs bg-slate-950/80 border border-slate-800 px-3.5 py-2 rounded-xl text-slate-300">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
                       <span>Live Website &amp; Till Counter Sync Active</span>
                     </div>
                   </div>

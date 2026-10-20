@@ -67,14 +67,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Eliminate background flash on POS till interface */
-html:has(.pos-dark),
-body:has(.pos-dark) {
+/* Prevent background flash on POS till interface without expensive :has() selectors */
+body.pos-dark-active {
   background-color: #020617 !important;
 }
 
-html:has(.pos-light),
-body:has(.pos-light) {
+body.pos-light-active {
   background-color: #f1f5f9 !important;
 }
 
