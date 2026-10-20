@@ -335,6 +335,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   #thermal-receipt-preview,
   #thermal-return-preview,
   #thermal-closing-stock-preview,
+  #thermal-sales-report-preview,
   .pos-printable-receipt {
     position: relative !important;
     width: 100% !important;
@@ -356,7 +357,8 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 
   #thermal-receipt-preview.paper-58mm,
   #thermal-return-preview.paper-58mm,
-  #thermal-closing-stock-preview.paper-58mm {
+  #thermal-closing-stock-preview.paper-58mm,
+  #thermal-sales-report-preview.paper-58mm {
     max-width: 52mm !important;
     font-size: 9.5px !important;
     padding: 1mm 2mm 2mm 2mm !important;
@@ -366,6 +368,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   #thermal-receipt-preview *,
   #thermal-return-preview *,
   #thermal-closing-stock-preview *,
+  #thermal-sales-report-preview *,
   .pos-printable-receipt * {
     color: #000000 !important;
     -webkit-text-fill-color: #000000 !important;

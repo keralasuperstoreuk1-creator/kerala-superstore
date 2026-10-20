@@ -393,137 +393,135 @@ export default function PosTerminalPage() {
     }
   };
 
+  // Direct Raw ESC/POS USB Printer Engine (Zero Preview, Instant Hardware Print)
+  const printReceiptViaEscPos = async (receipt: any, paperWidth: '80mm' | '58mm' = '58mm') => {
+    const w = window as any;
+    if (!w.__kss_drawer_serial_port?.writable) return false;
+
+    try {
+      const writer = w.__kss_drawer_serial_port.writable.getWriter();
+      const enc = new TextEncoder();
+
+      const write = async (bytes: number[] | Uint8Array) => {
+        await writer.write(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
+      };
+
+      const writeText = async (text: string) => {
+        await writer.write(enc.encode(text));
+      };
+
+      // 1. Initialize Printer (ESC @)
+      await write([0x1B, 0x40]);
+
+      // 2. Center Align (ESC a 1)
+      await write([0x1B, 0x61, 0x01]);
+
+      // Double height & width for store name (ESC ! 0x30)
+      await write([0x1B, 0x21, 0x30]);
+      await writeText(`${storeInfo.name}\n`);
+
+      // Normal font (ESC ! 0x00)
+      await write([0x1B, 0x21, 0x00]);
+      await writeText(`${storeInfo.address}\n`);
+      await writeText(`Tel: ${storeInfo.phone}\n`);
+      await writeText(`VAT: ${storeInfo.vatNumber}\n`);
+      await writeText('--------------------------------\n');
+
+      // Left Align (ESC a 0)
+      await write([0x1B, 0x61, 0x00]);
+      await writeText(`Receipt: ${receipt.receiptNumber}\n`);
+      await writeText(`Date: ${receipt.date || new Date().toLocaleString('en-GB')}\n`);
+      await writeText(`Cashier: ${receipt.cashier || cashierName}\n`);
+      await writeText('--------------------------------\n');
+
+      // Items List
+      const maxCol = paperWidth === '80mm' ? 44 : 32;
+      (receipt.items || []).forEach((it: any) => {
+        const nameQty = `${it.qty}x ${it.name}`;
+        const priceStr = `£${(Number(it.price || 0) * Number(it.qty || 1)).toFixed(2)}`;
+        const spaces = Math.max(1, maxCol - nameQty.length - priceStr.length);
+        if (nameQty.length + priceStr.length < maxCol) {
+          writeText(`${nameQty}${' '.repeat(spaces)}${priceStr}\n`);
+        } else {
+          writeText(`${nameQty.slice(0, Math.max(0, maxCol - priceStr.length - 1))} ${priceStr}\n`);
+        }
+      });
+
+      await writeText('--------------------------------\n');
+
+      // Right Align for Totals (ESC a 2)
+      await write([0x1B, 0x61, 0x02]);
+      await writeText(`Subtotal: £${Number(receipt.subtotal || receipt.total || 0).toFixed(2)}\n`);
+      await writeText(`VAT: £${Number(receipt.vatTotal || 0).toFixed(2)}\n`);
+
+      // Bold for Total (ESC E 1)
+      await write([0x1B, 0x45, 0x01]);
+      await writeText(`TOTAL PAID: £${Number(receipt.total || 0).toFixed(2)}\n`);
+      await write([0x1B, 0x45, 0x00]);
+
+      await writeText(`Payment: ${String(receipt.paymentMethod || 'cash').toUpperCase()}\n`);
+      if (receipt.paymentMethod === 'cash' && receipt.changeDue !== undefined) {
+        await writeText(`Change Due: £${Number(receipt.changeDue).toFixed(2)}\n`);
+      }
+
+      // Center Align Footer
+      await write([0x1B, 0x61, 0x01]);
+      await writeText('--------------------------------\n');
+      await writeText('Bank: Kerala superstore Ltd\n');
+      await writeText('SC: 04-00-03  Acc: 44347284\n');
+      await writeText('Thank you for shopping!\n');
+      await writeText('www.keralasuperstore.com\n\n\n');
+
+      // Cash Drawer Kick if Cash (ESC p 0 25 250)
+      if (receipt.paymentMethod === 'cash') {
+        await write([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+      }
+
+      // Paper Cut (GS V 66 0)
+      await write([0x1D, 0x56, 0x42, 0x00]);
+
+      writer.releaseLock();
+      playBeep(1200, 'sine', 0.1);
+      return true;
+    } catch (err) {
+      console.warn('ESC/POS direct write error:', err);
+      return false;
+    }
+  };
+
   // Universal Thermal Receipt Printer Engine (Works on Epson, Star, Munbyn, Bixolon, Windows Drivers)
+  // Clean, Zero-Iframe, Zero-Blink, Silent Print Compatible
   const printElementToThermal = (
     elementId: string,
     paperWidth: '80mm' | '58mm' = receiptPaperWidth,
     isCashSale: boolean = false
   ) => {
     if (typeof window === 'undefined') return;
-    const element = document.getElementById(elementId);
-    if (!element) {
-      window.print();
+
+    // 1. If cash payment, trigger drawer kick pulse
+    if (isCashSale) {
+      triggerCashDrawerKick('cash_sale');
+    }
+
+    // 2. Direct WebSerial / WebUSB hardware print if connected (Bypasses browser print preview entirely!)
+    const w = window as any;
+    if (w.__kss_drawer_serial_port && w.__kss_drawer_serial_port.writable && elementId === 'thermal-receipt-preview' && lastReceipt) {
+      printReceiptViaEscPos(lastReceipt, paperWidth).then((success) => {
+        if (success) return;
+        window.print();
+      }).catch(() => {
+        window.print();
+      });
       return;
     }
 
-    const contentWidth = paperWidth === '80mm' ? '74mm' : '52mm';
-    const fontSize = paperWidth === '80mm' ? '11px' : '9.5px';
-    const logoWidth = paperWidth === '80mm' ? '65px' : '48px';
-
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '0';
-    iframe.style.width = contentWidth;
-    iframe.style.height = '800px';
-    iframe.style.border = '0';
-    iframe.style.opacity = '0';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) {
+    // 3. Clean Browser Print: Zero iframes, no DOM node destruction, no screen blinking!
+    // Handled perfectly by @media print in globals.css
+    try {
       window.print();
-      return;
+    } catch (err) {
+      console.warn('Window print error:', err);
     }
-
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>Receipt - Kerala Superstore UK</title>
-          <style>
-            @page {
-              margin: 0;
-              size: ${paperWidth} auto;
-            }
-            *, *::before, *::after {
-              box-sizing: border-box;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              color: #000000 !important;
-              -webkit-text-fill-color: #000000 !important;
-            }
-            html {
-              margin: 0 !important;
-              padding: 0 !important;
-              height: auto !important;
-              min-height: 0 !important;
-            }
-            body {
-              margin: 0 !important;
-              padding: 1mm 2mm 2mm 2mm !important;
-              width: ${contentWidth} !important;
-              max-width: ${contentWidth} !important;
-              height: auto !important;
-              min-height: 0 !important;
-              color: #000000 !important;
-              background: #ffffff !important;
-              font-family: 'Courier New', Courier, monospace, system-ui;
-              font-size: ${fontSize};
-              font-weight: 700;
-              line-height: 1.2;
-              overflow: hidden !important;
-            }
-            p, span, div, h4, td, th {
-              color: #000000 !important;
-              font-weight: 700 !important;
-            }
-            .text-slate-600, .text-slate-700, .text-slate-800, .text-slate-900 {
-              color: #000000 !important;
-              font-weight: 700 !important;
-            }
-            .border-slate-200, .border-slate-300, .border-slate-400, .border-slate-500, .border-dashed {
-              border-color: #000000 !important;
-              border-style: dashed !important;
-            }
-            img.receipt-logo {
-              display: block;
-              margin: 0 auto 4px auto;
-              max-width: ${logoWidth};
-              height: auto;
-              filter: grayscale(100%) contrast(200%) brightness(85%);
-              -webkit-filter: grayscale(100%) contrast(200%) brightness(85%);
-            }
-            img.receipt-qr {
-              display: block;
-              margin: 2px auto;
-              max-width: ${paperWidth === '80mm' ? '80px' : '60px'};
-              height: auto;
-              filter: contrast(180%) brightness(85%);
-              -webkit-filter: contrast(180%) brightness(85%);
-            }
-            .text-center { text-align: center; }
-            .text-right { text-align: right; }
-            .font-black, .font-bold { font-weight: 900 !important; }
-            .font-mono { font-family: 'Courier New', Courier, monospace; }
-            .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .border-b, .border-t, .border-dashed {
-              border-bottom: 1px dashed #000 !important;
-            }
-            .border-t-dashed {
-              border-top: 1px dashed #000 !important;
-            }
-          </style>
-        </head>
-        <body>
-          ${element.innerHTML}
-          ${isCashSale ? '<div style="font-family: \'control\', \'FontControl\', monospace; font-size: 1px; color: transparent; line-height: 0; height: 0; overflow: hidden; display: none;">A</div>' : ''}
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        try {
-          document.body.removeChild(iframe);
-        } catch {}
-      }, 2000);
-    }, 300);
   };
 
   // ESC/POS Cash Drawer Kick Engine (Opens RJ11 Solenoid via WebUSB / WebSerial / Audio / Control Pulse)
@@ -6296,20 +6294,35 @@ export default function PosTerminalPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                onClick={() => printElementToThermal('thermal-receipt-preview', receiptPaperWidth, lastReceipt?.paymentMethod === 'cash')}
-                className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print Bill ({receiptPaperWidth})</span>
-              </button>
+            <div className="space-y-2 pt-1">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => printElementToThermal('thermal-receipt-preview', receiptPaperWidth, lastReceipt?.paymentMethod === 'cash')}
+                  className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print Bill ({receiptPaperWidth})</span>
+                </button>
 
+                <button
+                  type="button"
+                  onClick={() => setReceiptModalOpen(false)}
+                  className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  New Sale
+                </button>
+              </div>
+
+              {/* Direct Hardware USB Print Option (Bypasses Preview completely) */}
               <button
-                onClick={() => setReceiptModalOpen(false)}
-                className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                type="button"
+                onClick={handlePairHardwarePrinter}
+                className="w-full py-1.5 px-3 bg-slate-950 hover:bg-slate-800/80 text-emerald-400 border border-emerald-500/30 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                title="Connect printer directly via USB for instant silent printing without any preview dialog"
               >
-                New Sale
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Direct USB Print (1-Click Pair • Zero Preview)</span>
               </button>
             </div>
           </div>
