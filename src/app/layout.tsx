@@ -27,11 +27,15 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
+      { url: '/logo.png' },
       { url: '/branding/kerala-superstore-round-logo.png' },
       { url: '/favicon.ico' },
+      { url: '/icon.png' },
     ],
     apple: [
+      { url: '/logo.png' },
       { url: '/branding/kerala-superstore-round-logo.png' },
+      { url: '/apple-touch-icon.png' },
     ],
   },
   alternates: {

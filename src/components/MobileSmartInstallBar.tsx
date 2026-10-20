@@ -61,12 +61,21 @@ export const MobileSmartInstallBar: React.FC = () => {
         <div className="relative flex items-center justify-between gap-2.5">
           {/* Left: App Logo & Description */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="relative w-10 h-10 rounded-2xl overflow-hidden border-2 border-amber-400 bg-emerald-900 shrink-0 shadow-md">
-              <Image
-                src="/branding/kerala-superstore-round-logo.png"
+            <div className="relative w-10 h-10 rounded-2xl overflow-hidden border-2 border-amber-400 bg-emerald-900 shrink-0 shadow-md flex items-center justify-center p-0.5">
+              <img
+                src="/logo.png"
                 alt="Kerala Super Store App"
-                fill
-                className="object-contain p-0.5"
+                width={40}
+                height={40}
+                loading="lazy"
+                decoding="async"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target.src.indexOf('/branding/') === -1) {
+                    target.src = '/branding/kerala-superstore-round-logo.png';
+                  }
+                }}
+                className="w-full h-full object-contain select-none"
               />
             </div>
             <div className="min-w-0">

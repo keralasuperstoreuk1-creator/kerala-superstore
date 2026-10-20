@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 
 interface LuxuryStoreLogoProps {
   className?: string;
@@ -27,13 +26,20 @@ export const LuxuryStoreLogo: React.FC<LuxuryStoreLogoProps> = ({
       <div className="absolute -inset-1.5 bg-gradient-to-tr from-amber-400/35 via-emerald-500/25 to-amber-300/35 rounded-full blur-xs opacity-75 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500 animate-pulse pointer-events-none" />
 
       {/* Authentic Kerala Superstore Round Badge (Clean transparent background) */}
-      <div className="relative w-full h-full transition-transform duration-500 group-hover:scale-105 group-hover:rotate-2 drop-shadow-md">
-        <Image
-          src="/branding/kerala-superstore-round-logo.png"
+      <div className="relative w-full h-full transition-transform duration-500 group-hover:scale-105 group-hover:rotate-2 drop-shadow-md flex items-center justify-center">
+        <img
+          src="/logo.png"
           alt="Kerala Superstore Manchester"
           width={dim}
           height={dim}
-          priority
+          loading="eager"
+          decoding="async"
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.indexOf('/branding/') === -1) {
+              target.src = '/branding/kerala-superstore-round-logo.png';
+            }
+          }}
           className="w-full h-full object-contain select-none"
         />
         {/* Subtle hover sheen reflection */}

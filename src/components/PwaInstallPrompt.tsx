@@ -35,12 +35,21 @@ export const PwaInstallPrompt: React.FC = () => {
         onClick={handleInstallClick}
         className="flex items-center gap-2 min-w-0 cursor-pointer group"
       >
-        <div className="relative w-6 h-6 rounded-full overflow-hidden shrink-0 border border-amber-400/80 bg-emerald-900 shadow-xs group-hover:scale-105 transition-transform">
-          <Image
-            src="/branding/kerala-superstore-round-logo.png"
+        <div className="relative w-6 h-6 rounded-full overflow-hidden shrink-0 border border-amber-400/80 bg-emerald-900 shadow-xs group-hover:scale-105 transition-transform flex items-center justify-center p-0.5">
+          <img
+            src="/logo.png"
             alt="App Icon"
-            fill
-            className="object-contain"
+            width={24}
+            height={24}
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (target.src.indexOf('/branding/') === -1) {
+                target.src = '/branding/kerala-superstore-round-logo.png';
+              }
+            }}
+            className="w-full h-full object-contain"
           />
         </div>
         <div className="truncate flex items-center gap-1.5">

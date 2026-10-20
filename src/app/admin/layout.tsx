@@ -139,12 +139,21 @@ export default function AdminLayout({
           {/* Logo & Store Info */}
           <div className="p-4 border-b border-slate-800">
             <Link href="/admin" className="flex items-center gap-3">
-              <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-emerald-500 bg-emerald-950 shrink-0">
-                <Image
-                  src="/branding/kerala-superstore-round-logo.png"
+              <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-emerald-500 bg-emerald-950 shrink-0 flex items-center justify-center p-0.5">
+                <img
+                  src="/logo.png"
                   alt="Kerala Superstore Admin"
-                  fill
-                  className="object-contain p-0.5"
+                  width={44}
+                  height={44}
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.indexOf('/branding/') === -1) {
+                      target.src = '/branding/kerala-superstore-round-logo.png';
+                    }
+                  }}
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div>

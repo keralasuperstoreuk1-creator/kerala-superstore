@@ -105,13 +105,21 @@ export default function AdminLoginPage() {
           <div className="text-center space-y-3 mb-8">
             <div className="inline-flex relative">
               <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-amber-500 via-emerald-500 to-amber-300 shadow-lg mx-auto">
-                <div className="w-full h-full rounded-full bg-emerald-950 flex items-center justify-center overflow-hidden relative">
-                  <Image
-                    src="/branding/kerala-superstore-round-logo.png"
+                <div className="w-full h-full rounded-full bg-emerald-950 flex items-center justify-center overflow-hidden relative p-1">
+                  <img
+                    src="/logo.png"
                     alt="Kerala Superstore"
                     width={72}
                     height={72}
-                    className="object-contain p-1"
+                    loading="eager"
+                    decoding="async"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src.indexOf('/branding/') === -1) {
+                        target.src = '/branding/kerala-superstore-round-logo.png';
+                      }
+                    }}
+                    className="w-full h-full object-contain"
                   />
                 </div>
               </div>

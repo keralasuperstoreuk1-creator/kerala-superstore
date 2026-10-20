@@ -178,12 +178,21 @@ export const AppDownloadSection: React.FC = () => {
               {/* App Header */}
               <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 px-4 py-3 flex items-center justify-between text-white shrink-0 border-b border-amber-400/20">
                 <div className="flex items-center gap-2">
-                  <div className="relative w-7 h-7 rounded-full overflow-hidden border border-amber-400">
-                    <Image
-                      src="/branding/kerala-superstore-round-logo.png"
+                  <div className="relative w-7 h-7 rounded-full overflow-hidden border border-amber-400 shrink-0 flex items-center justify-center">
+                    <img
+                      src="/logo.png"
                       alt="KSS"
-                      fill
-                      className="object-contain"
+                      width={28}
+                      height={28}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (target.src.indexOf('/branding/') === -1) {
+                          target.src = '/branding/kerala-superstore-round-logo.png';
+                        }
+                      }}
+                      className="w-full h-full object-contain"
                     />
                   </div>
                   <div>

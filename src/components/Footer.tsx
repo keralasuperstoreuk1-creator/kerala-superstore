@@ -72,12 +72,21 @@ export const Footer: React.FC = () => {
           {/* Column 1: Store Intro */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="relative w-12 h-12 rounded-full overflow-hidden border border-emerald-500/50 shrink-0 bg-transparent">
-                <Image
-                  src="/branding/kerala-superstore-round-logo.png"
+              <div className="relative w-12 h-12 shrink-0 bg-transparent flex items-center justify-center">
+                <img
+                  src="/logo.png"
                   alt="Kerala Superstore"
-                  fill
-                  className="object-contain"
+                  width={48}
+                  height={48}
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.indexOf('/branding/') === -1) {
+                      target.src = '/branding/kerala-superstore-round-logo.png';
+                    }
+                  }}
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div>
@@ -153,12 +162,21 @@ export const Footer: React.FC = () => {
         {/* Mobile App Download Callout in Footer */}
         <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 p-6 sm:p-8 rounded-3xl border border-emerald-500/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
           <div className="flex items-center gap-4 text-center md:text-left">
-            <div className="relative w-14 h-14 rounded-2xl overflow-hidden border-2 border-amber-400 bg-emerald-900 shadow-md shrink-0 mx-auto md:mx-0">
-              <Image
-                src="/branding/kerala-superstore-round-logo.png"
+            <div className="relative w-14 h-14 rounded-2xl overflow-hidden border-2 border-amber-400 bg-emerald-900 shadow-md shrink-0 mx-auto md:mx-0 flex items-center justify-center p-1">
+              <img
+                src="/logo.png"
                 alt="Kerala Superstore App"
-                fill
-                className="object-contain p-1"
+                width={56}
+                height={56}
+                loading="lazy"
+                decoding="async"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target.src.indexOf('/branding/') === -1) {
+                    target.src = '/branding/kerala-superstore-round-logo.png';
+                  }
+                }}
+                className="w-full h-full object-contain"
               />
             </div>
             <div>

@@ -140,12 +140,21 @@ export const AppDownloadModal: React.FC = () => {
             <div className="relative bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white p-5 sm:p-6 shrink-0 border-b border-amber-400/20">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
-                  <div className="relative w-12 h-12 rounded-2xl overflow-hidden border-2 border-amber-400/80 shadow-lg bg-emerald-900 shrink-0">
-                    <Image
-                      src="/branding/kerala-superstore-round-logo.png"
+                  <div className="relative w-12 h-12 rounded-2xl overflow-hidden border-2 border-amber-400/80 shadow-lg bg-emerald-900 shrink-0 flex items-center justify-center p-1">
+                    <img
+                      src="/logo.png"
                       alt="Kerala Superstore App"
-                      fill
-                      className="object-contain p-1"
+                      width={48}
+                      height={48}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (target.src.indexOf('/branding/') === -1) {
+                          target.src = '/branding/kerala-superstore-round-logo.png';
+                        }
+                      }}
+                      className="w-full h-full object-contain"
                     />
                   </div>
                   <div>

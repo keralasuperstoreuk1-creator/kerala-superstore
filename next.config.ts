@@ -14,8 +14,34 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Cache static branding and category assets for 1 year in browser/edge
-        source: '/(categories|specials|branding)/:path*',
+        source: '/branding/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/categories/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/specials/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/logo.png',
         headers: [
           {
             key: 'Cache-Control',

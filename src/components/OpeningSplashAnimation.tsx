@@ -85,13 +85,21 @@ export const OpeningSplashAnimation: React.FC<OpeningSplashAnimationProps> = ({ 
 
       {/* Pure Logo Only - Instant Reveal */}
       <div className="relative z-10 flex items-center justify-center">
-        <div className="relative w-36 h-36 sm:w-44 sm:h-44 drop-shadow-[0_10px_25px_rgba(0,0,0,0.5)]">
-          <Image
-            src="/branding/kerala-superstore-round-logo.png"
+        <div className="relative w-36 h-36 sm:w-44 sm:h-44 drop-shadow-[0_10px_25px_rgba(0,0,0,0.5)] flex items-center justify-center">
+          <img
+            src="/logo.png"
             alt="Kerala Superstore"
-            fill
-            priority
-            className="object-contain select-none"
+            width={176}
+            height={176}
+            loading="eager"
+            decoding="async"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (target.src.indexOf('/branding/') === -1) {
+                target.src = '/branding/kerala-superstore-round-logo.png';
+              }
+            }}
+            className="w-full h-full object-contain select-none"
           />
         </div>
       </div>
