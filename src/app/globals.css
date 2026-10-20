@@ -316,28 +316,23 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     width: 100% !important;
   }
 
-  /* When printing, hide all non-receipt elements and background screen */
-  nav, header, aside, main, .modal-backdrop, button, .no-print {
-    display: none !important;
+  /* Hide entire page without destroying DOM layout geometry (avoids screen repaint flash) */
+  body {
+    visibility: hidden !important;
   }
 
-  /* Completely eliminate modal dialog cards, backdrops, and containers so no borders or shadows show */
-  .fixed,
-  div[class*="backdrop"],
-  div[class*="max-w-sm"],
-  div[class*="rounded-3xl"],
-  div[class*="shadow-2xl"],
-  div[class*="bg-slate-900"],
-  div[class*="bg-slate-950"] {
-    position: static !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: 100% !important;
-    border-radius: 0 !important;
+  /* Make only the thermal slip visible and pinned to top-left of the print paper */
+  #thermal-receipt-preview,
+  #thermal-return-preview,
+  #thermal-closing-stock-preview,
+  #thermal-sales-report-preview,
+  .pos-printable-receipt,
+  #thermal-receipt-preview *,
+  #thermal-return-preview *,
+  #thermal-closing-stock-preview *,
+  #thermal-sales-report-preview *,
+  .pos-printable-receipt * {
+    visibility: visible !important;
   }
 
   /* Force thermal receipt preview to occupy full printable area with crisp black ink */
@@ -346,7 +341,9 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   #thermal-closing-stock-preview,
   #thermal-sales-report-preview,
   .pos-printable-receipt {
-    position: relative !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
     width: 100% !important;
     max-width: 78mm !important;
     margin: 0 !important;

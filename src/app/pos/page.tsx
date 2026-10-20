@@ -883,7 +883,9 @@ export default function PosTerminalPage() {
 
   // Load Total Sales & Period Report
   const fetchReport = async (periodOverride?: string, fromDate?: string, toDate?: string) => {
-    setLoadingReport(true);
+    if (activeTab === 'reports') {
+      setLoadingReport(true);
+    }
     try {
       const p = periodOverride || salesPeriod;
       let url = `/api/pos/terminal?action=report&period=${p}`;
@@ -2660,8 +2662,8 @@ export default function PosTerminalPage() {
         </header>
 
         {/* Floating Cash Drawer Notification Banner */}
-        {drawerKickNotification && (
-          <div className="fixed top-18 right-6 z-[9999] bg-emerald-600 text-white px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-xs font-black animate-in fade-in slide-in-from-top-3 border border-emerald-400">
+        {drawerKickNotification && !receiptModalOpen && (
+          <div className="fixed top-20 right-6 z-40 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-black border border-emerald-400">
             <Banknote className="w-4 h-4 shrink-0" />
             <span>{drawerKickNotification}</span>
           </div>
@@ -6083,8 +6085,8 @@ export default function PosTerminalPage() {
 
       {/* PAYMENT MODAL (Cash / Card Checkout) */}
       {paymentModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5 animate-scale-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <span>Payment Settlement</span>
@@ -6175,10 +6177,12 @@ export default function PosTerminalPage() {
 
       {/* THERMAL RECEIPT MODAL (Formatted 80mm & 58mm ESC/POS layout) */}
       {receiptModalOpen && lastReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-3 animate-scale-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-400">Sale Completed ✓</span>
+              <span className="text-xs font-bold text-emerald-400">
+                Sale Completed ✓ {lastReceipt.paymentMethod === 'cash' ? '(Cash Drawer Kicked)' : ''}
+              </span>
               <button
                 onClick={() => setReceiptModalOpen(false)}
                 className="text-slate-400 hover:text-white"
@@ -6352,8 +6356,8 @@ export default function PosTerminalPage() {
 
       {/* THERMAL RETURN / REFUND VOUCHER MODAL (Formatted 80mm & 58mm ESC/POS layout) */}
       {returnSlipModalOpen && lastReturnSlip && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-3 animate-scale-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-rose-400">Return Processed ✓</span>
               <button
