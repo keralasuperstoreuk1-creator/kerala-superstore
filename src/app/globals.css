@@ -67,6 +67,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Eliminate background flash on POS till interface */
+html:has(.pos-dark),
+body:has(.pos-dark) {
+  background-color: #020617 !important;
+}
+
+html:has(.pos-light),
+body:has(.pos-light) {
+  background-color: #f1f5f9 !important;
+}
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -299,7 +310,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   html, body {
     margin: 0 !important;
     padding: 0 !important;
-    background: #ffffff !important;
+    background: transparent !important;
     color: #000000 !important;
     font-family: 'Courier New', Courier, monospace, system-ui !important;
     -webkit-print-color-adjust: exact !important;

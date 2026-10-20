@@ -143,6 +143,36 @@ const POPULAR_UK_WHOLESALERS = [
 
 type PosTab = 'till' | 'purchase' | 'returns' | 'stock_manager' | 'reports' | 'barcode' | 'history';
 
+// Isolated Clock Micro-Component (Prevents entire 8,000-line POS page from re-rendering every 1 second)
+function PosLiveClock({ themeMode }: { themeMode: 'light' | 'dark' }) {
+  const [timeStr, setTimeStr] = useState('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setTimeStr(
+        now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
+        ' • ' +
+        now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      );
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <span
+      className={`text-[10px] font-mono font-semibold ${
+        themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'
+      }`}
+      suppressHydrationWarning
+    >
+      {timeStr}
+    </span>
+  );
+}
+
 export default function PosTerminalPage() {
   const [activeTab, setActiveTab] = useState<PosTab>('till');
   const [loading, setLoading] = useState(true);
@@ -165,7 +195,6 @@ export default function PosTerminalPage() {
   const [heldBills, setHeldBills] = useState<HeldBill[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [cashierName, setCashierName] = useState('Sathya (Cashier)');
-  const [currentTime, setCurrentTime] = useState('');
 
   // Theme Mode: Default to 'light' (high-visibility white retail till mode)
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
@@ -637,20 +666,7 @@ export default function PosTerminalPage() {
     }
   };
 
-  // Clock Update
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setCurrentTime(
-        now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
-        ' • ' +
-        now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-      );
-    };
-    updateTime();
-    const timer = setInterval(updateTime, 1000);
-    return () => clearInterval(timer);
-  }, []);
+
 
   // Global F12 Hotkey for opening cash drawer manually
   useEffect(() => {
@@ -1064,12 +1080,7 @@ export default function PosTerminalPage() {
 
   const fetchDailyReport = () => fetchReport();
 
-  // Auto-refresh live report when entering reports tab
-  useEffect(() => {
-    if (activeTab === 'reports') {
-      fetchReport();
-    }
-  }, [activeTab]);
+
 
 
   // Export Total Sales to CSV
@@ -2263,7 +2274,7 @@ export default function PosTerminalPage() {
 
   return (
     <div
-      className={`flex h-screen w-screen overflow-hidden font-sans select-none transition-colors duration-150 ${
+      className={`flex h-screen w-screen overflow-hidden font-sans select-none ${
         themeMode === 'light' ? 'pos-light bg-slate-100 text-slate-900' : 'pos-dark bg-slate-950 text-slate-100'
       }`}
     >
@@ -2474,11 +2485,9 @@ export default function PosTerminalPage() {
 
           {/* Right: Cashier, User Switcher & Admin Controls */}
           <div className="flex items-center gap-2.5 text-right">
-            {/* Live Clock */}
+            {/* Live Clock (Isolated Micro-Component) */}
             <div className="hidden xl:flex flex-col items-end">
-              <span className={`text-[10px] font-mono font-semibold ${themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'}`} suppressHydrationWarning>
-                {currentTime}
-              </span>
+              <PosLiveClock themeMode={themeMode} />
             </div>
 
             {/* Active Till User & Quick Shift Switcher */}
