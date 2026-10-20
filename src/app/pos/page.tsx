@@ -853,6 +853,30 @@ export default function PosTerminalPage() {
     const list: any[] = [];
     const seen = new Set<string>();
 
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const yesterdayDate = new Date(now);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const matchesCurrentPeriod = (ts?: string) => {
+      if (!ts) return false;
+      const dStr = String(ts).split('T')[0];
+      const d = new Date(ts);
+      if (salesPeriod === 'today') return dStr === todayStr || String(ts).includes(now.toLocaleDateString('en-GB'));
+      if (salesPeriod === 'yesterday') return dStr === yesterdayStr;
+      if (salesPeriod === 'week') return !isNaN(d.getTime()) && d >= sevenDaysAgo;
+      if (salesPeriod === 'month') return !isNaN(d.getTime()) && d >= thirtyDaysAgo;
+      if (salesPeriod === 'all') return true;
+      if (salesPeriod === 'custom' && customStartDate) {
+        const to = customEndDate || todayStr;
+        return dStr >= customStartDate && dStr <= to;
+      }
+      return dStr === todayStr;
+    };
+
     if (reportData && Array.isArray(reportData.recentTransactions)) {
       reportData.recentTransactions.forEach((tx: any) => {
         const id = tx.receiptNumber || tx.id;
@@ -878,8 +902,13 @@ export default function PosTerminalPage() {
       } catch {}
     }
 
-    return list;
-  }, [reportData]);
+    const filtered = list.filter((b) => matchesCurrentPeriod(b.timestamp || b.date));
+    return filtered.sort((a, b) => {
+      const ta = new Date(a.timestamp || a.date || 0).getTime();
+      const tb = new Date(b.timestamp || b.date || 0).getTime();
+      return tb - ta;
+    });
+  }, [reportData, salesPeriod, customStartDate, customEndDate]);
 
   // Load Total Sales & Period Report
   const fetchReport = async (periodOverride?: string, fromDate?: string, toDate?: string) => {
@@ -5442,9 +5471,15 @@ export default function PosTerminalPage() {
                     </div>
 
                     {/* Daily Bills (with Reprint) & Sold Products Ranking Dual View */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg space-y-4">
+                    <div className={`rounded-3xl p-5 shadow-lg space-y-4 transition-colors ${
+                      themeMode === 'light'
+                        ? 'bg-white border border-slate-200 text-slate-900 shadow-slate-200/50'
+                        : 'bg-slate-900 border border-slate-800 text-white'
+                    }`}>
                       {/* View Switcher: Bills & Receipts vs Sold Items */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3 ${
+                        themeMode === 'light' ? 'border-slate-200' : 'border-slate-800'
+                      }`}>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -5452,7 +5487,9 @@ export default function PosTerminalPage() {
                             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                               salesReportViewMode === 'bills'
                                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30'
-                                : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                                : themeMode === 'light'
+                                  ? 'bg-slate-100 text-slate-600 hover:text-slate-950 border border-slate-200'
+                                  : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
                             }`}
                           >
                             <Receipt className="w-4 h-4 text-emerald-300" />
@@ -5465,7 +5502,9 @@ export default function PosTerminalPage() {
                             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                               salesReportViewMode === 'items'
                                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30'
-                                : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                                : themeMode === 'light'
+                                  ? 'bg-slate-100 text-slate-600 hover:text-slate-950 border border-slate-200'
+                                  : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
                             }`}
                           >
                             <Package className="w-4 h-4 text-amber-300" />
@@ -5474,7 +5513,7 @@ export default function PosTerminalPage() {
                         </div>
 
                         <div className="relative w-full sm:w-64">
-                          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                           <input
                             type="text"
                             value={salesReportViewMode === 'bills' ? billSearchQuery : salesSearchQuery}
@@ -5486,7 +5525,11 @@ export default function PosTerminalPage() {
                               }
                             }}
                             placeholder={salesReportViewMode === 'bills' ? 'Search bill # (e.g. KSS-...), cashier...' : 'Filter sold items...'}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                            className={`w-full rounded-xl pl-8 pr-3 py-1.5 text-xs font-mono focus:outline-none focus:border-emerald-500 transition-colors ${
+                              themeMode === 'light'
+                                ? 'bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400'
+                                : 'bg-slate-950 border border-slate-800 text-white placeholder:text-slate-500'
+                            }`}
                           />
                         </div>
                       </div>
@@ -5507,7 +5550,11 @@ export default function PosTerminalPage() {
                           <div className="overflow-x-auto max-h-96 overflow-y-auto no-scrollbar">
                             <table className="w-full text-left text-xs">
                               <thead>
-                                <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider">
+                                <tr className={`border-b text-[10px] uppercase tracking-wider font-bold ${
+                                  themeMode === 'light'
+                                    ? 'border-slate-200 text-slate-600 bg-slate-50'
+                                    : 'border-slate-800 text-slate-400 bg-slate-950/60'
+                                }`}>
                                   <th className="py-2.5 px-3">Receipt No</th>
                                   <th className="py-2.5 px-3">Date &amp; Time</th>
                                   <th className="py-2.5 px-3">Cashier</th>
@@ -5517,7 +5564,9 @@ export default function PosTerminalPage() {
                                   <th className="py-2.5 px-3 text-center">Action</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+                              <tbody className={`divide-y font-mono text-[11px] ${
+                                themeMode === 'light' ? 'divide-slate-200' : 'divide-slate-800/60'
+                              }`}>
                                 {filteredBills.map((bill: any, idx: number) => {
                                   const itemCount = Array.isArray(bill.items)
                                     ? bill.items.reduce((s: number, i: any) => s + (Number(i.qty) || 1), 0)
@@ -5532,31 +5581,42 @@ export default function PosTerminalPage() {
                                     : bill.date || 'Recent';
 
                                   return (
-                                    <tr key={bill.receiptNumber || idx} className="hover:bg-slate-800/50 transition-colors">
-                                      <td className="py-2.5 px-3 font-bold text-white">
-                                        <span className="px-2 py-0.5 rounded-lg bg-emerald-950/70 border border-emerald-500/30 text-emerald-300">
+                                    <tr key={bill.receiptNumber || idx} className={`transition-colors ${
+                                      themeMode === 'light' ? 'hover:bg-emerald-50/50' : 'hover:bg-slate-800/50'
+                                    }`}>
+                                      <td className="py-2.5 px-3 font-bold">
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono text-xs font-black tracking-wider shadow-xs ${
+                                          themeMode === 'light'
+                                            ? 'bg-emerald-100 text-emerald-950 border border-emerald-400 font-extrabold'
+                                            : 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 font-extrabold'
+                                        }`}>
+                                          <Receipt className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
                                           {bill.receiptNumber}
                                         </span>
                                       </td>
-                                      <td className="py-2.5 px-3 text-slate-300 text-[10px] font-sans">
+                                      <td className={`py-2.5 px-3 text-[10px] font-sans ${themeMode === 'light' ? 'text-slate-700 font-medium' : 'text-slate-300'}`}>
                                         {dateStr}
                                       </td>
-                                      <td className="py-2.5 px-3 text-slate-400 text-[10px] font-sans">
+                                      <td className={`py-2.5 px-3 text-[10px] font-sans ${themeMode === 'light' ? 'text-slate-600 font-medium' : 'text-slate-400'}`}>
                                         {bill.cashier || 'Admin'}
                                       </td>
-                                      <td className="py-2.5 px-3 font-sans text-slate-200 text-xs truncate max-w-xs" title={bill.items?.map((it: any) => `${it.qty}x ${it.name}`).join(', ')}>
+                                      <td className={`py-2.5 px-3 font-sans text-xs truncate max-w-xs font-medium ${themeMode === 'light' ? 'text-slate-900' : 'text-slate-200'}`} title={bill.items?.map((it: any) => `${it.qty}x ${it.name}`).join(', ')}>
                                         {itemsText}
                                       </td>
                                       <td className="py-2.5 px-3 text-center">
                                         <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${
                                           bill.paymentMethod === 'card'
-                                            ? 'bg-blue-950 text-blue-300 border border-blue-500/30'
-                                            : 'bg-teal-950 text-teal-300 border border-teal-500/30'
+                                            ? themeMode === 'light'
+                                              ? 'bg-blue-100 text-blue-900 border border-blue-300 font-black'
+                                              : 'bg-blue-950 text-blue-300 border border-blue-500/30'
+                                            : themeMode === 'light'
+                                              ? 'bg-teal-100 text-teal-900 border border-teal-300 font-black'
+                                              : 'bg-teal-950 text-teal-300 border border-teal-500/30'
                                         }`}>
                                           {bill.paymentMethod || 'cash'}
                                         </span>
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-bold text-white text-xs">
+                                      <td className={`py-2.5 px-3 text-right font-black text-xs ${themeMode === 'light' ? 'text-slate-950' : 'text-white'}`}>
                                         £{Number(bill.total || 0).toFixed(2)}
                                       </td>
                                       <td className="py-2.5 px-3 text-center">

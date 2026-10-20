@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getUnifiedProductCatalog, markCatalogStale } from '@/lib/product-catalog';
 import { isNonFoodOrToiletries } from '@/lib/product-matching';
+import { isR2Configured, saveJsonToR2, getJsonFromR2 } from '@/lib/cloudflare-r2';
+
+const POS_TRANSACTIONS_R2_KEY = 'pos/transactions.json';
 
 // Fallback in-memory storage for transactions when offline or standalone
 interface PosTransaction {
@@ -47,109 +50,40 @@ export interface PosReturn {
 }
 
 function getInitialTransactions(): PosTransaction[] {
-  const today = new Date();
-  const d0 = today.toISOString();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const d1 = yesterday.toISOString();
-  const threeDaysAgo = new Date(today);
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-  const d2 = threeDaysAgo.toISOString();
-
-  return [
-    {
-      id: 'tx-init-1',
-      timestamp: d0,
-      receiptNumber: 'KSS-901421',
-      items: [
-        { barcode: '501234567001', name: 'Nirapara Matta Rice 5kg', price: 9.99, qty: 2, total: 19.98 },
-        { barcode: '501234567002', name: 'Eastern Chilli Powder 500g', price: 2.89, qty: 1, total: 2.89 },
-        { barcode: '501234567003', name: 'Aachi Sambar Powder 200g', price: 1.49, qty: 2, total: 2.98 },
-      ],
-      subtotal: 25.85,
-      vatTotal: 0.0,
-      total: 25.85,
-      paymentMethod: 'card',
-      cashier: 'Store Administrator',
-    },
-    {
-      id: 'tx-init-2',
-      timestamp: d0,
-      receiptNumber: 'KSS-901422',
-      items: [
-        { barcode: '501234567004', name: 'Brahmins Roasted Rava 1kg', price: 2.19, qty: 1, total: 2.19 },
-        { barcode: '501234567005', name: 'Kerala Banana Chips 250g', price: 2.49, qty: 3, total: 7.47 },
-        { barcode: '501234567006', name: 'Dettol Handwash Anti-Bacterial 250ml', price: 2.49, qty: 1, total: 2.49 },
-      ],
-      subtotal: 12.15,
-      vatTotal: 0.5,
-      total: 12.65,
-      paymentMethod: 'cash',
-      cashTendered: 20.0,
-      changeDue: 7.35,
-      cashier: 'Counter Cashier 1',
-    },
-    {
-      id: 'tx-init-3',
-      timestamp: d1,
-      receiptNumber: 'KSS-901380',
-      items: [
-        { barcode: '501234567001', name: 'Nirapara Matta Rice 5kg', price: 9.99, qty: 1, total: 9.99 },
-        { barcode: '501234567007', name: 'Parachute Coconut Oil 1L', price: 4.89, qty: 2, total: 9.78 },
-      ],
-      subtotal: 19.77,
-      vatTotal: 0.0,
-      total: 19.77,
-      paymentMethod: 'card',
-      cashier: 'Store Administrator',
-    },
-    {
-      id: 'tx-init-4',
-      timestamp: d2,
-      receiptNumber: 'KSS-901290',
-      items: [
-        { barcode: '501234567008', name: 'Double Horse Idiyappam Podi 1kg', price: 2.79, qty: 2, total: 5.58 },
-        { barcode: '501234567005', name: 'Kerala Banana Chips 250g', price: 2.49, qty: 2, total: 4.98 },
-      ],
-      subtotal: 10.56,
-      vatTotal: 0.0,
-      total: 10.56,
-      paymentMethod: 'cash',
-      cashTendered: 15.0,
-      changeDue: 4.44,
-      cashier: 'Counter Cashier 1',
-    },
-  ];
+  return [];
 }
 
 function getInitialReturns(): PosReturn[] {
-  const today = new Date();
-  return [
-    {
-      id: 'ret-init-1',
-      timestamp: today.toISOString(),
-      returnSlipNumber: 'RET-801210',
-      originalReceiptNumber: 'KSS-901380',
-      items: [
-        {
-          barcode: '501234567007',
-          name: 'Parachute Coconut Oil 1L',
-          price: 4.89,
-          qty: 1,
-          refundAmount: 4.89,
-          reason: 'Customer bought extra duplicate bottle',
-          condition: 'restockable',
-        },
-      ],
-      totalRefund: 4.89,
-      refundMethod: 'cash',
-      cashier: 'Store Administrator',
-    },
-  ];
+  return [];
 }
 
-let inMemoryTransactions: PosTransaction[] = getInitialTransactions();
-let inMemoryReturns: PosReturn[] = getInitialReturns();
+let inMemoryTransactions: PosTransaction[] = [];
+let inMemoryReturns: PosReturn[] = [];
+
+async function getAllTransactions(): Promise<PosTransaction[]> {
+  const mergedMap = new Map<string, PosTransaction>();
+
+  if (isR2Configured()) {
+    try {
+      const r2Txs = await getJsonFromR2<PosTransaction[]>(POS_TRANSACTIONS_R2_KEY);
+      if (Array.isArray(r2Txs)) {
+        r2Txs.forEach((t) => {
+          const key = t.receiptNumber || t.id;
+          if (key) mergedMap.set(key, t);
+        });
+      }
+    } catch (e) {
+      console.warn('Error reading transactions from R2:', e);
+    }
+  }
+
+  inMemoryTransactions.forEach((t) => {
+    const key = t.receiptNumber || t.id;
+    if (key) mergedMap.set(key, t);
+  });
+
+  return Array.from(mergedMap.values());
+}
 
 // High-speed in-memory cache for terminal catalog
 let memoryCatalogCache: { items: any[]; timestamp: number } | null = null;
@@ -171,7 +105,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: 'Receipt number required' }, { status: 400 });
       }
 
-      const foundTx = inMemoryTransactions.find(
+      const allTxs = await getAllTransactions();
+      const foundTx = allTxs.find(
         (t) => t.receiptNumber.toUpperCase() === receiptNumber || t.id.toUpperCase() === receiptNumber
       );
 
@@ -190,9 +125,10 @@ export async function GET(req: NextRequest) {
 
     // 2. Recent Sales Receipts (for easy click-to-return)
     if (action === 'recent_receipts') {
+      const allTxs = await getAllTransactions();
       return NextResponse.json({
         success: true,
-        receipts: inMemoryTransactions.slice(-25).reverse(),
+        receipts: allTxs.slice(-50).reverse(),
       });
     }
 
@@ -245,7 +181,8 @@ export async function GET(req: NextRequest) {
         return timestamp.startsWith(todayStr);
       };
 
-      const filteredTxs = inMemoryTransactions.filter((t) => filterRecordByPeriod(t.timestamp));
+      const allTxs = await getAllTransactions();
+      const filteredTxs = allTxs.filter((t) => filterRecordByPeriod(t.timestamp));
       const totalSales = filteredTxs.reduce((sum, t) => sum + t.total, 0);
       const cashSales = filteredTxs.filter((t) => t.paymentMethod === 'cash').reduce((sum, t) => sum + t.total, 0);
       const cardSales = filteredTxs.filter((t) => t.paymentMethod === 'card').reduce((sum, t) => sum + t.total, 0);
@@ -630,6 +567,17 @@ export async function POST(req: NextRequest) {
       };
 
       inMemoryTransactions.push(transaction);
+
+      // Persist permanently to Cloudflare R2 Cloud
+      if (isR2Configured()) {
+        try {
+          const existing = (await getJsonFromR2<PosTransaction[]>(POS_TRANSACTIONS_R2_KEY)) || [];
+          const updated = [transaction, ...existing.filter((t) => t.receiptNumber !== receiptNumber)].slice(0, 1500);
+          await saveJsonToR2(POS_TRANSACTIONS_R2_KEY, updated);
+        } catch (r2Err) {
+          console.warn('Could not save transaction to R2:', r2Err);
+        }
+      }
 
       // Decrement stock in Supabase for each purchased item
       if (supabaseAdmin) {
