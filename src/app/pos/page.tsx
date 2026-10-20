@@ -151,13 +151,13 @@ function PosLiveClock({ themeMode }: { themeMode: 'light' | 'dark' }) {
     const updateTime = () => {
       const now = new Date();
       setTimeStr(
-        now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
+        now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) +
         ' • ' +
         now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
       );
     };
     updateTime();
-    const timer = setInterval(updateTime, 1000);
+    const timer = setInterval(updateTime, 30000);
     return () => clearInterval(timer);
   }, []);
 
@@ -3006,7 +3006,7 @@ export default function PosTerminalPage() {
                       setPaymentModalOpen(true);
                     }}
                     disabled={cart.length === 0}
-                    className="py-3 px-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all shadow-md disabled:opacity-40 cursor-pointer"
+                    className="py-3 px-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex flex-col items-center justify-center gap-1 shadow-md disabled:opacity-40 cursor-pointer"
                   >
                     <CreditCard className="w-4 h-4" />
                     <span>Card / Tap</span>
@@ -3019,7 +3019,7 @@ export default function PosTerminalPage() {
                       setPaymentModalOpen(true);
                     }}
                     disabled={cart.length === 0}
-                    className="py-3 px-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs flex flex-col items-center justify-center gap-1 transition-all shadow-lg shadow-emerald-950/50 disabled:opacity-40 cursor-pointer"
+                    className="py-3 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex flex-col items-center justify-center gap-1 shadow-lg shadow-emerald-950/50 disabled:opacity-40 cursor-pointer"
                   >
                     <Banknote className="w-4 h-4" />
                     <span>Cash Pay</span>
@@ -6085,7 +6085,7 @@ export default function PosTerminalPage() {
 
       {/* PAYMENT MODAL (Cash / Card Checkout) */}
       {paymentModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 isolate">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-base font-black text-white flex items-center gap-2">
@@ -6150,7 +6150,6 @@ export default function PosTerminalPage() {
                   value={cashGiven}
                   onChange={(e) => setCashGiven(e.target.value)}
                   className="w-full bg-slate-950 border border-emerald-500/60 rounded-xl px-4 py-3 text-lg font-mono font-bold text-white focus:outline-hidden"
-                  autoFocus
                 />
 
                 {parseFloat(cashGiven) >= grandTotal && (
@@ -6167,7 +6166,7 @@ export default function PosTerminalPage() {
             <button
               onClick={handleConfirmPayment}
               disabled={isProcessingCheckout}
-              className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/60 cursor-pointer disabled:opacity-50"
+              className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-950/60 cursor-pointer disabled:opacity-50 transition-colors"
             >
               {isProcessingCheckout ? 'Processing Sale...' : '✓ Complete Sale & Deduct Stock'}
             </button>
@@ -6177,7 +6176,7 @@ export default function PosTerminalPage() {
 
       {/* THERMAL RECEIPT MODAL (Formatted 80mm & 58mm ESC/POS layout) */}
       {receiptModalOpen && lastReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 isolate">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-emerald-400">
