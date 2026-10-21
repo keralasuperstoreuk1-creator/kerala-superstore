@@ -25,7 +25,10 @@ DEFAULT_INSTALL_DIR = os.path.join(os.environ.get("LOCALAPPDATA", "C:\\"), "Kera
 CONFIG_DATA = {
     "website_url": "https://keralasuperstore.com",
     "api_key": "kss_pos_sync_key_2026_live",
-    "sync_interval_seconds": 30,
+    "supabase_url": "https://rnwthwaputocyirjtabd.supabase.co",
+    "supabase_key": os.environ.get("SUPABASE_SERVICE_ROLE_KEY", ""),
+    "sync_interval_seconds": 60,
+    "sync_to_website": false,
     "db_server": ".",
     "db_name": "epos",
     "db_user": "sa",
@@ -37,6 +40,8 @@ CONFIG_DATA = {
 
 def create_windows_shortcut(target_path, shortcut_path, description=""):
     try:
+        import pythoncom
+        pythoncom.CoInitialize()
         import win32com.client
         shell = win32com.client.Dispatch("WScript.Shell")
         shortcut = shell.CreateShortCut(shortcut_path)
@@ -46,6 +51,16 @@ def create_windows_shortcut(target_path, shortcut_path, description=""):
         shortcut.IconLocation = target_path
         shortcut.save()
         return True
+    except Exception:
+        pass
+
+    # High-reliability PowerShell fallback
+    try:
+        import subprocess
+        work_dir = os.path.dirname(target_path)
+        ps_cmd = f'$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut("{shortcut_path}"); $s.TargetPath = "{target_path}"; $s.WorkingDirectory = "{work_dir}"; $s.Description = "{description}"; $s.Save()'
+        subprocess.run(["powershell", "-NoProfile", "-Command", ps_cmd], capture_output=True, timeout=5)
+        return os.path.exists(shortcut_path)
     except Exception as e:
         print(f"Shortcut error: {e}")
         return False
@@ -372,36 +387,55 @@ class ModernInstallerApp(ctk.CTk):
         try:
             self._log("Creating application directory structure...", 0.15)
             os.makedirs(target_dir, exist_ok=True)
-            time.sleep(0.4)
+            time.sleep(0.3)
 
-            # Find source binary
+            # Close any running instance of the agent to avoid file locks
+            try:
+                import subprocess
+                subprocess.run(["taskkill", "/F", "/IM", APP_EXE], capture_output=True)
+                time.sleep(0.3)
+            except Exception:
+                pass
+
+            # Search source binary across candidate paths
             base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-            source_exe = os.path.join(base_dir, APP_EXE)
-            if not os.path.exists(source_exe):
-                root_cand = os.path.abspath(os.path.join(base_dir, "..", "..", "public", "downloads", APP_EXE))
-                if os.path.exists(root_cand):
-                    source_exe = root_cand
+            candidates = [
+                os.path.join(base_dir, APP_EXE),
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), APP_EXE),
+                os.path.abspath(os.path.join(base_dir, "..", "dist", APP_EXE)),
+                os.path.abspath(os.path.join(base_dir, "..", "..", "public", "downloads", APP_EXE)),
+                os.path.join(os.getcwd(), APP_EXE),
+                os.path.abspath(os.path.join(os.getcwd(), "public", "downloads", APP_EXE)),
+            ]
+            source_exe = None
+            for cand in candidates:
+                if cand and os.path.exists(cand):
+                    source_exe = cand
+                    break
 
             dest_exe = os.path.join(target_dir, APP_EXE)
             dest_cfg = os.path.join(target_dir, "config.json")
             self.installed_exe_path = dest_exe
 
             self._log("Unpacking NextGen sync engine executable...", 0.35)
-            if os.path.exists(source_exe):
-                shutil.copy2(source_exe, dest_exe)
-            time.sleep(0.5)
+            if source_exe:
+                if not (os.path.exists(dest_exe) and os.path.abspath(source_exe).lower() == os.path.abspath(dest_exe).lower()):
+                    shutil.copy2(source_exe, dest_exe)
+            elif not os.path.exists(dest_exe):
+                raise FileNotFoundError(f"Could not locate {APP_EXE} in installation bundle.")
+            time.sleep(0.4)
 
             self._log("Configuring RetailV2 SQL Server (epos) connection parameters...", 0.55)
             with open(dest_cfg, "w", encoding="utf-8") as f:
                 json.dump(CONFIG_DATA, f, indent=2)
-            time.sleep(0.4)
+            time.sleep(0.3)
 
             if self.desktop_shortcut_var.get():
                 self._log("Creating Desktop shortcut with application icon...", 0.75)
                 desktop_dir = os.path.join(os.path.expanduser("~"), "Desktop")
                 shortcut_path = os.path.join(desktop_dir, f"{APP_NAME}.lnk")
                 create_windows_shortcut(dest_exe, shortcut_path, "Kerala Superstore POS Stock Sync")
-                time.sleep(0.3)
+                time.sleep(0.2)
 
             # Start menu
             try:
@@ -415,16 +449,20 @@ class ModernInstallerApp(ctk.CTk):
             if self.startup_var.get():
                 self._log("Configuring Windows Background Auto-Start service...", 0.95)
                 add_to_startup(dest_exe)
-                time.sleep(0.3)
+                time.sleep(0.2)
 
             self._log("Finalizing installation and verifying integrity...", 1.0)
-            time.sleep(0.5)
+            time.sleep(0.4)
 
             self.after(0, self.render_success_screen)
 
         except Exception as ex:
             self._log(f"Installation Error: {ex}")
-            self.after(0, lambda: self.btn_cancel.configure(state="normal"))
+            def _on_error():
+                self.lbl_status.configure(text=f"⚠️ Notice: {str(ex)[:60]}", text_color="#ef4444")
+                self.btn_cancel.configure(state="normal", text="✖ Close")
+                self.btn_action.configure(state="normal", text="🔄 Retry", command=self.start_installation)
+            self.after(0, _on_error)
 
     def render_success_screen(self):
         for widget in self.main_body.winfo_children():

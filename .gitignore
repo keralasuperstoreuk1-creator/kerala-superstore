@@ -45,5 +45,11 @@ next-env.d.ts
 
 # executables and heavy installers (hosted on GitHub Releases, NOT Vercel)
 *.exe
+*.zip
+*.pkg
 /public/downloads/*.exe
+/public/downloads/*.zip
+/tools/pos_sync/build/
+/tools/pos_sync/dist/
+/tools/pos_sync/config.json
 

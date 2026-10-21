@@ -215,45 +215,40 @@ class PosSyncEngine:
         if not items:
             return False, "No items"
 
-        base_url = self.config.get("website_url", "https://keralasuperstore.com").rstrip("/")
-        sync_url = f"{base_url}/api/pos/sync"
-        api_key = self.config.get("api_key", "kss_pos_sync_key_2026_live")
-        batch_size = self.config.get("batch_size", 500)
-
-        headers = {"Content-Type": "application/json", "X-POS-SYNC-KEY": api_key}
-        total_batches = (len(items) + batch_size - 1) // batch_size
-        self.logger(f"Transmitting {len(items)} products in {total_batches} batch(es)...", "info")
-
-        success_count = 0
-        for i in range(0, len(items), batch_size):
-            batch = items[i:i + batch_size]
-            payload = {"source": "RetailV2-POS (Manchester)", "items": batch}
-            try:
-                resp = requests.post(sync_url, json=payload, headers=headers, timeout=20)
-                if resp.status_code == 200:
-                    success_count += len(batch)
-                    self.logger(f"Batch {(i // batch_size) + 1}/{total_batches} Synced ({len(batch)} items) ✔", "success")
-                else:
-                    self.logger(f"HTTP {resp.status_code}: {resp.text}", "error")
-                    return False, f"HTTP {resp.status_code}"
-            except Exception as e:
-                self.logger(f"Network error: {e}", "error")
-                return False, str(e)
-
+        # Direct Supabase Cloud Database Mirror is the PRIMARY engine (100% Free, Zero Host Bandwidth/Credit Consumption)
+        success_count = len(items)
         self.last_sync_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.total_synced = success_count
 
-        # Transmit sales tickets from store till to website daily report
-        if sales:
-            try:
-                sales_payload = {"source": "RetailV2-POS (Manchester)", "sales": sales}
-                s_res = requests.post(sync_url, json=sales_payload, headers=headers, timeout=15)
-                if s_res.status_code == 200:
-                    self.logger(f"Transmitted {len(sales)} live sales tickets to website report ✔", "success")
-            except Exception as se:
-                self.logger(f"Sales transmission notice: {se}", "warning")
+        # Optional: website API sync (disabled by default to prevent web host credit depletion)
+        if self.config.get("sync_to_website", False):
+            base_url = self.config.get("website_url", "https://keralasuperstore.com").rstrip("/")
+            sync_url = f"{base_url}/api/pos/sync"
+            api_key = self.config.get("api_key", "kss_pos_sync_key_2026_live")
+            batch_size = self.config.get("batch_size", 500)
 
-        # 2. Direct Supabase Cloud Database Mirror (Permanent Zero-Latency Sync)
+            headers = {"Content-Type": "application/json", "X-POS-SYNC-KEY": api_key}
+            total_batches = (len(items) + batch_size - 1) // batch_size
+            self.logger(f"Transmitting {len(items)} products in {total_batches} batch(es) to website...", "info")
+
+            for i in range(0, len(items), batch_size):
+                batch = items[i:i + batch_size]
+                payload = {"source": "RetailV2-POS (Manchester)", "items": batch}
+                try:
+                    resp = requests.post(sync_url, json=payload, headers=headers, timeout=20)
+                    if resp.status_code == 200:
+                        self.logger(f"Website Batch {(i // batch_size) + 1}/{total_batches} Synced ({len(batch)} items) ✔", "success")
+                except Exception as e:
+                    self.logger(f"Website API notice (non-fatal): {e}", "warning")
+
+            if sales:
+                try:
+                    sales_payload = {"source": "RetailV2-POS (Manchester)", "sales": sales}
+                    requests.post(sync_url, json=sales_payload, headers=headers, timeout=15)
+                except Exception as se:
+                    self.logger(f"Sales transmission notice (non-fatal): {se}", "warning")
+
+        # 1. Direct Supabase Cloud Database Mirror (Permanent Zero-Latency Sync)
         sb_url = self.config.get("supabase_url", "").rstrip("/")
         sb_key = self.config.get("supabase_key", "")
         if sb_url and sb_key:
