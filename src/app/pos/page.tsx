@@ -368,6 +368,8 @@ export default function PosTerminalPage() {
   const [closingStockStatusFilter, setClosingStockStatusFilter] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
   const [closingStockPage, setClosingStockPage] = useState(1);
   const closingStockPageSize = 50;
+  const [closingStockA4ModalOpen, setClosingStockA4ModalOpen] = useState(false);
+  const [closingStockAuditDate, setClosingStockAuditDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   // POS Multi-User & Admin Credentials Management State
   const [allUsers, setAllUsers] = useState<PosUser[]>(DEFAULT_USERS);
@@ -909,6 +911,38 @@ export default function PosTerminalPage() {
       return tb - ta;
     });
   }, [reportData, salesPeriod, customStartDate, customEndDate]);
+
+  // Quantity and revenue sold per barcode on the selected Closing Stock Audit Date
+  const dateSoldMap = useMemo(() => {
+    const map: Record<string, { qty: number; revenue: number }> = {};
+    if (!reportBills || !Array.isArray(reportBills)) return map;
+
+    reportBills.forEach((b: any) => {
+      const bDate = b.timestamp
+        ? String(b.timestamp).split('T')[0]
+        : (b.date ? String(b.date).split('T')[0] : '');
+      if (bDate === closingStockAuditDate) {
+        if (Array.isArray(b.items)) {
+          b.items.forEach((it: any) => {
+            const bc = String(it.barcode || it.sku || it.name || '').trim();
+            if (bc) {
+              const q = Number(it.qty) || 1;
+              const rev = Number(it.total) || (Number(it.price) * q) || 0;
+              if (!map[bc]) map[bc] = { qty: 0, revenue: 0 };
+              map[bc].qty += q;
+              map[bc].revenue += rev;
+            }
+          });
+        }
+      }
+    });
+
+    return map;
+  }, [reportBills, closingStockAuditDate]);
+
+  const totalSoldOnDate = useMemo(() => {
+    return Object.values(dateSoldMap).reduce((acc, curr) => acc + curr.qty, 0);
+  }, [dateSoldMap]);
 
   // Load Total Sales & Period Report
   const fetchReport = async (periodOverride?: string, fromDate?: string, toDate?: string) => {
@@ -5804,65 +5838,103 @@ export default function PosTerminalPage() {
             {/* ======================================================== */}
             {reportsSubTab === 'closing_stock' && (
               <div className="space-y-6 animate-in fade-in">
-                {/* 5 Closing Stock Summary Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {/* 6 Closing Stock Summary Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div className={`p-4 rounded-2xl transition-colors ${
+                    themeMode === 'light'
+                      ? 'bg-white border border-slate-200 shadow-xs'
+                      : 'bg-slate-900 border border-slate-800 shadow-sm'
+                  }`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${themeMode === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
                       Closing Stock Worth
                     </span>
-                    <div className="text-2xl font-black text-emerald-400 mt-1 font-mono">
+                    <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
                       £{closingStockMetrics.totalRetailValue.toFixed(2)}
                     </div>
-                    <span className="text-[10px] text-slate-500">Retail shelf asset value</span>
+                    <span className={`text-[10px] ${themeMode === 'light' ? 'text-slate-500' : 'text-slate-500'}`}>Retail shelf asset value</span>
                   </div>
 
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Total Physical Units
+                  <div className={`p-4 rounded-2xl transition-colors ${
+                    themeMode === 'light'
+                      ? 'bg-white border border-slate-200 shadow-xs'
+                      : 'bg-slate-900 border border-slate-800 shadow-sm'
+                  }`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${themeMode === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Total Units in Stock
                     </span>
-                    <div className="text-2xl font-black text-white mt-1 font-mono">
+                    <div className={`text-2xl font-black mt-1 font-mono ${themeMode === 'light' ? 'text-slate-900' : 'text-white'}`}>
                       {closingStockMetrics.totalUnits.toLocaleString()}
                     </div>
-                    <span className="text-[10px] text-slate-500">Across {products.length} SKUs</span>
+                    <span className={`text-[10px] ${themeMode === 'light' ? 'text-slate-500' : 'text-slate-500'}`}>Across {products.length} SKUs</span>
                   </div>
 
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <div className={`p-4 rounded-2xl transition-colors ${
+                    themeMode === 'light'
+                      ? 'bg-white border border-slate-200 shadow-xs'
+                      : 'bg-slate-900 border border-slate-800 shadow-sm'
+                  }`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${themeMode === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
                       Active Catalog SKUs
                     </span>
-                    <div className="text-2xl font-black text-teal-300 mt-1 font-mono">
+                    <div className="text-2xl font-black text-teal-600 dark:text-teal-300 mt-1 font-mono">
                       {products.length}
                     </div>
-                    <span className="text-[10px] text-slate-500">Product barcodes</span>
+                    <span className={`text-[10px] ${themeMode === 'light' ? 'text-slate-500' : 'text-slate-500'}`}>Product barcodes</span>
                   </div>
 
-                  <div className="bg-slate-900 border border-amber-500/30 p-4 rounded-2xl bg-amber-950/10 shadow-sm">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                  <div className={`p-4 rounded-2xl transition-colors ${
+                    themeMode === 'light'
+                      ? 'bg-amber-50/70 border border-amber-300 shadow-xs'
+                      : 'bg-slate-900 border border-amber-500/30 bg-amber-950/10 shadow-sm'
+                  }`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${themeMode === 'light' ? 'text-amber-800' : 'text-amber-400'}`}>
                       Low Stock (&le; 5)
                     </span>
-                    <div className="text-2xl font-black text-amber-400 mt-1 font-mono">
+                    <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 font-mono">
                       {closingStockMetrics.lowStockCount}
                     </div>
-                    <span className="text-[10px] text-amber-300/70">Needs urgent supplier order</span>
+                    <span className={`text-[10px] ${themeMode === 'light' ? 'text-amber-700/80' : 'text-amber-300/70'}`}>Needs reorder</span>
                   </div>
 
-                  <div className="bg-slate-900 border border-rose-500/30 p-4 rounded-2xl bg-rose-950/10 shadow-sm col-span-2 sm:col-span-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400">
+                  <div className={`p-4 rounded-2xl transition-colors ${
+                    themeMode === 'light'
+                      ? 'bg-rose-50/70 border border-rose-300 shadow-xs'
+                      : 'bg-slate-900 border border-rose-500/30 bg-rose-950/10 shadow-sm'
+                  }`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${themeMode === 'light' ? 'text-rose-800' : 'text-rose-400'}`}>
                       Out of Stock (0)
                     </span>
-                    <div className="text-2xl font-black text-rose-400 mt-1 font-mono">
+                    <div className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1 font-mono">
                       {closingStockMetrics.outOfStockCount}
                     </div>
-                    <span className="text-[10px] text-rose-300/70">Zero units on shelf</span>
+                    <span className={`text-[10px] ${themeMode === 'light' ? 'text-rose-700/80' : 'text-rose-300/70'}`}>Zero shelf units</span>
+                  </div>
+
+                  <div className={`p-4 rounded-2xl transition-colors ${
+                    themeMode === 'light'
+                      ? 'bg-blue-50/70 border border-blue-300 shadow-xs'
+                      : 'bg-slate-900 border border-blue-500/30 bg-blue-950/10 shadow-sm'
+                  }`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${themeMode === 'light' ? 'text-blue-800' : 'text-blue-400'}`}>
+                      Sold on Audit Date
+                    </span>
+                    <div className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1 font-mono">
+                      {totalSoldOnDate} pcs
+                    </div>
+                    <span className={`text-[10px] ${themeMode === 'light' ? 'text-blue-700/80' : 'text-blue-300/70'}`}>On {closingStockAuditDate}</span>
                   </div>
                 </div>
 
-                {/* Filter & Search Bar for Closing Stock Table */}
-                <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-md space-y-3">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                {/* Filter, Audit Date & Action Bar */}
+                <div className={`p-4 rounded-3xl space-y-3 transition-colors ${
+                  themeMode === 'light'
+                    ? 'bg-white border border-slate-200 shadow-xs'
+                    : 'bg-slate-900 border border-slate-800 shadow-md'
+                }`}>
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                     {/* Live Search */}
                     <div className="relative flex-1 max-w-md">
-                      <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         value={closingStockSearchQuery}
@@ -5871,19 +5943,44 @@ export default function PosTerminalPage() {
                           setClosingStockPage(1);
                         }}
                         placeholder="Search stock by item name, barcode, or category..."
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                        className={`w-full rounded-xl pl-9 pr-3 py-2 text-xs font-mono focus:outline-none focus:border-emerald-500 transition-colors ${
+                          themeMode === 'light'
+                            ? 'bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400'
+                            : 'bg-slate-950 border border-slate-800 text-white placeholder:text-slate-500'
+                        }`}
                       />
                     </div>
 
-                    {/* Category Dropdown */}
-                    <div className="flex items-center gap-2">
+                    {/* Date Picker, Category Dropdown & Actions */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Date-wise Audit selector */}
+                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-colors ${
+                        themeMode === 'light'
+                          ? 'bg-slate-50 border-slate-200 text-slate-800'
+                          : 'bg-slate-950 border-slate-800 text-slate-300'
+                      }`}>
+                        <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="font-bold text-[11px] whitespace-nowrap">Audit Date:</span>
+                        <input
+                          type="date"
+                          value={closingStockAuditDate}
+                          onChange={(e) => setClosingStockAuditDate(e.target.value)}
+                          className="bg-transparent font-mono font-bold text-xs focus:outline-none cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Category Dropdown */}
                       <select
                         value={closingStockFilterCategory}
                         onChange={(e) => {
                           setClosingStockFilterCategory(e.target.value);
                           setClosingStockPage(1);
                         }}
-                        className="bg-slate-950 border border-slate-800 text-xs text-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500"
+                        className={`text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500 transition-colors ${
+                          themeMode === 'light'
+                            ? 'bg-slate-50 border border-slate-200 text-slate-900'
+                            : 'bg-slate-950 border border-slate-800 text-slate-200'
+                        }`}
                       >
                         <option value="all">All Categories ({availableCategories.length})</option>
                         {availableCategories.map((c) => (
@@ -5891,32 +5988,54 @@ export default function PosTerminalPage() {
                         ))}
                       </select>
 
-                      {/* Action buttons */}
+                      {/* Print Detailed Report (A4 / Page Print) */}
+                      <button
+                        type="button"
+                        onClick={() => setClosingStockA4ModalOpen(true)}
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer hover:scale-105 transition-all"
+                        title="Print detailed full-page A4 closing stock audit report"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Print Detailed Report (A4)</span>
+                      </button>
+
+                      {/* Print Thermal Slip */}
                       <button
                         type="button"
                         onClick={() => setClosingStockModalOpen(true)}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                        className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+                          themeMode === 'light'
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                        }`}
                         title="Print thermal closing stock certificate"
                       >
-                        <Printer className="w-3.5 h-3.5" />
-                        <span>Print Stock Slip</span>
+                        <FileText className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Thermal Slip</span>
                       </button>
 
+                      {/* Export CSV */}
                       <button
                         type="button"
                         onClick={handleDownloadClosingStockCsv}
-                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                        className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+                          themeMode === 'light'
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                        }`}
                         title="Download complete closing stock CSV"
                       >
-                        <Download className="w-3.5 h-3.5 text-emerald-400" />
+                        <Download className="w-3.5 h-3.5 text-emerald-500" />
                         <span className="hidden sm:inline">Export CSV</span>
                       </button>
                     </div>
                   </div>
 
                   {/* Stock Status Filter Pills */}
-                  <div className="flex items-center gap-2 pt-1 border-t border-slate-800 overflow-x-auto no-scrollbar">
-                    <span className="text-[11px] font-bold text-slate-400 shrink-0">Status:</span>
+                  <div className={`flex items-center gap-2 pt-2 border-t overflow-x-auto no-scrollbar ${
+                    themeMode === 'light' ? 'border-slate-200' : 'border-slate-800'
+                  }`}>
+                    <span className={`text-[11px] font-bold shrink-0 ${themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>Status:</span>
                     {[
                       { id: 'all', label: `All Items (${products.length})` },
                       { id: 'in_stock', label: 'Healthy Stock (> 5)' },
@@ -5932,7 +6051,9 @@ export default function PosTerminalPage() {
                         }}
                         className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
                           closingStockStatusFilter === st.id
-                            ? 'bg-emerald-600 text-white shadow-sm'
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : themeMode === 'light'
+                            ? 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
                             : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
                         }`}
                       >
@@ -5943,17 +6064,21 @@ export default function PosTerminalPage() {
                 </div>
 
                 {/* Comprehensive Closing Stock Inventory Table */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg space-y-4">
+                <div className={`rounded-3xl p-5 shadow-sm space-y-4 transition-colors ${
+                  themeMode === 'light'
+                    ? 'bg-white border border-slate-200'
+                    : 'bg-slate-900 border border-slate-800'
+                }`}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-black text-white flex items-center gap-2">
+                      <h3 className={`text-sm font-black flex items-center gap-2 ${themeMode === 'light' ? 'text-slate-900' : 'text-white'}`}>
                         <span>Closing Stock Inventory Register</span>
-                        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold">
                           {filteredClosingStockItems.length} Products Found
                         </span>
                       </h3>
-                      <p className="text-xs text-slate-400">
-                        Showing page {closingStockPage} of {closingStockTotalPages} (50 items per page)
+                      <p className={`text-xs ${themeMode === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                        Showing page {closingStockPage} of {closingStockTotalPages} (50 items per page) • Audit Date: {closingStockAuditDate}
                       </p>
                     </div>
 
@@ -5963,18 +6088,26 @@ export default function PosTerminalPage() {
                         type="button"
                         disabled={closingStockPage <= 1}
                         onClick={() => setClosingStockPage((p) => Math.max(1, p - 1))}
-                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-200 rounded-lg font-bold cursor-pointer"
+                        className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer disabled:opacity-40 transition-colors ${
+                          themeMode === 'light'
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                        }`}
                       >
                         Prev
                       </button>
-                      <span className="px-2 font-mono text-slate-400 text-xs">
+                      <span className={`px-2 font-mono text-xs font-bold ${themeMode === 'light' ? 'text-slate-700' : 'text-slate-400'}`}>
                         {closingStockPage} / {closingStockTotalPages}
                       </span>
                       <button
                         type="button"
                         disabled={closingStockPage >= closingStockTotalPages}
                         onClick={() => setClosingStockPage((p) => Math.min(closingStockTotalPages, p + 1))}
-                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-200 rounded-lg font-bold cursor-pointer"
+                        className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer disabled:opacity-40 transition-colors ${
+                          themeMode === 'light'
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                        }`}
                       >
                         Next
                       </button>
@@ -5983,63 +6116,92 @@ export default function PosTerminalPage() {
 
                   <div className="overflow-x-auto max-h-[500px] overflow-y-auto no-scrollbar">
                     <table className="w-full text-left text-xs">
-                      <thead className="sticky top-0 bg-slate-900 z-10">
-                        <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider">
+                      <thead className={`sticky top-0 z-10 ${
+                        themeMode === 'light' ? 'bg-slate-50 text-slate-700' : 'bg-slate-900 text-slate-400'
+                      }`}>
+                        <tr className={`border-b text-[10px] uppercase tracking-wider font-extrabold ${
+                          themeMode === 'light' ? 'border-slate-200' : 'border-slate-800'
+                        }`}>
                           <th className="py-2.5 px-3">Barcode</th>
                           <th className="py-2.5 px-3">Product Name</th>
                           <th className="py-2.5 px-3">Category</th>
                           <th className="py-2.5 px-3 text-right">Shelf Price</th>
+                          <th className="py-2.5 px-3 text-center">Sold on Date</th>
                           <th className="py-2.5 px-3 text-center">Closing Qty</th>
                           <th className="py-2.5 px-3 text-right">Closing Value (£)</th>
                           <th className="py-2.5 px-3 text-center">Stock Status</th>
                           <th className="py-2.5 px-3 text-center">Action</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+                      <tbody className={`divide-y font-mono text-[11px] ${
+                        themeMode === 'light' ? 'divide-slate-200' : 'divide-slate-800/60'
+                      }`}>
                         {paginatedClosingStockItems.map((prod) => {
                           const val = prod.stock * prod.price;
+                          const soldQty = dateSoldMap[prod.barcode]?.qty || 0;
                           return (
-                            <tr key={prod.barcode} className="hover:bg-slate-800/50">
-                              <td className="py-2.5 px-3 text-slate-400">{prod.barcode}</td>
-                              <td className="py-2.5 px-3 font-sans font-bold text-white max-w-xs truncate" title={prod.name}>
+                            <tr key={prod.barcode} className={`transition-colors ${
+                              themeMode === 'light' ? 'hover:bg-emerald-50/40' : 'hover:bg-slate-800/50'
+                            }`}>
+                              <td className={`py-2.5 px-3 ${themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
+                                {prod.barcode}
+                              </td>
+                              <td className={`py-2.5 px-3 font-sans font-bold max-w-xs truncate ${themeMode === 'light' ? 'text-slate-900' : 'text-white'}`} title={prod.name}>
                                 {prod.name}
                               </td>
-                              <td className="py-2.5 px-3 font-sans text-slate-400 text-[10px] max-w-[140px] truncate">
+                              <td className={`py-2.5 px-3 font-sans text-[10px] max-w-[140px] truncate ${themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
                                 {prod.category || 'General Grocery'}
                               </td>
-                              <td className="py-2.5 px-3 text-right font-bold text-white">
+                              <td className={`py-2.5 px-3 text-right font-black ${themeMode === 'light' ? 'text-slate-950' : 'text-white'}`}>
                                 £{prod.price.toFixed(2)}
+                              </td>
+                              <td className={`py-2.5 px-3 text-center font-bold ${
+                                soldQty > 0
+                                  ? themeMode === 'light' ? 'text-blue-800' : 'text-blue-300'
+                                  : themeMode === 'light' ? 'text-slate-400' : 'text-slate-600'
+                              }`}>
+                                {soldQty > 0 ? `${soldQty} pcs` : '-'}
                               </td>
                               <td className="py-2.5 px-3 text-center">
                                 <span
-                                  className={`px-2.5 py-0.5 rounded-lg text-xs font-black ${
+                                  className={`inline-flex items-center px-3 py-1 rounded-xl text-xs font-black tracking-wide shadow-2xs ${
                                     prod.stock <= 0
-                                      ? 'bg-rose-950/80 text-rose-300 border border-rose-500/40'
+                                      ? themeMode === 'light'
+                                        ? 'bg-rose-100 text-rose-950 border border-rose-300 font-extrabold'
+                                        : 'bg-rose-950/80 text-rose-300 border border-rose-500/50 font-extrabold'
                                       : prod.stock <= 5
-                                      ? 'bg-amber-950/80 text-amber-300 border border-amber-500/40'
-                                      : 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40'
+                                      ? themeMode === 'light'
+                                        ? 'bg-amber-100 text-amber-950 border border-amber-300 font-extrabold'
+                                        : 'bg-amber-950/80 text-amber-300 border border-amber-500/50 font-extrabold'
+                                      : themeMode === 'light'
+                                      ? 'bg-emerald-100 text-emerald-950 border border-emerald-300 font-extrabold'
+                                      : 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 font-extrabold'
                                   }`}
                                 >
                                   {prod.stock} units
                                 </span>
                               </td>
-                              <td className="py-2.5 px-3 text-right font-bold text-emerald-400">
+                              <td className={`py-2.5 px-3 text-right font-black ${themeMode === 'light' ? 'text-emerald-800' : 'text-emerald-400'}`}>
                                 £{val.toFixed(2)}
                               </td>
                               <td className="py-2.5 px-3 text-center font-sans text-[10px]">
                                 {prod.stock <= 0 ? (
-                                  <span className="text-rose-400 font-bold">Out of Stock</span>
+                                  <span className={`font-black ${themeMode === 'light' ? 'text-rose-700' : 'text-rose-400'}`}>Out of Stock</span>
                                 ) : prod.stock <= 5 ? (
-                                  <span className="text-amber-400 font-bold">Low Stock</span>
+                                  <span className={`font-black ${themeMode === 'light' ? 'text-amber-800' : 'text-amber-400'}`}>Low Stock</span>
                                 ) : (
-                                  <span className="text-emerald-400 font-bold">In Stock</span>
+                                  <span className={`font-black ${themeMode === 'light' ? 'text-emerald-700' : 'text-emerald-400'}`}>In Stock</span>
                                 )}
                               </td>
                               <td className="py-2.5 px-3 text-center font-sans">
                                 <button
                                   type="button"
                                   onClick={() => openProductEditModal(prod)}
-                                  className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-md text-[10px] font-bold cursor-pointer"
+                                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold cursor-pointer transition-colors ${
+                                    themeMode === 'light'
+                                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300'
+                                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                                  }`}
                                   title="Edit stock or price"
                                 >
                                   Edit
@@ -6053,8 +6215,10 @@ export default function PosTerminalPage() {
                   </div>
 
                   {/* Bottom Pagination */}
-                  <div className="flex items-center justify-between border-t border-slate-800 pt-3 text-xs">
-                    <span className="text-slate-500 text-[11px]">
+                  <div className={`flex items-center justify-between border-t pt-3 text-xs ${
+                    themeMode === 'light' ? 'border-slate-200' : 'border-slate-800'
+                  }`}>
+                    <span className={`text-[11px] ${themeMode === 'light' ? 'text-slate-500' : 'text-slate-500'}`}>
                       Showing {(closingStockPage - 1) * closingStockPageSize + 1} to{' '}
                       {Math.min(closingStockPage * closingStockPageSize, filteredClosingStockItems.length)} of{' '}
                       {filteredClosingStockItems.length} items
@@ -6065,7 +6229,11 @@ export default function PosTerminalPage() {
                         type="button"
                         disabled={closingStockPage <= 1}
                         onClick={() => setClosingStockPage((p) => Math.max(1, p - 1))}
-                        className="px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-200 rounded-lg font-bold cursor-pointer"
+                        className={`px-3 py-1 rounded-lg font-bold cursor-pointer disabled:opacity-40 transition-colors ${
+                          themeMode === 'light'
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                        }`}
                       >
                         Previous
                       </button>
@@ -6073,7 +6241,11 @@ export default function PosTerminalPage() {
                         type="button"
                         disabled={closingStockPage >= closingStockTotalPages}
                         onClick={() => setClosingStockPage((p) => Math.min(closingStockTotalPages, p + 1))}
-                        className="px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-200 rounded-lg font-bold cursor-pointer"
+                        className={`px-3 py-1 rounded-lg font-bold cursor-pointer disabled:opacity-40 transition-colors ${
+                          themeMode === 'light'
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                        }`}
                       >
                         Next
                       </button>
@@ -6082,10 +6254,16 @@ export default function PosTerminalPage() {
                 </div>
 
                 {/* Category-Wise Valuation Breakdown Table */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-white flex items-center justify-between">
+                <div className={`rounded-3xl p-5 shadow-sm space-y-3 transition-colors ${
+                  themeMode === 'light'
+                    ? 'bg-white border border-slate-200'
+                    : 'bg-slate-900 border border-slate-800'
+                }`}>
+                  <h4 className={`text-xs font-bold uppercase tracking-wider flex items-center justify-between ${
+                    themeMode === 'light' ? 'text-slate-900' : 'text-white'
+                  }`}>
                     <span>Category Valuation Summary</span>
-                    <span className="text-[10px] font-mono text-slate-400 font-normal">
+                    <span className={`text-[10px] font-mono font-normal ${themeMode === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
                       {closingStockMetrics.categoryBreakdown.length} Categories
                     </span>
                   </h4>
@@ -6093,7 +6271,9 @@ export default function PosTerminalPage() {
                   <div className="overflow-x-auto max-h-64 overflow-y-auto no-scrollbar">
                     <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider">
+                        <tr className={`border-b text-[10px] uppercase tracking-wider font-extrabold ${
+                          themeMode === 'light' ? 'border-slate-200 text-slate-600' : 'border-slate-800 text-slate-400'
+                        }`}>
                           <th className="py-2 px-3">Category</th>
                           <th className="py-2 px-3 text-center">SKUs</th>
                           <th className="py-2 px-3 text-center">Units</th>
@@ -6101,18 +6281,24 @@ export default function PosTerminalPage() {
                           <th className="py-2 px-3 text-right">Asset Share</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+                      <tbody className={`divide-y font-mono text-[11px] ${
+                        themeMode === 'light' ? 'divide-slate-200' : 'divide-slate-800/60'
+                      }`}>
                         {closingStockMetrics.categoryBreakdown.map((c) => (
-                          <tr key={c.category} className="hover:bg-slate-800/50">
-                            <td className="py-2 px-3 font-sans font-bold text-white truncate max-w-[160px]">
+                          <tr key={c.category} className={`transition-colors ${
+                            themeMode === 'light' ? 'hover:bg-slate-50' : 'hover:bg-slate-800/50'
+                          }`}>
+                            <td className={`py-2 px-3 font-sans font-bold truncate max-w-[160px] ${
+                              themeMode === 'light' ? 'text-slate-900' : 'text-white'
+                            }`}>
                               {c.category}
                             </td>
-                            <td className="py-2 px-3 text-center text-slate-400">{c.skus}</td>
-                            <td className="py-2 px-3 text-center text-slate-200">{c.units.toLocaleString()}</td>
-                            <td className="py-2 px-3 text-right font-bold text-emerald-400">
+                            <td className={`py-2 px-3 text-center ${themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>{c.skus}</td>
+                            <td className={`py-2 px-3 text-center font-bold ${themeMode === 'light' ? 'text-slate-900' : 'text-slate-200'}`}>{c.units.toLocaleString()}</td>
+                            <td className={`py-2 px-3 text-right font-black ${themeMode === 'light' ? 'text-emerald-800' : 'text-emerald-400'}`}>
                               £{c.value.toFixed(2)}
                             </td>
-                            <td className="py-2 px-3 text-right text-slate-400 font-sans text-[10px]">
+                            <td className={`py-2 px-3 text-right font-sans text-[10px] ${themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
                               {c.pct.toFixed(1)}%
                             </td>
                           </tr>
@@ -7389,6 +7575,339 @@ export default function PosTerminalPage() {
               >
                 Done
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5B. DETAILED DATE-WISE CLOSING STOCK & AUDIT REPORT (A4 FULL PAGE PRINT MODAL) */}
+      {closingStockA4ModalOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/85 backdrop-blur-md overflow-hidden">
+          {/* Top Floating Control Bar (Hidden on print) */}
+          <div className="no-print bg-slate-900 border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-lg z-20">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setClosingStockA4ModalOpen(false)}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div>
+                <h3 className="text-sm font-black text-white flex items-center gap-2">
+                  <Boxes className="w-4 h-4 text-emerald-400" />
+                  <span>Daily Detailed Closing Stock & Inventory Audit Report (A4)</span>
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Certified stock report with date-wise sales, item valuation, and sign-off
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Audit Date Picker */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-200">
+                <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="font-bold text-[11px] text-slate-400">Audit Date:</span>
+                <input
+                  type="date"
+                  value={closingStockAuditDate}
+                  onChange={(e) => setClosingStockAuditDate(e.target.value)}
+                  className="bg-transparent font-mono font-bold text-xs focus:outline-none cursor-pointer text-white"
+                />
+              </div>
+
+              {/* Category Filter */}
+              <select
+                value={closingStockFilterCategory}
+                onChange={(e) => {
+                  setClosingStockFilterCategory(e.target.value);
+                  setClosingStockPage(1);
+                }}
+                className="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500 cursor-pointer"
+              >
+                <option value="all">All Categories ({availableCategories.length})</option>
+                {availableCategories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+
+              {/* Export CSV */}
+              <button
+                type="button"
+                onClick={handleDownloadClosingStockCsv}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                title="Export complete inventory CSV"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Export CSV</span>
+              </button>
+
+              {/* Print A4 / Save as PDF */}
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-2 shadow-lg cursor-pointer hover:scale-105 transition-all"
+                title="Print full A4 sheet or save as PDF"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print A4 / PDF</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Printable Report Document Scroll Container */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-900/60 flex justify-center">
+            <div
+              id="a4-closing-stock-report"
+              className="bg-white text-slate-900 w-full max-w-[960px] p-8 sm:p-10 rounded-2xl shadow-2xl border border-slate-200 my-auto text-xs leading-normal"
+            >
+              {/* Store Header & Document Title */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b-2 border-slate-900 gap-4">
+                <div className="flex items-center gap-4">
+                  <img
+                    src="/logo.png"
+                    alt="Kerala Superstore"
+                    className="w-16 h-16 object-contain"
+                  />
+                  <div>
+                    <h1 className="text-xl font-black uppercase tracking-tight text-slate-950">
+                      {storeInfo.name}
+                    </h1>
+                    <p className="text-[11px] text-slate-600 font-medium">
+                      {storeInfo.address}
+                    </p>
+                    <p className="text-[10px] text-slate-600">
+                      Tel: <span className="font-bold">{storeInfo.phone}</span> | VAT Reg: <span className="font-bold">{storeInfo.vatNumber}</span> | Web: <span className="font-bold">www.keralasuperstore.com</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right sm:border-l sm:border-slate-300 sm:pl-6 space-y-1">
+                  <div className="inline-block bg-slate-900 text-white px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
+                    Official Inventory Audit
+                  </div>
+                  <h2 className="text-base font-extrabold text-slate-900 leading-tight">
+                    CLOSING STOCK REPORT
+                  </h2>
+                  <div className="text-[11px] font-mono text-slate-700 space-y-0.5">
+                    <div>Audit Date: <strong className="text-slate-950">{closingStockAuditDate}</strong></div>
+                    <div>Generated: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div>Auditor: <strong className="text-slate-950">{cashierName}</strong> (Till 01)</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* KPI Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 my-5">
+                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-center">
+                  <div className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Total Value</div>
+                  <div className="text-base font-black text-emerald-950 font-mono mt-0.5">
+                    £{closingStockMetrics.totalRetailValue.toFixed(2)}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                  <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Total Units</div>
+                  <div className="text-base font-black text-slate-900 font-mono mt-0.5">
+                    {closingStockMetrics.totalUnits.toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                  <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Active SKUs</div>
+                  <div className="text-base font-black text-slate-900 font-mono mt-0.5">
+                    {closingStockMetrics.totalSkus}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-center">
+                  <div className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">Sold on Date</div>
+                  <div className="text-base font-black text-blue-950 font-mono mt-0.5">
+                    {totalSoldOnDate} <span className="text-[11px] font-normal">units</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-center">
+                  <div className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Low Stock (≤5)</div>
+                  <div className="text-base font-black text-amber-950 font-mono mt-0.5">
+                    {closingStockMetrics.lowStockCount}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-rose-50 rounded-xl border border-rose-200 text-center">
+                  <div className="text-[10px] font-bold text-rose-800 uppercase tracking-wider">Out of Stock (0)</div>
+                  <div className="text-base font-black text-rose-950 font-mono mt-0.5">
+                    {closingStockMetrics.outOfStockCount}
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Valuation Summary Table */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-300">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                    Category Valuation Summary ({closingStockMetrics.categoryBreakdown.length} Categories)
+                  </h3>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    Valuation based on shelf retail price
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border border-slate-200">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-800 font-black text-[10px] uppercase border-b border-slate-300">
+                        <th className="py-1.5 px-3">Category</th>
+                        <th className="py-1.5 px-3 text-center">SKUs</th>
+                        <th className="py-1.5 px-3 text-center">Units</th>
+                        <th className="py-1.5 px-3 text-right">Valuation (£)</th>
+                        <th className="py-1.5 px-3 text-right">Asset Share %</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-[11px] font-mono">
+                      {closingStockMetrics.categoryBreakdown.map((c) => (
+                        <tr key={c.category} className="hover:bg-slate-50">
+                          <td className="py-1.5 px-3 font-sans font-bold text-slate-900">{c.category}</td>
+                          <td className="py-1.5 px-3 text-center text-slate-700">{c.skus}</td>
+                          <td className="py-1.5 px-3 text-center font-bold text-slate-900">{c.units.toLocaleString()}</td>
+                          <td className="py-1.5 px-3 text-right font-black text-emerald-900">£{c.value.toFixed(2)}</td>
+                          <td className="py-1.5 px-3 text-right text-slate-600 font-sans text-[10px]">{c.pct.toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Item-by-Item Detailed Inventory Ledger */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-300">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                    Detailed Item Inventory Ledger ({filteredClosingStockItems.length} Items)
+                  </h3>
+                  <span className="text-[10px] text-slate-500">
+                    Category: {closingStockFilterCategory === 'all' ? 'All' : closingStockFilterCategory} | Status: {closingStockStatusFilter}
+                  </span>
+                </div>
+
+                <table className="w-full text-left text-xs border border-slate-200">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-800 font-black text-[10px] uppercase border-b border-slate-300">
+                      <th className="py-1.5 px-2 text-center w-8">#</th>
+                      <th className="py-1.5 px-2 w-28">Barcode</th>
+                      <th className="py-1.5 px-2">Description</th>
+                      <th className="py-1.5 px-2 w-28">Category</th>
+                      <th className="py-1.5 px-2 text-right w-16">Price</th>
+                      <th className="py-1.5 px-2 text-center w-20">Sold ({closingStockAuditDate.slice(5)})</th>
+                      <th className="py-1.5 px-2 text-center w-24">Closing Qty</th>
+                      <th className="py-1.5 px-2 text-right w-20">Valuation</th>
+                      <th className="py-1.5 px-2 text-center w-20">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-[11px]">
+                    {filteredClosingStockItems.map((prod, idx) => {
+                      const stockVal = Number((prod.stock * prod.price).toFixed(2));
+                      const soldQty = dateSoldMap[prod.barcode]?.qty || 0;
+                      return (
+                        <tr key={prod.barcode || idx} className="hover:bg-slate-50">
+                          <td className="py-1.5 px-2 text-center text-slate-400 font-mono text-[10px]">
+                            {idx + 1}
+                          </td>
+                          <td className="py-1.5 px-2 font-mono text-[10px] font-bold text-slate-700">
+                            {prod.barcode || '-'}
+                          </td>
+                          <td className="py-1.5 px-2 font-medium text-slate-950">
+                            {prod.name}
+                          </td>
+                          <td className="py-1.5 px-2 text-slate-600 text-[10px]">
+                            {prod.category}
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-mono font-bold text-slate-900">
+                            £{prod.price.toFixed(2)}
+                          </td>
+                          <td className="py-1.5 px-2 text-center font-mono font-bold">
+                            {soldQty > 0 ? (
+                              <span className="text-blue-800 bg-blue-50 px-1.5 py-0.5 rounded font-black border border-blue-200 text-[10px]">
+                                {soldQty}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300 font-normal">-</span>
+                            )}
+                          </td>
+                          <td className="py-1.5 px-2 text-center">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-black font-mono border ${
+                                prod.stock === 0
+                                  ? 'bg-rose-100 text-rose-950 border-rose-300'
+                                  : prod.stock <= 5
+                                  ? 'bg-amber-100 text-amber-950 border-amber-300'
+                                  : 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                              }`}
+                            >
+                              {prod.stock} units
+                            </span>
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-mono font-black text-slate-900">
+                            £{stockVal.toFixed(2)}
+                          </td>
+                          <td className="py-1.5 px-2 text-center text-[10px] font-bold">
+                            {prod.stock === 0 ? (
+                              <span className="text-rose-700">OUT</span>
+                            ) : prod.stock <= 5 ? (
+                              <span className="text-amber-700">LOW</span>
+                            ) : (
+                              <span className="text-emerald-700">OK</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Auditor & Manager Sign-off Strip */}
+              <div className="pt-6 border-t-2 border-slate-900 space-y-6">
+                <div className="text-[10px] text-slate-600 italic">
+                  I hereby verify that this closing stock statement has been reconciled against the physical count and sales registry for Kerala Superstore Manchester on {closingStockAuditDate}.
+                </div>
+
+                <div className="grid grid-cols-2 gap-12 pt-2">
+                  <div className="space-y-6">
+                    <div className="border-b border-slate-400 pb-1 flex justify-between items-end text-xs">
+                      <span className="font-bold text-slate-900">Auditor / Cashier:</span>
+                      <span className="font-mono">{cashierName}</span>
+                    </div>
+                    <div className="border-b border-slate-400 pb-1 flex justify-between items-end text-xs">
+                      <span className="font-bold text-slate-900">Signature:</span>
+                      <span className="text-slate-400 italic font-serif">_________________________</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      Date: {new Date().toLocaleDateString('en-GB')}
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="border-b border-slate-400 pb-1 flex justify-between items-end text-xs">
+                      <span className="font-bold text-slate-900">Store Manager:</span>
+                      <span className="text-slate-400 italic">_________________________</span>
+                    </div>
+                    <div className="border-b border-slate-400 pb-1 flex justify-between items-end text-xs">
+                      <span className="font-bold text-slate-900">Signature:</span>
+                      <span className="text-slate-400 italic font-serif">_________________________</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      Date: {new Date().toLocaleDateString('en-GB')}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center text-[10px] text-slate-500 pt-4 border-t border-dashed border-slate-300">
+                  Kerala Superstore Manchester • 1022 Stockport Road, Levenshulme, Manchester, M19 3WN • www.keralasuperstore.com
+                </div>
+              </div>
             </div>
           </div>
         </div>
