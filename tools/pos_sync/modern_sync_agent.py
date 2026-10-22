@@ -24,13 +24,15 @@ DEFAULT_CONFIG = {
     "supabase_url": os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "https://rnwthwaputocyirjtabd.supabase.co"),
     "supabase_key": os.environ.get("SUPABASE_SERVICE_ROLE_KEY", ""),
     "sync_interval_seconds": 30,
+    "sync_to_website": False,
     "db_server": ".",
     "db_name": "epos",
     "db_user": "sa",
     "db_password": "London2012$",
     "use_windows_auth": True,
     "batch_size": 500,
-    "auto_start_sync": True
+    "auto_start_sync": True,
+    "serper_api_key": "5c71895da3ddd6f6e287859051a486a50ddb9b79"
 }
 
 def load_config():
@@ -241,12 +243,30 @@ class PosSyncEngine:
                 except Exception as e:
                     self.logger(f"Website API notice (non-fatal): {e}", "warning")
 
-            if sales:
+        # Always transmit live sales to Web POS Daily Report (tiny payload <5KB)
+        if sales:
+            api_key = self.config.get("api_key", "kss_pos_sync_key_2026_live")
+            headers = {"Content-Type": "application/json", "X-POS-SYNC-KEY": api_key}
+            sales_payload = {"source": "RetailV2-POS (Manchester)", "sales": sales}
+            urls_to_try = [
+                self.config.get("website_url", "https://keralasuperstore.com").rstrip("/"),
+                "https://kerala-superstore.onrender.com"
+            ]
+            sent_sales = False
+            for base_u in urls_to_try:
+                if not base_u:
+                    continue
                 try:
-                    sales_payload = {"source": "RetailV2-POS (Manchester)", "sales": sales}
-                    requests.post(sync_url, json=sales_payload, headers=headers, timeout=15)
-                except Exception as se:
-                    self.logger(f"Sales transmission notice (non-fatal): {se}", "warning")
+                    s_url = f"{base_u}/api/pos/sync"
+                    resp = requests.post(s_url, json=sales_payload, headers=headers, timeout=12)
+                    if resp.status_code == 200:
+                        self.logger(f"Transmitted {len(sales)} live sales to Daily Report ({base_u}) ✔", "success")
+                        sent_sales = True
+                        break
+                except Exception:
+                    pass
+            if not sent_sales:
+                self.logger("Sales transmission notice: Retrying next cycle", "warning")
 
         # 1. Direct Supabase Cloud Database Mirror (Permanent Zero-Latency Sync)
         sb_url = self.config.get("supabase_url", "").rstrip("/")

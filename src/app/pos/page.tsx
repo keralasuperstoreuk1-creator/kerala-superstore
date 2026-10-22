@@ -2682,10 +2682,14 @@ export default function PosTerminalPage() {
             <button
               type="button"
               onClick={handleOpenUserManagement}
-              className="px-2.5 py-1.5 bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-200 border border-indigo-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+                themeMode === 'light'
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 shadow-sm'
+                  : 'bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-200 border-indigo-500/30'
+              }`}
               title="Manage Admin Username/Password & Staff Accounts"
             >
-              <Users className="w-3.5 h-3.5 text-indigo-400" />
+              <Users className={`w-3.5 h-3.5 ${themeMode === 'light' ? 'text-white' : 'text-indigo-400'}`} />
               <span className="hidden sm:inline text-[11px]">Users</span>
             </button>
 
@@ -2695,20 +2699,28 @@ export default function PosTerminalPage() {
                 <button
                   type="button"
                   onClick={() => requireAdminAuth(() => {})}
-                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+                    themeMode === 'light'
+                      ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                  }`}
                   title="Cashier Mode active. Tap to enter Admin PIN to edit prices/stock."
                 >
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  <Lock className="w-3.5 h-3.5 text-amber-500" />
                   <span className="hidden md:inline text-[11px]">Price Locked</span>
                 </button>
               ) : (
-                <div className="flex items-center gap-1.5 bg-emerald-950/50 border border-emerald-500/50 px-2.5 py-1 rounded-xl">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span className="text-[11px] font-black text-emerald-300 hidden md:inline">Price Unlocked</span>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border ${
+                  themeMode === 'light'
+                    ? 'bg-emerald-100 border-emerald-400 text-emerald-950 shadow-xs'
+                    : 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300'
+                }`}>
+                  <ShieldCheck className={`w-4 h-4 ${themeMode === 'light' ? 'text-emerald-700' : 'text-emerald-400'}`} />
+                  <span className={`text-[11px] font-black hidden md:inline ${themeMode === 'light' ? 'text-emerald-900' : 'text-emerald-300'}`}>Price Unlocked</span>
                   <button
                     type="button"
                     onClick={handleLockAdminMode}
-                    className="p-1 hover:text-rose-400 text-slate-400 text-[10px] cursor-pointer"
+                    className="p-1 hover:text-rose-500 text-slate-500 text-[10px] cursor-pointer"
                     title="Lock Price Editing (Switch to Cashier Mode)"
                   >
                     <Lock className="w-3 h-3" />
@@ -2750,18 +2762,28 @@ export default function PosTerminalPage() {
               <button
                 type="button"
                 onClick={() => triggerCashDrawerKick('manual')}
-                className="px-2.5 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                className={`px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                  themeMode === 'light'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600'
+                    : 'bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 border-emerald-500/40'
+                }`}
                 title="Open Cash Drawer (Hotkey: F12)"
               >
-                <Banknote className="w-3.5 h-3.5 text-emerald-400" />
+                <Banknote className={`w-3.5 h-3.5 ${themeMode === 'light' ? 'text-white' : 'text-emerald-400'}`} />
                 <span className="hidden lg:inline text-[11px]">Open Drawer</span>
-                <span className="text-[9px] bg-emerald-500/20 px-1 py-0.5 rounded text-emerald-300 font-mono">F12</span>
+                <span className={`text-[9px] px-1 py-0.5 rounded font-mono ${
+                  themeMode === 'light' ? 'bg-emerald-800 text-white' : 'bg-emerald-500/20 text-emerald-300'
+                }`}>F12</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setCashDrawerModalOpen(true)}
-                className="p-1.5 rounded-xl border border-slate-700 hover:border-emerald-500/50 text-slate-400 hover:text-emerald-400 bg-slate-800/80 transition-all cursor-pointer"
+                className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
+                  themeMode === 'light'
+                    ? 'border-slate-300 hover:border-emerald-600 text-slate-700 hover:text-emerald-700 bg-slate-100'
+                    : 'border-slate-700 hover:border-emerald-500/50 text-slate-400 hover:text-emerald-400 bg-slate-800/80'
+                }`}
                 title="Cash Drawer & Windows Driver Setup Guide (Card vs Cash)"
               >
                 <Settings className="w-3.5 h-3.5" />
@@ -5189,7 +5211,9 @@ export default function PosTerminalPage() {
               <div className="overflow-x-auto max-h-[600px] overflow-y-auto pr-1">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider sticky top-0 bg-slate-900 z-10">
+                    <tr className={`border-b text-[10px] uppercase tracking-wider sticky top-0 z-10 ${
+                      themeMode === 'light' ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-900 text-slate-400 border-slate-800'
+                    }`}>
                       <th className="py-2.5 px-3">Product Name</th>
                       <th className="py-2.5 px-3">Barcode</th>
                       <th className="py-2.5 px-3">Category</th>
@@ -5198,7 +5222,7 @@ export default function PosTerminalPage() {
                       <th className="py-2.5 px-3 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                  <tbody className={`divide-y font-mono ${themeMode === 'light' ? 'divide-slate-200' : 'divide-slate-800/60'}`}>
                     {products
                       .filter((p) => {
                         const matchesCat = stockManagerCategory === 'All' || p.category === stockManagerCategory;
@@ -5216,37 +5240,45 @@ export default function PosTerminalPage() {
                       })
                       .slice(0, 100)
                       .map((prod) => (
-                        <tr key={prod.barcode} className="hover:bg-slate-800/40 transition-colors">
+                        <tr key={prod.barcode} className={`transition-colors ${themeMode === 'light' ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'}`}>
                           <td className="py-3 px-3 font-sans max-w-[240px]">
-                            <span className="font-bold text-white block truncate" title={prod.name}>
+                            <span className={`font-bold block truncate ${themeMode === 'light' ? 'text-slate-900' : 'text-white'}`} title={prod.name}>
                               {prod.name}
                             </span>
-                            <span className="text-[10px] text-slate-500 font-mono">{prod.sizeWeight}</span>
+                            <span className={`text-[10px] font-mono ${themeMode === 'light' ? 'text-slate-500' : 'text-slate-500'}`}>{prod.sizeWeight}</span>
                           </td>
 
-                          <td className="py-3 px-3 text-slate-400 text-[11px]">{prod.barcode}</td>
+                          <td className={`py-3 px-3 text-[11px] ${themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>{prod.barcode}</td>
 
-                          <td className="py-3 px-3 font-sans text-slate-300 text-[11px]">
-                            <span className="bg-slate-950 px-2 py-0.5 rounded-md border border-slate-800">
+                          <td className={`py-3 px-3 font-sans text-[11px] ${themeMode === 'light' ? 'text-slate-800' : 'text-slate-300'}`}>
+                            <span className={`px-2 py-0.5 rounded-md border ${
+                              themeMode === 'light' ? 'bg-slate-100 text-slate-800 border-slate-300' : 'bg-slate-950 text-slate-300 border-slate-800'
+                            }`}>
                               {prod.category}
                             </span>
                           </td>
 
                           <td className="py-3 px-3 text-center">
                             <span
-                              className={`px-2 py-0.5 rounded-lg text-xs font-bold ${
+                              className={`inline-block min-w-[34px] px-2.5 py-1 rounded-lg text-xs font-black border ${
                                 prod.stock > 10
-                                  ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-500/30'
+                                  ? themeMode === 'light'
+                                    ? 'bg-emerald-100 text-emerald-950 border-emerald-400 shadow-xs'
+                                    : 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40'
                                   : prod.stock > 0
-                                  ? 'bg-amber-950/60 text-amber-300 border border-amber-500/30'
-                                  : 'bg-rose-950/60 text-rose-300 border border-rose-500/30'
+                                  ? themeMode === 'light'
+                                    ? 'bg-amber-100 text-amber-950 border-amber-400 shadow-xs'
+                                    : 'bg-amber-950/70 text-amber-300 border-amber-500/40'
+                                  : themeMode === 'light'
+                                  ? 'bg-rose-100 text-rose-950 border-rose-400 shadow-xs'
+                                  : 'bg-rose-950/70 text-rose-300 border-rose-500/40'
                               }`}
                             >
                               {prod.stock}
                             </span>
                           </td>
 
-                          <td className="py-3 px-3 text-right text-emerald-400 font-black text-sm">
+                          <td className={`py-3 px-3 text-right font-black text-sm ${themeMode === 'light' ? 'text-emerald-700' : 'text-emerald-400'}`}>
                             £{prod.price.toFixed(2)}
                           </td>
 
@@ -5254,7 +5286,11 @@ export default function PosTerminalPage() {
                             <button
                               type="button"
                               onClick={() => openProductEditModal(prod)}
-                              className="px-3 py-1.5 bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/40 rounded-xl text-xs font-sans font-bold flex items-center gap-1.5 ml-auto transition-all cursor-pointer"
+                              className={`px-3 py-1.5 rounded-xl text-xs font-sans font-bold flex items-center gap-1.5 ml-auto transition-all cursor-pointer border ${
+                                themeMode === 'light'
+                                  ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-500 shadow-xs'
+                                  : 'bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border-amber-500/40'
+                              }`}
                             >
                               <Pencil className="w-3.5 h-3.5" />
                               <span>Edit</span>
@@ -5356,10 +5392,14 @@ export default function PosTerminalPage() {
                       <button
                         type="button"
                         onClick={handleDownloadSalesCsv}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+                          themeMode === 'light'
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 shadow-xs'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                        }`}
                         title="Download sales report as CSV"
                       >
-                        <Download className="w-3.5 h-3.5 text-emerald-400" />
+                        <Download className="w-3.5 h-3.5 text-emerald-500" />
                         <span>Export CSV</span>
                       </button>
 
@@ -5367,10 +5407,10 @@ export default function PosTerminalPage() {
                         href="https://github.com/keralasuperstoreuk1-creator/kerala-superstore/releases/download/v1.0.0/KSS-POS-Sync.exe"
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3 py-1.5 bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-xs"
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500 rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all shadow-md hover:scale-105"
                         title="Download shop PC live sync agent (KSS-POS-Sync.exe) to sync shop sales & stock"
                       >
-                        <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+                        <RefreshCw className="w-3.5 h-3.5 text-white" />
                         <span>Shop Sync Tool (.exe)</span>
                       </a>
                     </div>

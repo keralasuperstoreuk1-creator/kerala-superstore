@@ -7,28 +7,26 @@ trigger: always_on
 Always read this before debugging "site down", "logo/images not loading",
 "old version showing", or anything about Vercel / Netlify / domain.
 
-## Current hosting (since 18 Oct 2026)
-- **Website is hosted on NETLIFY, not Vercel.**
-  - Netlify team: `keralasuperstoreuk1-creator`
-  - Live Netlify site: `https://cute-narwhal-264948.netlify.app`
+## Current hosting (since 21 Oct 2026)
+- **Website is hosted on RENDER (Web Service).**
+  - Render Service: `kerala-superstore`
+  - URL: `https://kerala-superstore.onrender.com`
   - Auto-deploys from GitHub repo `keralasuperstoreuk1-creator/kerala-superstore`, branch `main`.
-  - Other Netlify names seen in history (`curious-tarsier-8c2be7`, `kerala-superstore`) return 404 – not in use.
-- **Vercel (`kerala-superstore.vercel.app`) is OLD / abandoned.** Moved away because
-  the Hobby plan bandwidth limit kept running out. It now returns `402 DEPLOYMENT_DISABLED`. Ignore it.
-- Netlify free plan usage hit ~75% around 20 Oct 2026 – keep bandwidth low
-  (`images.unoptimized: true`, large binaries go to GitHub Releases, not `public/`).
+- **Netlify (`cute-narwhal-264948.netlify.app`) is EXHAUSTED / INACTIVE.** Hit 503 "usage_exceeded" on 21 Oct 2026.
+- **Vercel (`kerala-superstore.vercel.app`) is OLD / abandoned.** Moved away earlier because of bandwidth limits (402).
+- Start command on Render: `npx next start -p $PORT` (managed via `npm start`).
 
 ## Domain
 - `keralasuperstore.com` is registered at **Namecheap** (Namecheap BasicDNS).
 - Namecheap domain contacts (seen 20 Oct 2026):
   - **Registrant** (gets the WHOIS verification email): Sreejith Attingal – `s.sreejith0@gmail.com`
   - Admin / Technical / Billing: Thomas Mathew, Kerala Superstore Ltd – `keralasuperstoreltd@gmail.com`
-- Correct DNS (Namecheap → Domain List → Manage → Advanced DNS):
+- Correct DNS on Render (Namecheap → Domain List → Manage → Advanced DNS):
 
-  | Type  | Host | Value                              |
-  |-------|------|------------------------------------|
-  | A     | `@`  | `75.2.60.5` (Netlify load balancer) |
-  | CNAME | `www`| `cute-narwhal-264948.netlify.app`  |
+  | Type  | Host | Value                                |
+  |-------|------|--------------------------------------|
+  | A     | `@`  | `216.24.57.1` (Render load balancer) |
+  | CNAME | `www`| `kerala-superstore.onrender.com`     |
 
 - If the domain resolves to `198.54.117.242` and shows
   "Registrant WHOIS contact information verification | Namecheap", the domain is
