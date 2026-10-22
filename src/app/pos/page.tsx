@@ -370,6 +370,7 @@ export default function PosTerminalPage() {
   const closingStockPageSize = 50;
   const [closingStockA4ModalOpen, setClosingStockA4ModalOpen] = useState(false);
   const [closingStockAuditDate, setClosingStockAuditDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [a4ReportScope, setA4ReportScope] = useState<'low_and_out' | 'all' | 'low_only' | 'out_only'>('low_and_out');
 
   // POS Multi-User & Admin Credentials Management State
   const [allUsers, setAllUsers] = useState<PosUser[]>(DEFAULT_USERS);
@@ -817,77 +818,140 @@ export default function PosTerminalPage() {
 
   const handlePrintA4ClosingStock = () => {
     try {
-      const oldStyle = document.getElementById('a4-injected-print-css');
-      if (oldStyle) oldStyle.remove();
+      const reportEl = document.getElementById('a4-closing-stock-report');
+      if (!reportEl) {
+        window.print();
+        return;
+      }
 
-      const styleEl = document.createElement('style');
-      styleEl.id = 'a4-injected-print-css';
-      styleEl.innerHTML = `
-        @media print {
-          @page {
-            size: A4 portrait !important;
-            margin: 8mm 10mm 12mm 10mm !important;
-          }
-          html, body {
-            background: #ffffff !important;
-            color: #000000 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            visibility: hidden !important;
-            width: 100% !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-          #a4-closing-stock-report,
-          #a4-closing-stock-report * {
-            visibility: visible !important;
-          }
-          #a4-closing-stock-report {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
-            background: #ffffff !important;
-            color: #000000 !important;
-            border: none !important;
-            box-shadow: none !important;
-            border-radius: 0 !important;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-            display: block !important;
-          }
-          #a4-closing-stock-report table {
-            page-break-inside: auto !important;
-            width: 100% !important;
-            border-collapse: collapse !important;
-          }
-          #a4-closing-stock-report tr {
-            page-break-inside: avoid !important;
-            page-break-after: auto !important;
-          }
-          #a4-closing-stock-report thead {
-            display: table-header-group !important;
-          }
+      // Remove any existing print frame
+      const oldFrame = document.getElementById('kss-isolated-print-frame');
+      if (oldFrame) oldFrame.remove();
+
+      // Create an offscreen rendered iframe with real dimensions so Chrome's print engine computes pagination instantly
+      const iframe = document.createElement('iframe');
+      iframe.id = 'kss-isolated-print-frame';
+      iframe.style.position = 'fixed';
+      iframe.style.top = '0';
+      iframe.style.left = '0';
+      iframe.style.width = '1024px';
+      iframe.style.height = '1024px';
+      iframe.style.border = '0';
+      iframe.style.opacity = '0.01';
+      iframe.style.pointerEvents = 'none';
+      iframe.style.zIndex = '-9999';
+      document.body.appendChild(iframe);
+
+      const frameDoc = iframe.contentWindow?.document;
+      if (!frameDoc) {
+        window.print();
+        return;
+      }
+
+      const reportHtml = reportEl.innerHTML;
+
+      frameDoc.open();
+      frameDoc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Closing Stock Audit - ${closingStockAuditDate}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 8mm 10mm 10mm 10mm;
+    }
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff !important;
+      color: #0f172a !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 11px;
+      line-height: 1.35;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      page-break-inside: auto;
+      font-size: 10px;
+      margin-top: 6px;
+    }
+    tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+    thead {
+      display: table-header-group;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 4px 6px;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 9.5px;
+    }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .font-bold { font-weight: 700; }
+    .font-black { font-weight: 900; }
+    .text-emerald-950 { color: #022c22 !important; }
+    .text-emerald-900 { color: #064e3b !important; }
+    .text-emerald-800 { color: #065f46 !important; }
+    .text-slate-900 { color: #0f172a !important; }
+    .text-slate-950 { color: #020617 !important; }
+    .text-slate-700 { color: #334155 !important; }
+    .text-slate-600 { color: #475569 !important; }
+    .text-slate-500 { color: #64748b !important; }
+    .bg-emerald-50 { background-color: #ecfdf5 !important; }
+    .border-emerald-200 { border-color: #a7f3d0 !important; }
+    .bg-slate-50 { background-color: #f8fafc !important; }
+    .border-slate-200 { border-color: #e2e8f0 !important; }
+    .bg-blue-50 { background-color: #eff6ff !important; }
+    .border-blue-200 { border-color: #bfdbfe !important; }
+    .bg-amber-50 { background-color: #fffbeb !important; }
+    .border-amber-200 { border-color: #fde68a !important; }
+    .bg-rose-50 { background-color: #fff1f2 !important; }
+    .border-rose-200 { border-color: #fecdd3 !important; }
+    .bg-slate-900 { background-color: #0f172a !important; color: #ffffff !important; }
+    .border-slate-900 { border-color: #0f172a !important; }
+    .border-b-2 { border-bottom-width: 2px !important; }
+    .grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .grid > div { flex: 1 1 14%; min-width: 90px; }
+    img { max-height: 48px; object-fit: contain; }
+  </style>
+</head>
+<body>
+  ${reportHtml}
+</body>
+</html>`);
+      frameDoc.close();
+
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch {
+          window.print();
         }
-      `;
-      document.head.appendChild(styleEl);
-
-      window.print();
-
-      window.addEventListener(
-        'afterprint',
-        () => {
-          const el = document.getElementById('a4-injected-print-css');
+        setTimeout(() => {
+          const el = document.getElementById('kss-isolated-print-frame');
           if (el) el.remove();
-        },
-        { once: true }
-      );
+        }, 60000);
+      }, 350);
     } catch (e) {
-      console.error('Error triggering print:', e);
+      console.error('Error in iframe print, falling back:', e);
       window.print();
     }
   };
@@ -902,14 +966,22 @@ export default function PosTerminalPage() {
   <meta charset="utf-8">
   <title>Kerala Superstore - Closing Stock Audit (${closingStockAuditDate})</title>
   <style>
-    @page { size: A4 portrait; margin: 10mm; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #0f172a; margin: 0; padding: 24px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
-    th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
-    th { background: #f1f5f9; font-weight: 800; text-transform: uppercase; font-size: 10px; color: #1e293b; }
+    @page { size: A4 portrait; margin: 8mm 10mm 10mm 10mm; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fff; color: #0f172a; margin: 0; padding: 20px; font-size: 11px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 10px; }
+    th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: left; }
+    th { background: #f1f5f9; font-weight: 800; text-transform: uppercase; font-size: 9.5px; color: #1e293b; }
+    tr { page-break-inside: avoid; }
+    thead { display: table-header-group; }
     .text-right { text-align: right; }
     .text-center { text-align: center; }
     .font-mono { font-family: monospace; }
+    .font-bold { font-weight: 700; }
+    .font-black { font-weight: 900; }
+    .grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .grid > div { flex: 1 1 14%; min-width: 90px; }
+    img { max-height: 48px; object-fit: contain; }
   </style>
 </head>
 <body>
@@ -952,6 +1024,25 @@ export default function PosTerminalPage() {
       return true;
     });
   }, [products, closingStockFilterCategory, closingStockStatusFilter, closingStockSearchQuery]);
+
+  // Items rendered in the A4 Report Ledger based on user scope
+  const a4LedgerItems = useMemo(() => {
+    return products.filter((p) => {
+      if (closingStockFilterCategory !== 'all' && p.category !== closingStockFilterCategory) {
+        return false;
+      }
+      if (a4ReportScope === 'low_and_out') {
+        return p.stock <= 5;
+      }
+      if (a4ReportScope === 'low_only') {
+        return p.stock > 0 && p.stock <= 5;
+      }
+      if (a4ReportScope === 'out_only') {
+        return p.stock <= 0;
+      }
+      return true;
+    });
+  }, [products, closingStockFilterCategory, a4ReportScope]);
 
   const closingStockTotalPages = Math.max(1, Math.ceil(filteredClosingStockItems.length / closingStockPageSize));
   const paginatedClosingStockItems = useMemo(() => {
@@ -7791,6 +7882,19 @@ export default function PosTerminalPage() {
                 ))}
               </select>
 
+              {/* Report Scope Selector */}
+              <select
+                value={a4ReportScope}
+                onChange={(e) => setA4ReportScope(e.target.value as any)}
+                className="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500 cursor-pointer font-bold"
+                title="Select items to include in report ledger"
+              >
+                <option value="low_and_out">Scope: Low & Out of Stock ({closingStockMetrics.lowStockCount + closingStockMetrics.outOfStockCount})</option>
+                <option value="all">Scope: Full Catalog (All {filteredClosingStockItems.length})</option>
+                <option value="low_only">Scope: Low Stock Only ({closingStockMetrics.lowStockCount})</option>
+                <option value="out_only">Scope: Out of Stock (0) ({closingStockMetrics.outOfStockCount})</option>
+              </select>
+
               {/* Export CSV */}
               <button
                 type="button"
@@ -7954,10 +8058,10 @@ export default function PosTerminalPage() {
               <div className="mb-8">
                 <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-300">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                    Detailed Item Inventory Ledger ({filteredClosingStockItems.length} Items)
+                    Detailed Item Inventory Ledger ({a4LedgerItems.length} Items)
                   </h3>
                   <span className="text-[10px] text-slate-500">
-                    Category: {closingStockFilterCategory === 'all' ? 'All' : closingStockFilterCategory} | Status: {closingStockStatusFilter}
+                    Scope: {a4ReportScope === 'low_and_out' ? 'Low Stock & Out of Stock' : a4ReportScope === 'low_only' ? 'Low Stock Only' : a4ReportScope === 'out_only' ? 'Out of Stock Only' : 'Full Catalog'} | Category: {closingStockFilterCategory === 'all' ? 'All' : closingStockFilterCategory}
                   </span>
                 </div>
 
@@ -7976,7 +8080,7 @@ export default function PosTerminalPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-[11px]">
-                    {filteredClosingStockItems.map((prod, idx) => {
+                    {a4LedgerItems.map((prod, idx) => {
                       const stockVal = Number((prod.stock * prod.price).toFixed(2));
                       const soldQty = dateSoldMap[prod.barcode]?.qty || 0;
                       return (
