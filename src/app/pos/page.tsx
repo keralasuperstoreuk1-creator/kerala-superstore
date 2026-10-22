@@ -42,6 +42,8 @@ import {
   Check,
   Pencil,
   Eye,
+  EyeOff,
+  ExternalLink,
   Key,
   FileCheck,
   Camera,
@@ -256,6 +258,8 @@ export default function PosTerminalPage() {
   // OCR Purchase Bill State (Google Gemini AI)
   const [purchaseMode, setPurchaseMode] = useState<'ai_ocr' | 'manual'>('ai_ocr');
   const [geminiApiKey, setGeminiApiKey] = useState<string>('');
+  const [showApiKeyPassword, setShowApiKeyPassword] = useState(false);
+  const [apiKeySavedNotice, setApiKeySavedNotice] = useState<string | null>(null);
   const [invoiceImageBase64, setInvoiceImageBase64] = useState<string | null>(null);
   const [invoiceFileName, setInvoiceFileName] = useState<string>('');
   const [isOcrScanning, setIsOcrScanning] = useState(false);
@@ -2392,10 +2396,22 @@ export default function PosTerminalPage() {
     } catch {}
   }, []);
 
-  const handleSaveApiKey = (key: string) => {
-    setGeminiApiKey(key);
+  const handleSaveApiKey = async (key: string) => {
+    const cleanKey = key.trim();
+    setGeminiApiKey(cleanKey);
     try {
-      localStorage.setItem('kss_gemini_api_key', key);
+      localStorage.setItem('kss_gemini_api_key', cleanKey);
+      if (cleanKey) {
+        setApiKeySavedNotice('✓ API Key Saved Permanently!');
+        setTimeout(() => setApiKeySavedNotice(null), 3500);
+        await fetch('/api/pos/ocr-invoice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_key', apiKey: cleanKey }),
+        }).catch(() => {});
+      } else {
+        setApiKeySavedNotice(null);
+      }
     } catch {}
   };
 
@@ -3435,17 +3451,70 @@ export default function PosTerminalPage() {
             {purchaseMode === 'ai_ocr' && (
               <div className="space-y-6">
                 {/* Gemini API Key & Category Margin Controls Strip */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-lg">
+                  {/* Top: Title & Direct Link to Create Free Key */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                        <Key className="w-4 h-4" />
+                      </span>
+                      <div>
+                        <span className="text-xs font-black text-white block">
+                          Google Gemini AI Vision Key (Wholesale Purchase Bill Scanner)
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {geminiApiKey ? '✓ Key active & saved permanently on this machine' : 'Enter your free Gemini API key to read paper/PDF bills'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-xl border border-amber-500/30 transition-all cursor-pointer shrink-0"
+                      title="Open Google AI Studio in new tab to generate a free Gemini API Key"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Create Free API Key (Google AI Studio)</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 flex-1 max-w-md">
-                      <Key className="w-4 h-4 text-amber-400 shrink-0" />
-                      <input
-                        type="password"
-                        value={geminiApiKey}
-                        onChange={(e) => handleSaveApiKey(e.target.value)}
-                        placeholder="Google Gemini API Key (saved in browser)"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-emerald-500 font-mono"
-                      />
+                    <div className="flex items-center gap-2 flex-1 max-w-xl">
+                      <div className="relative flex-1">
+                        <input
+                          type={showApiKeyPassword ? 'text' : 'password'}
+                          value={geminiApiKey}
+                          onChange={(e) => handleSaveApiKey(e.target.value)}
+                          placeholder="Paste Gemini API Key (starts with AIzaSy...)"
+                          className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl pl-3 pr-10 py-2 text-xs text-white placeholder-slate-500 font-mono focus:outline-hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowApiKeyPassword(!showApiKeyPassword)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 cursor-pointer transition-colors"
+                          title={showApiKeyPassword ? 'Hide Key' : 'Show Key'}
+                        >
+                          {showApiKeyPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSaveApiKey(geminiApiKey)}
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 cursor-pointer transition-all shadow-md active:scale-95"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Save Key</span>
+                      </button>
+
+                      {apiKeySavedNotice && (
+                        <span className="text-xs text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1.5 rounded-xl shrink-0 animate-fade-in">
+                          {apiKeySavedNotice}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">

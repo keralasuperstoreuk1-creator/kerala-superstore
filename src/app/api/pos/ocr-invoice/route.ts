@@ -4,6 +4,7 @@ import { isNonFoodOrToiletries } from '@/lib/product-matching';
 import { markCatalogStale } from '@/lib/product-catalog';
 
 const DEFAULT_GEMINI_KEY = process.env.GEMINI_API_KEY || 'AIzaSyBn7A1Zb371H5iBXytz0RIjqUcKZAA5csQ';
+let memoryCachedApiKey = '';
 
 // Category-based default profit margin percentages
 const DEFAULT_CATEGORY_MARGINS: Record<string, number> = {
@@ -44,6 +45,15 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const action = body.action || 'ocr_scan';
+
+    // 0. ACTION: SAVE & CACHE API KEY
+    if (action === 'save_key') {
+      const key = String(body.apiKey || '').trim();
+      if (key) {
+        memoryCachedApiKey = key;
+      }
+      return NextResponse.json({ success: true, message: 'Gemini API key saved in active session.' });
+    }
 
     // 1. ACTION: CONFIRM BULK INVOICE IMPORT INTO SUPABASE POS & WEBSITE
     if (action === 'save_invoice') {
@@ -159,7 +169,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invoice image is required' }, { status: 400 });
     }
 
-    const apiKey = customApiKey.trim() || DEFAULT_GEMINI_KEY;
+    const apiKey = customApiKey.trim() || memoryCachedApiKey || DEFAULT_GEMINI_KEY;
     if (!apiKey) {
       return NextResponse.json({
         success: false,
