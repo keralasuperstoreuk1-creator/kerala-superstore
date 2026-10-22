@@ -321,17 +321,19 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     visibility: hidden !important;
   }
 
-  /* Make only the thermal slip visible and pinned to top-left of the print paper */
+  /* Make thermal slips and A4 report visible */
   #thermal-receipt-preview,
   #thermal-return-preview,
   #thermal-closing-stock-preview,
   #thermal-sales-report-preview,
   .pos-printable-receipt,
+  #a4-closing-stock-report,
   #thermal-receipt-preview *,
   #thermal-return-preview *,
   #thermal-closing-stock-preview *,
   #thermal-sales-report-preview *,
-  .pos-printable-receipt * {
+  .pos-printable-receipt *,
+  #a4-closing-stock-report * {
     visibility: visible !important;
   }
 
@@ -357,6 +359,25 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     font-size: 11px !important;
     font-weight: 700 !important;
     line-height: 1.2 !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+
+  /* A4 Closing Stock Report print layout */
+  #a4-closing-stock-report {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 6mm 10mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    font-family: system-ui, -apple-system, sans-serif !important;
     visibility: visible !important;
     display: block !important;
   }

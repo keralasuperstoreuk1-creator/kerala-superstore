@@ -815,6 +815,124 @@ export default function PosTerminalPage() {
     }
   };
 
+  const handlePrintA4ClosingStock = () => {
+    try {
+      const oldStyle = document.getElementById('a4-injected-print-css');
+      if (oldStyle) oldStyle.remove();
+
+      const styleEl = document.createElement('style');
+      styleEl.id = 'a4-injected-print-css';
+      styleEl.innerHTML = `
+        @media print {
+          @page {
+            size: A4 portrait !important;
+            margin: 8mm 10mm 12mm 10mm !important;
+          }
+          html, body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            visibility: hidden !important;
+            width: 100% !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+          #a4-closing-stock-report,
+          #a4-closing-stock-report * {
+            visibility: visible !important;
+          }
+          #a4-closing-stock-report {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            display: block !important;
+          }
+          #a4-closing-stock-report table {
+            page-break-inside: auto !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          #a4-closing-stock-report tr {
+            page-break-inside: avoid !important;
+            page-break-after: auto !important;
+          }
+          #a4-closing-stock-report thead {
+            display: table-header-group !important;
+          }
+        }
+      `;
+      document.head.appendChild(styleEl);
+
+      window.print();
+
+      window.addEventListener(
+        'afterprint',
+        () => {
+          const el = document.getElementById('a4-injected-print-css');
+          if (el) el.remove();
+        },
+        { once: true }
+      );
+    } catch (e) {
+      console.error('Error triggering print:', e);
+      window.print();
+    }
+  };
+
+  const handleSaveClosingStockHtmlDocument = () => {
+    try {
+      const reportEl = document.getElementById('a4-closing-stock-report');
+      if (!reportEl) return;
+      const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Kerala Superstore - Closing Stock Audit (${closingStockAuditDate})</title>
+  <style>
+    @page { size: A4 portrait; margin: 10mm; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #0f172a; margin: 0; padding: 24px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
+    th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+    th { background: #f1f5f9; font-weight: 800; text-transform: uppercase; font-size: 10px; color: #1e293b; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .font-mono { font-family: monospace; }
+  </style>
+</head>
+<body>
+  ${reportEl.innerHTML}
+  <script>
+    window.onload = function() { window.print(); };
+  </script>
+</body>
+</html>`;
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kerala-superstore-closing-stock-${closingStockAuditDate}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Error saving report HTML:', e);
+    }
+  };
+
   // Filtered Closing Stock Items for Full Table View
   const filteredClosingStockItems = useMemo(() => {
     return products.filter((p) => {
@@ -7684,10 +7802,21 @@ export default function PosTerminalPage() {
                 <span>Export CSV</span>
               </button>
 
+              {/* Save Document (.html) */}
+              <button
+                type="button"
+                onClick={handleSaveClosingStockHtmlDocument}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                title="Save self-contained report file for offline viewing or emailing"
+              >
+                <FileText className="w-3.5 h-3.5 text-blue-400" />
+                <span>Save Document</span>
+              </button>
+
               {/* Print A4 / Save as PDF */}
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={handlePrintA4ClosingStock}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black flex items-center gap-2 shadow-lg cursor-pointer hover:scale-105 transition-all"
                 title="Print full A4 sheet or save as PDF"
               >
