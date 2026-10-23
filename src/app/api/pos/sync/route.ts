@@ -164,27 +164,53 @@ export async function POST(req: NextRequest) {
     // 0. Process Synced Store Sales (RetailV2 Transactions -> Web POS Daily Report)
     let syncedSalesCount = 0;
     if (sales.length > 0) {
-      const syncedSales = sales.map((s: any) => ({
-        id: `ret-${s.tranId || Date.now()}`,
-        receiptNumber: String(s.receiptNumber || (s.tranId ? `RET-${s.tranId}` : `RET-${Date.now()}`)),
-        timestamp: s.date ? new Date(s.date).toISOString() : now,
-        items: Array.isArray(s.items) && s.items.length > 0
-          ? s.items.map((it: any) => ({
-              barcode: String(it.barcode || ''),
-              name: String(it.name || it.description || 'Grocery Item'),
-              price: Number(it.price) || 0,
-              qty: Number(it.qty) || 1,
-              total: Number(it.total) || ((Number(it.price) || 0) * (Number(it.qty) || 1)),
-            }))
-          : [{ barcode: '', name: `Store Sale (${s.itemCount || 1} items)`, price: Number(s.totalAmount) || 0, qty: 1, total: Number(s.totalAmount) || 0 }],
-        subtotal: Number(s.subtotal || s.totalAmount || 0),
-        vatTotal: Number(s.vatTotal || 0),
-        total: Number(s.totalAmount) || 0,
-        paymentMethod: Number(s.card) > 0 ? 'card' : 'cash',
-        cashTendered: Number(s.cash || 0),
-        changeDue: Number(s.change || 0),
-        cashier: s.cashier || `Till #${s.tillId || 1} (Staff ${s.userCode || 1})`,
-      }));
+      const syncedSales = sales.map((s: any) => {
+        const rawItems = Array.isArray(s.items) && s.items.length > 0 ? s.items : [];
+        const items = rawItems.length > 0
+          ? rawItems.map((it: any) => {
+              const p = Number(it.price) || 0;
+              const q = Number(it.qty) || 1;
+              const t = Number(it.total) > 0 ? Number(it.total) : Number((p * q).toFixed(2));
+              return {
+                barcode: String(it.barcode || ''),
+                name: String(it.name || it.description || 'Grocery Item'),
+                price: p,
+                qty: q,
+                total: t,
+                vat: Number(it.vat || it.vatRate || 0),
+              };
+            })
+          : [{ barcode: '', name: `Store Sale (${s.itemCount || 1} items)`, price: Number(s.totalAmount) || 0, qty: 1, total: Number(s.totalAmount) || 0, vat: 0 }];
+
+        const itemsSum = Number(items.reduce((acc: number, it: any) => acc + (Number(it.total) || 0), 0).toFixed(2));
+        const resolvedTotal = Number(s.totalAmount) > 0 ? Number(s.totalAmount) : (Number(s.total) > 0 ? Number(s.total) : itemsSum);
+
+        let calculatedVat = 0;
+        items.forEach((it: any) => {
+          if (it.vat > 0) {
+            calculatedVat += (Number(it.total) || 0) * (it.vat / (100 + it.vat));
+          }
+        });
+        calculatedVat = Number(calculatedVat.toFixed(2));
+        const resolvedVat = Number(s.vatTotal) > 0 ? Number(s.vatTotal) : calculatedVat;
+        const resolvedSubtotal = Number(s.subtotal) > 0 ? Number(s.subtotal) : Number((resolvedTotal - resolvedVat).toFixed(2));
+
+        const rNum = String(s.receiptNumber || (s.tranId ? (String(s.tranId).startsWith('RFT-') ? s.tranId : `RFT-${s.tranId}`) : `RFT-${Date.now()}`));
+
+        return {
+          id: `ret-${s.tranId || Date.now()}`,
+          receiptNumber: rNum,
+          timestamp: s.date ? new Date(s.date).toISOString() : now,
+          items,
+          subtotal: resolvedSubtotal,
+          vatTotal: resolvedVat,
+          total: resolvedTotal,
+          paymentMethod: (Number(s.card) > 0 || String(s.paymentMethod).toLowerCase() === 'card') ? 'card' : 'cash',
+          cashTendered: Number(s.cash || s.cashTendered || (Number(s.card) > 0 ? 0 : resolvedTotal)),
+          changeDue: Number(s.change || s.changeDue || 0),
+          cashier: s.cashier || `Till #${s.tillId || 1} (Staff ${s.userCode || 1})`,
+        };
+      });
 
       syncedSalesCount = syncedSales.length;
 

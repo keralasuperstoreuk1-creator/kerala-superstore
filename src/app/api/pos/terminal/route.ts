@@ -63,13 +63,47 @@ let inMemoryReturns: PosReturn[] = [];
 async function getAllTransactions(): Promise<PosTransaction[]> {
   const mergedMap = new Map<string, PosTransaction>();
 
+  const healTx = (t: any): PosTransaction => {
+    const rawItems = Array.isArray(t.items) ? t.items : [];
+    const itemsSum = Number(
+      rawItems.reduce((acc: number, it: any) => acc + (Number(it.total) || ((Number(it.price) || 0) * (Number(it.qty) || 1))), 0).toFixed(2)
+    );
+    const resolvedTotal = Number(t.total) > 0 ? Number(t.total) : itemsSum;
+
+    let calculatedVat = 0;
+    rawItems.forEach((it: any) => {
+      const vr = Number(it.vat || it.vatRate || 0);
+      if (vr > 0) {
+        const lineTot = Number(it.total) || ((Number(it.price) || 0) * (Number(it.qty) || 1));
+        calculatedVat += lineTot * (vr / (100 + vr));
+      }
+    });
+    calculatedVat = Number(calculatedVat.toFixed(2));
+    const resolvedVat = Number(t.vatTotal) > 0 ? Number(t.vatTotal) : calculatedVat;
+    const resolvedSubtotal = Number(t.subtotal) > 0 ? Number(t.subtotal) : Number((resolvedTotal - resolvedVat).toFixed(2));
+
+    return {
+      ...t,
+      items: rawItems.map((it: any) => ({
+        barcode: String(it.barcode || ''),
+        name: String(it.name || 'Store Item'),
+        price: Number(it.price) || 0,
+        qty: Number(it.qty) || 1,
+        total: Number(it.total) > 0 ? Number(it.total) : Number(((Number(it.price) || 0) * (Number(it.qty) || 1)).toFixed(2)),
+      })),
+      subtotal: resolvedSubtotal,
+      vatTotal: resolvedVat,
+      total: resolvedTotal,
+    };
+  };
+
   if (isR2Configured()) {
     try {
       const r2Txs = await getJsonFromR2<PosTransaction[]>(POS_TRANSACTIONS_R2_KEY);
       if (Array.isArray(r2Txs)) {
         r2Txs.forEach((t) => {
           const key = t.receiptNumber || t.id;
-          if (key) mergedMap.set(key, t);
+          if (key) mergedMap.set(key, healTx(t));
         });
       }
     } catch (e) {
@@ -79,7 +113,7 @@ async function getAllTransactions(): Promise<PosTransaction[]> {
 
   inMemoryTransactions.forEach((t) => {
     const key = t.receiptNumber || t.id;
-    if (key) mergedMap.set(key, t);
+    if (key) mergedMap.set(key, healTx(t));
   });
 
   return Array.from(mergedMap.values());

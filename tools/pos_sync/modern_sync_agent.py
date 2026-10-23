@@ -193,16 +193,27 @@ class PosSyncEngine:
                 except Exception:
                     pass
 
+                tot = float(row[8] or 0)
+                if tot == 0 and items:
+                    tot = round(sum(float(it["price"]) * float(it["qty"]) for it in items), 2)
+
+                card_val = float(row[6] or 0)
+                cash_val = float(row[5] or 0)
+                if card_val == 0 and cash_val == 0 and tot > 0:
+                    card_val = tot  # Default card/cash fallback
+
                 sales.append({
                     "tranId": tran_id,
+                    "receiptNumber": f"RFT-{tran_id}" if not tran_id.startswith("RFT-") else tran_id,
                     "tillId": row[1],
                     "userCode": row[2],
                     "date": date_val,
                     "itemCount": float(row[4] or len(items)),
-                    "cash": float(row[5] or 0),
-                    "card": float(row[6] or 0),
+                    "cash": cash_val,
+                    "card": card_val,
                     "change": float(row[7] or 0),
-                    "totalAmount": float(row[8] or 0),
+                    "totalAmount": tot,
+                    "total": tot,
                     "totalDiscount": float(row[9] or 0),
                     "isRefund": bool(row[10]),
                     "items": items

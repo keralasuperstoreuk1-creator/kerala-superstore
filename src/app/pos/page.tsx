@@ -1101,12 +1101,37 @@ export default function PosTerminalPage() {
       return dStr === todayStr;
     };
 
+    const normalizeTx = (tx: any) => {
+      const items = Array.isArray(tx.items) ? tx.items : [];
+      const itemsSum = Number(
+        items.reduce((s: number, i: any) => s + (Number(i.total) || ((Number(i.price) || 0) * (Number(i.qty) || 1))), 0).toFixed(2)
+      );
+      const total = Number(tx.total) > 0 ? Number(tx.total) : (Number(tx.totalAmount) > 0 ? Number(tx.totalAmount) : itemsSum);
+      let vat = Number(tx.vatTotal) || 0;
+      if (vat === 0 && items.length > 0) {
+        items.forEach((it: any) => {
+          const vr = Number(it.vatRate || it.vat || 0);
+          if (vr > 0) {
+            vat += (Number(it.total) || ((Number(it.price) || 0) * (Number(it.qty) || 1))) * (vr / (100 + vr));
+          }
+        });
+      }
+      vat = Number(vat.toFixed(2));
+      const subtotal = Number(tx.subtotal) > 0 ? Number(tx.subtotal) : Number((total - vat).toFixed(2));
+      return {
+        ...tx,
+        subtotal,
+        vatTotal: vat,
+        total,
+      };
+    };
+
     if (reportData && Array.isArray(reportData.recentTransactions)) {
       reportData.recentTransactions.forEach((tx: any) => {
         const id = tx.receiptNumber || tx.id;
         if (id && !seen.has(id)) {
           seen.add(id);
-          list.push(tx);
+          list.push(normalizeTx(tx));
         }
       });
     }
@@ -1119,7 +1144,7 @@ export default function PosTerminalPage() {
             const id = tx.receiptNumber || tx.id;
             if (id && !seen.has(id)) {
               seen.add(id);
-              list.push(tx);
+              list.push(normalizeTx(tx));
             }
           });
         }
@@ -1264,9 +1289,24 @@ export default function PosTerminalPage() {
       const itemSalesMap: Record<string, { barcode: string; name: string; qty: number; revenue: number; price: number }> = {};
 
       periodTxs.forEach((tx: any) => {
-        const tTotal = Number(tx.total) || 0;
-        const tVat = Number(tx.vatTotal) || 0;
-        const method = String(tx.paymentMethod || 'cash').toLowerCase();
+        const items = Array.isArray(tx.items) ? tx.items : [];
+        const itemsSum = Number(
+          items.reduce((s: number, i: any) => s + (Number(i.total) || ((Number(i.price) || 0) * (Number(i.qty) || 1))), 0).toFixed(2)
+        );
+        const tTotal = Number(tx.total) > 0 ? Number(tx.total) : (Number(tx.totalAmount) > 0 ? Number(tx.totalAmount) : itemsSum);
+
+        let calculatedVat = 0;
+        if (items.length > 0) {
+          items.forEach((it: any) => {
+            const vr = Number(it.vatRate || it.vat || 0);
+            if (vr > 0) {
+              calculatedVat += (Number(it.total) || ((Number(it.price) || 0) * (Number(it.qty) || 1))) * (vr / (100 + vr));
+            }
+          });
+        }
+        calculatedVat = Number(calculatedVat.toFixed(2));
+        const tVat = Number(tx.vatTotal) > 0 ? Number(tx.vatTotal) : calculatedVat;
+        const method = String(tx.paymentMethod || (Number(tx.card) > 0 ? 'card' : 'cash')).toLowerCase();
 
         totalSales += tTotal;
         vatCollected += tVat;
@@ -1447,16 +1487,31 @@ export default function PosTerminalPage() {
         sizeWeight: it.sizeWeight || 'Standard',
       }));
 
+      const itemsSum = Number(formattedItems.reduce((acc: number, it: any) => acc + (it.price * it.qty), 0).toFixed(2));
+      const billTotal = Number(tx.total) > 0 ? Number(tx.total) : (Number(tx.totalAmount) > 0 ? Number(tx.totalAmount) : itemsSum);
+
+      let calculatedVat = 0;
+      formattedItems.forEach((it: any) => {
+        const vr = Number(it.vatRate || (it as any).vat || 0);
+        if (vr > 0) {
+          calculatedVat += (it.price * it.qty) * (vr / (100 + vr));
+        }
+      });
+      calculatedVat = Number(calculatedVat.toFixed(2));
+      const billVat = Number(tx.vatTotal) > 0 ? Number(tx.vatTotal) : calculatedVat;
+      const billSubtotal = Number(tx.subtotal) > 0 ? Number(tx.subtotal) : Number((billTotal - billVat).toFixed(2));
+      const payMethod = tx.paymentMethod || (Number(tx.card) > 0 ? 'card' : 'cash');
+
       setLastReceipt({
         receiptNumber: tx.receiptNumber || `KSS-${Date.now().toString().slice(-6)}`,
         date: tx.timestamp ? new Date(tx.timestamp).toLocaleString('en-GB') : (tx.date || new Date().toLocaleString('en-GB')),
         cashier: tx.cashier || cashierName,
         items: formattedItems,
-        subtotal: Number(tx.subtotal) || Number(tx.total) || 0,
-        vatTotal: Number(tx.vatTotal) || 0,
-        total: Number(tx.total) || 0,
-        paymentMethod: tx.paymentMethod || 'cash',
-        cashGiven: tx.cashTendered !== undefined ? Number(tx.cashTendered) : Number(tx.total),
+        subtotal: billSubtotal,
+        vatTotal: billVat,
+        total: billTotal,
+        paymentMethod: payMethod,
+        cashGiven: tx.cashTendered !== undefined && Number(tx.cashTendered) > 0 ? Number(tx.cashTendered) : billTotal,
         changeDue: tx.changeDue !== undefined ? Number(tx.changeDue) : 0,
       });
       setReceiptModalOpen(true);
