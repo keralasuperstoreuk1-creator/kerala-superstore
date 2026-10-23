@@ -23,7 +23,7 @@ DEFAULT_CONFIG = {
     "api_key": "kss_pos_sync_key_2026_live",
     "supabase_url": os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "https://rnwthwaputocyirjtabd.supabase.co"),
     "supabase_key": os.environ.get("SUPABASE_SERVICE_ROLE_KEY", ""),
-    "sync_interval_seconds": 30,
+    "sync_interval_seconds": 60,
     "sync_to_website": False,
     "db_server": ".",
     "db_name": "epos",
@@ -62,6 +62,8 @@ class PosSyncEngine:
         self.last_sync_time = None
         self.total_synced = 0
         self.is_syncing = False
+        self.last_inventory_sync = 0
+        self.inventory_interval_seconds = 300  # Full inventory scan every 5 minutes (saves POS CPU & disk)
 
     def get_db_connection(self):
         try:
@@ -83,6 +85,23 @@ class PosSyncEngine:
             "SQL Server"
         ]
 
+        def configure_safety(c):
+            try:
+                # ZERO-LOCK SAFETY:
+                # 1. autocommit = True ensures no ambient open transactions are held
+                # 2. READ UNCOMMITTED avoids table/row locks
+                # 3. DEADLOCK_PRIORITY LOW ensures SQL Server drops this query if RetailV2 needs the table
+                # 4. LOCK_TIMEOUT 1500 ensures we never hang waiting; fail fast so cashier is never delayed
+                c.autocommit = True
+                cur = c.cursor()
+                cur.execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
+                cur.execute("SET DEADLOCK_PRIORITY LOW")
+                cur.execute("SET LOCK_TIMEOUT 1500")
+                cur.close()
+            except Exception:
+                pass
+            return c
+
         installed = pyodbc.drivers()
         for drv in drivers:
             if drv in installed or not installed:
@@ -91,7 +110,8 @@ class PosSyncEngine:
                         conn_str = f"DRIVER={{{drv}}};SERVER={server};DATABASE={database};Integrated Security=True;TrustServerCertificate=yes;"
                     else:
                         conn_str = f"DRIVER={{{drv}}};SERVER={server};DATABASE={database};UID={user};PWD={pwd};TrustServerCertificate=yes;"
-                    return pyodbc.connect(conn_str, timeout=4)
+                    raw_conn = pyodbc.connect(conn_str, timeout=3, autocommit=True)
+                    return configure_safety(raw_conn)
                 except Exception:
                     continue
 
@@ -100,45 +120,55 @@ class PosSyncEngine:
                 conn_str = f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};Integrated Security=True;"
             else:
                 conn_str = f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={user};PWD={pwd};"
-            return pyodbc.connect(conn_str, timeout=4)
+            raw_conn = pyodbc.connect(conn_str, timeout=3, autocommit=True)
+            return configure_safety(raw_conn)
         except Exception as ex:
             self.logger(f"SQL Connection attempt: {ex}", "error")
             return None
 
     def test_connection(self):
         start = time.time()
-        conn = self.get_db_connection()
-        if conn:
-            try:
+        conn = None
+        try:
+            conn = self.get_db_connection()
+            if conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM Inventory WHERE Is_Deleted = 0")
+                cursor.execute("SELECT COUNT(*) FROM Inventory WITH (NOLOCK) WHERE Is_Deleted = 0")
                 count = cursor.fetchone()[0]
-                conn.close()
+                cursor.close()
                 elapsed = int((time.time() - start) * 1000)
-                return True, f"Connected to RetailV2 Database in {elapsed}ms! Found {count:,} products."
-            except Exception as e:
-                return False, f"Connected, query error: {e}"
-        return False, "Could not connect to MSSQL epos database. Ensure RetailV2 is installed."
+                return True, f"Connected safely to RetailV2 Database in {elapsed}ms! Found {count:,} products."
+            return False, "Could not connect to MSSQL epos database. Ensure RetailV2 is installed."
+        except Exception as e:
+            return False, f"Connected, query notice: {e}"
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
     def fetch_inventory_from_db(self):
-        conn = self.get_db_connection()
-        if not conn:
-            self.logger("No direct MSSQL connection. Simulation mode active.", "warning")
-            return [
-                {"sku": 101, "barcode": "5012345678901", "description": "Nirapara Matta Rice 5kg", "quantity": 45, "price": 7.99, "webPrice": 7.49, "active": True},
-                {"sku": 102, "barcode": "5012345678902", "description": "Eastern Sambar Powder 200g", "quantity": 110, "price": 1.49, "webPrice": 1.39, "active": True},
-                {"sku": 103, "barcode": "5012345678903", "description": "Kerala Banana Chips 250g", "quantity": 25, "price": 2.99, "webPrice": 2.99, "active": True}
-            ]
-
+        conn = None
         try:
+            conn = self.get_db_connection()
+            if not conn:
+                self.logger("No direct MSSQL connection. Simulation mode active.", "warning")
+                return [
+                    {"sku": 101, "barcode": "5012345678901", "description": "Nirapara Matta Rice 5kg", "quantity": 45, "price": 7.99, "webPrice": 7.49, "active": True},
+                    {"sku": 102, "barcode": "5012345678902", "description": "Eastern Sambar Powder 200g", "quantity": 110, "price": 1.49, "webPrice": 1.39, "active": True},
+                    {"sku": 103, "barcode": "5012345678903", "description": "Kerala Banana Chips 250g", "quantity": 25, "price": 2.99, "webPrice": 2.99, "active": True}
+                ]
+
             cursor = conn.cursor()
             query = """
             SELECT SKU, Barcode, Description, Quantity, Price, Web_Price, Active, Is_Deleted, Last_Modified
-            FROM Inventory
+            FROM Inventory WITH (NOLOCK)
             WHERE Is_Deleted = 0
             """
             cursor.execute(query)
             rows = cursor.fetchall()
+            cursor.close()
             items = []
             for row in rows:
                 barcode = str(row[1]).strip() if row[1] else None
@@ -153,49 +183,76 @@ class PosSyncEngine:
                     "active": bool(row[6]) if row[6] is not None else True,
                     "lastModified": str(row[8]) if row[8] is not None else None
                 })
-            conn.close()
             return items
         except Exception as e:
             self.logger(f"Error querying Inventory: {e}", "error")
             return []
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
-    def fetch_sales_from_db(self, limit=100):
-        conn = self.get_db_connection()
-        if not conn:
-            return []
+    def fetch_sales_from_db(self, limit=25):
+        conn = None
         try:
+            conn = self.get_db_connection()
+            if not conn:
+                return []
             cursor = conn.cursor()
             query = f"""
             SELECT TOP {int(limit)} Tran_ID, Till_ID, User_Code, Date, NoofItem, Cash, Card, Change, TotalAmount, TotalDiscount, IsRefund
-            FROM Transaction_Summary
+            FROM Transaction_Summary WITH (NOLOCK)
             WHERE IsDeleted = 0
             ORDER BY Date DESC
             """
             cursor.execute(query)
             rows = cursor.fetchall()
+            cursor.close()
+
+            if not rows:
+                return []
+
+            # Single non-locking batch query for transaction items (Never loop individual queries!)
+            tran_ids = [str(r[0]).strip() for r in rows if r[0]]
+            items_by_tran = {}
+            if tran_ids:
+                try:
+                    placeholders = ",".join(["?"] * len(tran_ids))
+                    d_cur = conn.cursor()
+                    d_cur.execute(f"""
+                        SELECT Tran_ID, Barcode, Description, QTY, Price, VAT_Percentage
+                        FROM Transaction_Details WITH (NOLOCK)
+                        WHERE Tran_ID IN ({placeholders})
+                    """, tran_ids)
+                    for d_row in d_cur.fetchall():
+                        t_id = str(d_row[0]).strip()
+                        if t_id not in items_by_tran:
+                            items_by_tran[t_id] = []
+                        p = float(d_row[4] or 0)
+                        q = float(d_row[3] or 1)
+                        items_by_tran[t_id].append({
+                            "barcode": str(d_row[1]).strip() if d_row[1] else "",
+                            "name": str(d_row[2]).strip() if d_row[2] else "Item",
+                            "qty": q,
+                            "price": p,
+                            "total": round(p * q, 2),
+                            "vat": float(d_row[5] or 0)
+                        })
+                    d_cur.close()
+                except Exception as dex:
+                    self.logger(f"Item details read notice: {dex}", "warning")
+
             sales = []
             for row in rows:
                 tran_id = str(row[0]).strip()
                 date_val = str(row[3]) if row[3] else None
-                items = []
-                try:
-                    d_cur = conn.cursor()
-                    d_cur.execute("SELECT Barcode, Description, QTY, Price, VAT_Percentage FROM Transaction_Details WHERE Tran_ID = ?", tran_id)
-                    for d_row in d_cur.fetchall():
-                        items.append({
-                            "barcode": str(d_row[0]).strip() if d_row[0] else "",
-                            "name": str(d_row[1]).strip() if d_row[1] else "Item",
-                            "qty": float(d_row[2] or 1),
-                            "price": float(d_row[3] or 0),
-                            "vat": float(d_row[4] or 0)
-                        })
-                    d_cur.close()
-                except Exception:
-                    pass
+                items = items_by_tran.get(tran_id, [])
 
                 tot = float(row[8] or 0)
                 if tot == 0 and items:
-                    tot = round(sum(float(it["price"]) * float(it["qty"]) for it in items), 2)
+                    tot = round(sum(it["total"] for it in items), 2)
 
                 card_val = float(row[6] or 0)
                 cash_val = float(row[5] or 0)
@@ -218,23 +275,28 @@ class PosSyncEngine:
                     "isRefund": bool(row[10]),
                     "items": items
                 })
-            conn.close()
             return sales
         except Exception as e:
             self.logger(f"Error reading RetailV2 Sales: {e}", "warning")
             return []
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
-    def push_to_website(self, items, sales=None):
-        if not items:
-            return False, "No items"
+    def push_to_website(self, items=None, sales=None):
+        if not items and not sales:
+            return True, "No pending items or sales"
 
-        # Direct Supabase Cloud Database Mirror is the PRIMARY engine (100% Free, Zero Host Bandwidth/Credit Consumption)
-        success_count = len(items)
+        success_count = len(items) if items else 0
         self.last_sync_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.total_synced = success_count
+        if items:
+            self.total_synced = success_count
 
-        # Optional: website API sync (disabled by default to prevent web host credit depletion)
-        if self.config.get("sync_to_website", False):
+        # Optional: website API sync for inventory (disabled by default to prevent web host credit depletion)
+        if items and self.config.get("sync_to_website", False):
             base_url = self.config.get("website_url", "https://keralasuperstore.com").rstrip("/")
             sync_url = f"{base_url}/api/pos/sync"
             api_key = self.config.get("api_key", "kss_pos_sync_key_2026_live")
@@ -282,7 +344,7 @@ class PosSyncEngine:
         # 1. Direct Supabase Cloud Database Mirror (Permanent Zero-Latency Sync)
         sb_url = self.config.get("supabase_url", "").rstrip("/")
         sb_key = self.config.get("supabase_key", "")
-        if sb_url and sb_key:
+        if items and sb_url and sb_key:
             try:
                 sb_headers = {
                     "apikey": sb_key,
@@ -459,19 +521,31 @@ class PosSyncEngine:
             except Exception as sb_err:
                 self.logger(f"Supabase mirror notice: {sb_err}", "warning")
 
-        return True, f"Successfully pushed {success_count} products."
+        return True, f"Synced {len(sales)} sales and {len(items)} products" if (items and sales) else (f"Synced {len(sales)} live sales" if sales else f"Synced {len(items)} products")
 
-    def perform_sync(self):
+    def perform_sync(self, force_inventory=False):
         if self.is_syncing:
             return
         self.is_syncing = True
         try:
-            self.logger("--- Starting Inventory Stock, Price & Sales Synchronization ---", "info")
-            items = self.fetch_inventory_from_db()
-            sales = self.fetch_sales_from_db(limit=100)
+            now = time.time()
+            needs_inventory = force_inventory or (now - self.last_inventory_sync >= self.inventory_interval_seconds) or (self.last_inventory_sync == 0)
+
+            items = None
+            if needs_inventory:
+                self.logger("Safely checking inventory stock (Zero-Lock)...", "info")
+                items = self.fetch_inventory_from_db()
+                if items:
+                    self.last_inventory_sync = now
+                    self.logger(f"Read {len(items):,} items from RetailV2 inventory safely.", "info")
+
+            sales = self.fetch_sales_from_db(limit=25)
             if sales:
                 self.logger(f"Read {len(sales)} recent sales tickets from RetailV2.", "info")
-            self.logger(f"Read {len(items):,} items from RetailV2.", "info")
+
+            if not items and not sales:
+                return
+
             ok, msg = self.push_to_website(items, sales)
             if ok:
                 self.logger(f"✅ Sync Finished: {msg}", "success")
@@ -494,7 +568,7 @@ class PosSyncEngine:
         self.logger("Auto-Sync Engine paused.", "warning")
 
     def _loop(self):
-        interval = max(5, int(self.config.get("sync_interval_seconds", 30)))
+        interval = max(10, int(self.config.get("sync_interval_seconds", 60)))
         while self.running:
             self.perform_sync()
             for _ in range(interval):
@@ -684,7 +758,7 @@ class ModernSyncDashboard(ctk.CTk):
             self.card_status.configure(text="🟢 AUTO-SYNC LIVE", text_color="#34d399")
 
     def manual_sync(self):
-        threading.Thread(target=self.engine.perform_sync, daemon=True).start()
+        threading.Thread(target=lambda: self.engine.perform_sync(force_inventory=True), daemon=True).start()
 
     def test_pos_connection(self):
         def _test():
