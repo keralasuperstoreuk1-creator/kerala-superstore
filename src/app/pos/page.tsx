@@ -2256,6 +2256,11 @@ export default function PosTerminalPage() {
   useEffect(() => {
     if (activeTab === 'reports') {
       fetchDailyReport();
+      // Near real-time auto-sync: Poll every 10 seconds for instant cashier sale appearance
+      const reportTimer = setInterval(() => {
+        fetchDailyReport();
+      }, 10000);
+      return () => clearInterval(reportTimer);
     }
     if (activeTab === 'returns') {
       fetchRecentReceipts();
@@ -5874,6 +5879,11 @@ export default function PosTerminalPage() {
                     </span>
 
                     <div className="flex items-center gap-2">
+                      <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-semibold text-emerald-400">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>Live Auto-Sync (10s)</span>
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => fetchReport()}

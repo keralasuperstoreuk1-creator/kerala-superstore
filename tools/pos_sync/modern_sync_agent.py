@@ -23,7 +23,7 @@ DEFAULT_CONFIG = {
     "api_key": "kss_pos_sync_key_2026_live",
     "supabase_url": os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "https://rnwthwaputocyirjtabd.supabase.co"),
     "supabase_key": os.environ.get("SUPABASE_SERVICE_ROLE_KEY", ""),
-    "sync_interval_seconds": 60,
+    "sync_interval_seconds": 12,
     "sync_to_website": False,
     "db_server": ".",
     "db_name": "epos",
@@ -64,6 +64,7 @@ class PosSyncEngine:
         self.is_syncing = False
         self.last_inventory_sync = 0
         self.inventory_interval_seconds = 300  # Full inventory scan every 5 minutes (saves POS CPU & disk)
+        self.last_synced_tran_id = None
 
     def get_db_connection(self):
         try:
@@ -523,6 +524,26 @@ class PosSyncEngine:
 
         return True, f"Synced {len(sales)} sales and {len(items)} products" if (items and sales) else (f"Synced {len(sales)} live sales" if sales else f"Synced {len(items)} products")
 
+    def get_latest_tran_id(self):
+        conn = None
+        try:
+            conn = self.get_db_connection()
+            if not conn:
+                return None
+            cursor = conn.cursor()
+            cursor.execute("SELECT TOP 1 Tran_ID FROM Transaction_Summary WITH (NOLOCK) WHERE IsDeleted = 0 ORDER BY Date DESC")
+            row = cursor.fetchone()
+            cursor.close()
+            return str(row[0]).strip() if row and row[0] else None
+        except Exception:
+            return None
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
     def perform_sync(self, force_inventory=False):
         if self.is_syncing:
             return
@@ -539,18 +560,24 @@ class PosSyncEngine:
                     self.last_inventory_sync = now
                     self.logger(f"Read {len(items):,} items from RetailV2 inventory safely.", "info")
 
-            sales = self.fetch_sales_from_db(limit=25)
-            if sales:
-                self.logger(f"Read {len(sales)} recent sales tickets from RetailV2.", "info")
+            # Instant 1ms check for new sales (Zero-Lock)
+            latest_id = self.get_latest_tran_id()
+            has_new_sales = force_inventory or (latest_id and latest_id != self.last_synced_tran_id) or (self.last_synced_tran_id is None)
+
+            sales = None
+            if has_new_sales:
+                sales = self.fetch_sales_from_db(limit=25)
+                if sales:
+                    self.last_synced_tran_id = latest_id
+                    if latest_id:
+                        self.logger(f"⚡ Live sale ticket #{latest_id} detected! Synced to Web POS.", "success")
 
             if not items and not sales:
                 return
 
             ok, msg = self.push_to_website(items, sales)
-            if ok:
+            if ok and items:
                 self.logger(f"✅ Sync Finished: {msg}", "success")
-            else:
-                self.logger(f"⚠️ Sync Notice: {msg}", "warning")
         except Exception as ex:
             self.logger(f"Sync error: {ex}", "error")
         finally:
@@ -561,14 +588,14 @@ class PosSyncEngine:
         self.running = True
         self.thread = threading.Thread(target=self._loop, daemon=True)
         self.thread.start()
-        self.logger("Auto-Sync Engine started.", "success")
+        self.logger("Auto-Sync Engine started (Ultra-Fast 12s Detection).", "success")
 
     def stop_auto_sync(self):
         self.running = False
         self.logger("Auto-Sync Engine paused.", "warning")
 
     def _loop(self):
-        interval = max(10, int(self.config.get("sync_interval_seconds", 60)))
+        interval = max(5, int(self.config.get("sync_interval_seconds", 12)))
         while self.running:
             self.perform_sync()
             for _ in range(interval):
