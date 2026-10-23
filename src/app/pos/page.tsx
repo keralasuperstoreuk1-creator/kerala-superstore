@@ -570,11 +570,16 @@ export default function PosTerminalPage() {
         return;
       }
 
-      // Printable width for thermal receipt paper rolls:
-      // POS-58 paper roll has printable width of 48mm (~185px)
-      // POS-80 paper roll has printable width of 72mm (~275px)
-      const printableWidthMm = paperWidth === '58mm' ? '48mm' : '72mm';
-      const fontSize = paperWidth === '58mm' ? '9.5px' : '11px';
+      // Printable roll width for POS printers:
+      // POS-58 roll width is 58mm (printable ~48-52mm)
+      // POS-80 roll width is 80mm (printable ~72-76mm)
+      const rollWidthMm = paperWidth === '58mm' ? 58 : 80;
+      const fontSize = paperWidth === '58mm' ? '10px' : '11.5px';
+
+      // Initial estimate of height in millimeters
+      const rect = el.getBoundingClientRect();
+      const contentHeightPx = el.scrollHeight || el.offsetHeight || rect.height;
+      const initialHeightMm = Math.max(70, Math.ceil((contentHeightPx / 96) * 25.4) + 4);
 
       // Clean up any previous print iframe
       const oldFrame = document.getElementById('kss-thermal-print-frame');
@@ -620,10 +625,10 @@ export default function PosTerminalPage() {
       const iframe = document.createElement('iframe');
       iframe.id = 'kss-thermal-print-frame';
       iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '0';
+      iframe.style.width = `${rollWidthMm}mm`;
+      iframe.style.height = 'auto';
       iframe.style.border = '0';
       iframe.style.visibility = 'hidden';
       document.body.appendChild(iframe);
@@ -656,24 +661,29 @@ export default function PosTerminalPage() {
             <meta charset="utf-8" />
             <base href="${window.location.origin}/" />
             <title>Kerala Superstore Receipt</title>
-            <style>
+            <style id="receipt-print-style">
               @page {
-                size: ${printableWidthMm} auto;
+                size: ${rollWidthMm}mm ${initialHeightMm}mm;
                 margin: 0mm !important;
               }
               *, *:before, *:after {
                 box-sizing: border-box;
                 margin: 0;
                 padding: 0;
+                border: 0 solid transparent !important;
+                border-left: none !important;
+                border-right: none !important;
+                color: #000000 !important;
+                -webkit-text-fill-color: #000000 !important;
               }
               html, body {
-                width: ${printableWidthMm} !important;
-                max-width: ${printableWidthMm} !important;
+                width: 100% !important;
+                max-width: ${rollWidthMm}mm !important;
                 margin: 0 !important;
-                padding: 1.5mm 1mm 1.5mm 1mm !important;
+                padding: 1mm 1.5mm 2mm 1.5mm !important;
                 background: #ffffff !important;
                 color: #000000 !important;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, 'Courier New', monospace !important;
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
                 font-size: ${fontSize} !important;
                 line-height: 1.25 !important;
                 -webkit-print-color-adjust: exact !important;
@@ -709,21 +719,38 @@ export default function PosTerminalPage() {
               .items-center { align-items: center !important; }
               .items-start { align-items: flex-start !important; }
               .gap-1 { gap: 4px !important; }
-              .flex-1 { flex: 1 1 0% !important; }
+              .flex-1 { flex: 1 1 0% !important; min-width: 0 !important; }
               .shrink-0 { flex-shrink: 0 !important; }
               .whitespace-nowrap { white-space: nowrap !important; }
-              .border-b { border-bottom: 1px dashed #222 !important; }
-              .border-t { border-top: 1px dashed #222 !important; }
-              .border-dashed { border-style: dashed !important; }
+              .border-b {
+                border-bottom: 1px dashed #000000 !important;
+                border-top: none !important;
+                border-left: none !important;
+                border-right: none !important;
+              }
+              .border-t {
+                border-top: 1px dashed #000000 !important;
+                border-bottom: none !important;
+                border-left: none !important;
+                border-right: none !important;
+              }
+              .border-t.border-b {
+                border-top: 1px dashed #000000 !important;
+                border-bottom: 1px dashed #000000 !important;
+                border-left: none !important;
+                border-right: none !important;
+              }
               .py-1 { padding-top: 2px !important; padding-bottom: 2px !important; }
               .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
               .pt-1 { padding-top: 2px !important; }
               .pt-2 { padding-top: 4px !important; }
+              .pt-2\.5 { padding-top: 5px !important; }
               .pb-1 { padding-bottom: 2px !important; }
               .pb-2 { padding-bottom: 4px !important; }
               .space-y-1 > * + * { margin-top: 2px !important; }
-              .space-y-0\\.5 > * + * { margin-top: 1px !important; }
-              .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+              .space-y-0\.5 > * + * { margin-top: 1px !important; }
+              .space-y-2 > * + * { margin-top: 4px !important; }
+              .truncate { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
               .no-print { display: none !important; }
             </style>
           </head>
@@ -734,9 +761,30 @@ export default function PosTerminalPage() {
       `);
       doc.close();
 
-      // Ensure all images are fully loaded before opening print preview dialog
+      // Ensure all images are fully loaded and measure exact final height before opening print dialog
       const triggerPrintNow = () => {
         try {
+          // Measure the exact rendered receipt content inside the iframe at 58mm/80mm roll width
+          const bodyEl = doc.body;
+          const renderedPx = bodyEl.scrollHeight || bodyEl.offsetHeight || doc.documentElement.scrollHeight;
+          if (renderedPx > 50) {
+            const finalHeightMm = Math.max(50, Math.ceil((renderedPx / 96) * 25.4) + 3);
+            const styleEl = doc.getElementById('receipt-print-style');
+            if (styleEl) {
+              styleEl.textContent = `
+                @page {
+                  size: ${rollWidthMm}mm ${finalHeightMm}mm;
+                  margin: 0mm !important;
+                }
+                html, body {
+                  height: ${finalHeightMm}mm !important;
+                  max-height: ${finalHeightMm}mm !important;
+                  overflow: hidden !important;
+                }
+              ` + styleEl.textContent;
+            }
+          }
+
           iframe.contentWindow?.focus();
           iframe.contentWindow?.print();
         } catch (e) {
