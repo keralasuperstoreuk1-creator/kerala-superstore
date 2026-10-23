@@ -2788,6 +2788,15 @@ export default function PosTerminalPage() {
             <Maximize2 className="w-5 h-5" />
           </button>
 
+          {/* Open Web Admin Portal */}
+          <Link
+            href="/admin"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition-all"
+            title="Open Web Admin Portal"
+          >
+            <Shield className="w-5 h-5" />
+          </Link>
+
           {/* Back to Website */}
           <Link
             href="/"

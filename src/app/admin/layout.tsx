@@ -229,6 +229,15 @@ export default function AdminLayout({
         {/* Bottom Actions */}
         <div className="p-4 border-t border-slate-800 space-y-2 shrink-0">
           <Link
+            href="/pos"
+            className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+            title="Open POS Till Terminal"
+          >
+            <Boxes className="w-4 h-4 text-emerald-200" />
+            <span>Open POS Terminal</span>
+          </Link>
+
+          <Link
             href="/"
             className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition-all"
           >

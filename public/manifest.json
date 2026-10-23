@@ -34,5 +34,21 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "POS Terminal & Billing",
+      "short_name": "POS Till",
+      "description": "Retail Barcode Billing, Stock & Reports",
+      "url": "/pos",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Web Admin Portal",
+      "short_name": "Admin",
+      "description": "Product Management, Prices & Sales Analytics",
+      "url": "/admin",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    }
   ]
 }
