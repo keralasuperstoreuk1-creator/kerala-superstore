@@ -582,6 +582,41 @@ export default function PosTerminalPage() {
         try { oldFrame.remove(); } catch {}
       }
 
+      // Convert rendered logo & QR in the DOM to instant Base64 data URLs (0ms network delay, 100% reliable)
+      let logoDataUrl = '';
+      let qrDataUrl = '';
+      try {
+        const liveLogo = el.querySelector('img.receipt-logo') as HTMLImageElement;
+        if (liveLogo && liveLogo.complete && liveLogo.naturalWidth > 0) {
+          const c = document.createElement('canvas');
+          c.width = liveLogo.naturalWidth;
+          c.height = liveLogo.naturalHeight;
+          const ctx = c.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(liveLogo, 0, 0);
+            logoDataUrl = c.toDataURL('image/png');
+          }
+        }
+      } catch (e) {
+        console.warn('Logo canvas conversion notice:', e);
+      }
+
+      try {
+        const liveQr = el.querySelector('img.receipt-qr') as HTMLImageElement;
+        if (liveQr && liveQr.complete && liveQr.naturalWidth > 0) {
+          const c = document.createElement('canvas');
+          c.width = liveQr.naturalWidth;
+          c.height = liveQr.naturalHeight;
+          const ctx = c.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(liveQr, 0, 0);
+            qrDataUrl = c.toDataURL('image/png');
+          }
+        }
+      } catch (e) {
+        console.warn('QR canvas conversion notice:', e);
+      }
+
       const iframe = document.createElement('iframe');
       iframe.id = 'kss-thermal-print-frame';
       iframe.style.position = 'fixed';
@@ -599,12 +634,27 @@ export default function PosTerminalPage() {
         return;
       }
 
+      // Prepare HTML content with guaranteed logo & QR images
+      let printHtml = el.innerHTML;
+      if (logoDataUrl) {
+        printHtml = printHtml.replace(/<img[^>]*class="[^"]*receipt-logo[^"]*"[^>]*>/i, `<img src="${logoDataUrl}" class="receipt-logo" alt="Logo" />`);
+      } else {
+        printHtml = printHtml.replace(/src="\/logo\.png"/i, `src="${window.location.origin}/branding/kerala-superstore-round-logo.png"`);
+      }
+
+      if (qrDataUrl) {
+        printHtml = printHtml.replace(/<img[^>]*class="[^"]*receipt-qr[^"]*"[^>]*>/i, `<img src="${qrDataUrl}" class="receipt-qr" alt="QR" />`);
+      } else {
+        printHtml = printHtml.replace(/src="\/instagram-qr\.png"/i, `src="${window.location.origin}/instagram-qr.png"`);
+      }
+
       doc.open();
       doc.write(`
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="utf-8" />
+            <base href="${window.location.origin}/" />
             <title>Kerala Superstore Receipt</title>
             <style>
               @page {
@@ -623,7 +673,7 @@ export default function PosTerminalPage() {
                 padding: 1.5mm 1mm 1.5mm 1mm !important;
                 background: #ffffff !important;
                 color: #000000 !important;
-                font-family: 'Courier New', Courier, monospace !important;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, 'Courier New', monospace !important;
                 font-size: ${fontSize} !important;
                 line-height: 1.25 !important;
                 -webkit-print-color-adjust: exact !important;
@@ -634,17 +684,20 @@ export default function PosTerminalPage() {
                 height: auto !important;
                 display: block;
                 margin: 0 auto;
-                filter: grayscale(100%) contrast(140%);
               }
               .receipt-logo {
-                width: ${paperWidth === '58mm' ? '38px' : '48px'} !important;
-                height: ${paperWidth === '58mm' ? '38px' : '48px'} !important;
+                width: ${paperWidth === '58mm' ? '46px' : '58px'} !important;
+                height: ${paperWidth === '58mm' ? '46px' : '58px'} !important;
+                object-fit: contain !important;
+                display: block !important;
                 margin: 0 auto 3px auto !important;
               }
               .receipt-qr {
-                width: ${paperWidth === '58mm' ? '68px' : '88px'} !important;
-                height: ${paperWidth === '58mm' ? '68px' : '88px'} !important;
-                margin: 3px auto !important;
+                width: ${paperWidth === '58mm' ? '70px' : '88px'} !important;
+                height: ${paperWidth === '58mm' ? '70px' : '88px'} !important;
+                object-fit: contain !important;
+                display: block !important;
+                margin: 4px auto !important;
               }
               .text-center { text-align: center !important; }
               .text-right { text-align: right !important; }
@@ -655,8 +708,12 @@ export default function PosTerminalPage() {
               .justify-between { justify-content: space-between !important; }
               .items-center { align-items: center !important; }
               .items-start { align-items: flex-start !important; }
-              .border-b { border-bottom: 1px dashed #333 !important; }
-              .border-t { border-top: 1px dashed #333 !important; }
+              .gap-1 { gap: 4px !important; }
+              .flex-1 { flex: 1 1 0% !important; }
+              .shrink-0 { flex-shrink: 0 !important; }
+              .whitespace-nowrap { white-space: nowrap !important; }
+              .border-b { border-bottom: 1px dashed #222 !important; }
+              .border-t { border-top: 1px dashed #222 !important; }
               .border-dashed { border-style: dashed !important; }
               .py-1 { padding-top: 2px !important; padding-bottom: 2px !important; }
               .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
@@ -671,13 +728,14 @@ export default function PosTerminalPage() {
             </style>
           </head>
           <body>
-            ${el.innerHTML}
+            ${printHtml}
           </body>
         </html>
       `);
       doc.close();
 
-      setTimeout(() => {
+      // Ensure all images are fully loaded before opening print preview dialog
+      const triggerPrintNow = () => {
         try {
           iframe.contentWindow?.focus();
           iframe.contentWindow?.print();
@@ -689,7 +747,36 @@ export default function PosTerminalPage() {
             try { iframe.remove(); } catch {}
           }, 4000);
         }
-      }, 200);
+      };
+
+      const imgs = Array.from(doc.images || []);
+      if (imgs.length === 0) {
+        setTimeout(triggerPrintNow, 120);
+      } else {
+        let loaded = 0;
+        let fired = false;
+        const onOne = () => {
+          loaded++;
+          if (loaded >= imgs.length && !fired) {
+            fired = true;
+            setTimeout(triggerPrintNow, 100);
+          }
+        };
+        imgs.forEach((img) => {
+          if (img.complete && img.naturalWidth > 0) {
+            onOne();
+          } else {
+            img.onload = onOne;
+            img.onerror = onOne;
+          }
+        });
+        setTimeout(() => {
+          if (!fired) {
+            fired = true;
+            triggerPrintNow();
+          }
+        }, 1200);
+      }
     }
   };
 
@@ -7127,16 +7214,10 @@ export default function PosTerminalPage() {
                 <div className="text-center space-y-0.5 border-b border-dashed border-slate-300 pb-2">
                   {/* Official Store Logo on Bill */}
                   <img
-                    src="/logo.png"
+                    src="/branding/kerala-superstore-round-logo.png"
                     alt="Kerala Superstore Logo"
                     width={56}
                     height={56}
-                    onError={(e) => {
-                      const target = e.currentTarget;
-                      if (target.src.indexOf('/branding/') === -1) {
-                        target.src = '/branding/kerala-superstore-round-logo.png';
-                      }
-                    }}
                     className="receipt-logo w-14 h-14 mx-auto object-contain mb-1"
                   />
                   <h4 className="font-black text-xs uppercase">{storeInfo.name}</h4>
@@ -7145,18 +7226,20 @@ export default function PosTerminalPage() {
                   <p className="text-[10px] text-slate-600">VAT: {storeInfo.vatNumber}</p>
                 </div>
 
-                <div className="flex justify-between text-[10px] text-slate-600 pt-1">
-                  <span>Receipt: {lastReceipt.receiptNumber}</span>
-                  <span>{lastReceipt.date}</span>
+                <div className="flex justify-between items-center text-[9.5px] text-slate-700 pt-1 font-mono">
+                  <span className="font-bold">RCPT: {lastReceipt.receiptNumber}</span>
+                  <span className="text-right">{lastReceipt.date}</span>
                 </div>
 
                 <div className="border-t border-b border-dashed border-slate-300 py-2 space-y-1">
                   {lastReceipt.items.map((it: any, idx: number) => (
-                    <div key={idx} className="flex justify-between items-start">
-                      <div className="truncate max-w-[170px]">
+                    <div key={idx} className="flex justify-between items-start gap-1">
+                      <div className="flex-1 min-w-0 pr-1 text-left truncate">
                         <span>{it.qty}x {it.name}</span>
                       </div>
-                      <span>£{(it.price * it.qty).toFixed(2)}</span>
+                      <span className="shrink-0 text-right font-bold whitespace-nowrap">
+                        £{(it.price * it.qty).toFixed(2)}
+                      </span>
                     </div>
                   ))}
                 </div>
