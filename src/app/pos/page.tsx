@@ -685,12 +685,21 @@ export default function PosTerminalPage() {
 
 
 
-  // Global F12 Hotkey for opening cash drawer manually
+  // Global Hotkeys: F12 for cash drawer, Escape to close any open modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F12') {
         e.preventDefault();
         triggerCashDrawerKick('manual');
+      } else if (e.key === 'Escape') {
+        setReceiptModalOpen(false);
+        setReturnSlipModalOpen(false);
+        setClosingStockModalOpen(false);
+        setClosingStockA4ModalOpen(false);
+        setSalesReportModalOpen(false);
+        setAdminPinModalOpen(false);
+        setUserSwitchModalOpen(false);
+        setPaymentModalOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -6869,22 +6878,29 @@ export default function PosTerminalPage() {
 
       {/* THERMAL RECEIPT MODAL (Formatted 80mm & 58mm ESC/POS layout) */}
       {receiptModalOpen && lastReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 isolate">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-3">
-            <div className="flex items-center justify-between">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs isolate overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setReceiptModalOpen(false);
+          }}
+        >
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 w-full max-w-sm shadow-2xl space-y-3 my-auto max-h-[94vh] flex flex-col relative animate-scale-up">
+            <div className="flex items-center justify-between shrink-0">
               <span className="text-xs font-bold text-emerald-400">
                 Sale Completed ✓ {lastReceipt.paymentMethod === 'cash' ? '(Cash Drawer Kicked)' : ''}
               </span>
               <button
+                type="button"
                 onClick={() => setReceiptModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Close receipt preview (Esc)"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Receipt Paper Width Selector (Supports All Thermal Printer Hardware) */}
-            <div className="flex items-center justify-between bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+            <div className="flex items-center justify-between bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs shrink-0">
               <span className="text-[11px] font-semibold text-slate-400">Printer Roll:</span>
               <div className="flex gap-1">
                 <button
@@ -6912,119 +6928,121 @@ export default function PosTerminalPage() {
               </div>
             </div>
 
-            {/* Receipt Preview (Thermal Paper Look with Store Logo) */}
-            <div
-              id="thermal-receipt-preview"
-              className={`bg-white text-slate-950 p-5 rounded-xl font-mono text-[11px] space-y-2 shadow-inner border border-slate-200 ${
-                receiptPaperWidth === '58mm' ? 'paper-58mm max-w-[240px] mx-auto text-[9.5px]' : ''
-              }`}
-            >
-              <div className="text-center space-y-0.5 border-b border-dashed border-slate-300 pb-2">
-                {/* Official Store Logo on Bill */}
-                <img
-                  src="/logo.png"
-                  alt="Kerala Superstore Logo"
-                  width={56}
-                  height={56}
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    if (target.src.indexOf('/branding/') === -1) {
-                      target.src = '/branding/kerala-superstore-round-logo.png';
-                    }
-                  }}
-                  className="receipt-logo w-14 h-14 mx-auto object-contain mb-1"
-                />
-                <h4 className="font-black text-xs uppercase">{storeInfo.name}</h4>
-                <p className="text-[10px] text-slate-600">{storeInfo.address}</p>
-                <p className="text-[10px] text-slate-600">Tel: {storeInfo.phone}</p>
-                <p className="text-[10px] text-slate-600">VAT: {storeInfo.vatNumber}</p>
-              </div>
+            {/* Scrollable Receipt Preview Container */}
+            <div className="flex-1 overflow-y-auto rounded-xl border border-slate-700/50 max-h-[50vh] sm:max-h-[54vh] bg-white shadow-inner">
+              <div
+                id="thermal-receipt-preview"
+                className={`bg-white text-slate-950 p-4 sm:p-5 font-mono text-[11px] space-y-2 ${
+                  receiptPaperWidth === '58mm' ? 'paper-58mm max-w-[240px] mx-auto text-[9.5px]' : ''
+                }`}
+              >
+                <div className="text-center space-y-0.5 border-b border-dashed border-slate-300 pb-2">
+                  {/* Official Store Logo on Bill */}
+                  <img
+                    src="/logo.png"
+                    alt="Kerala Superstore Logo"
+                    width={56}
+                    height={56}
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src.indexOf('/branding/') === -1) {
+                        target.src = '/branding/kerala-superstore-round-logo.png';
+                      }
+                    }}
+                    className="receipt-logo w-14 h-14 mx-auto object-contain mb-1"
+                  />
+                  <h4 className="font-black text-xs uppercase">{storeInfo.name}</h4>
+                  <p className="text-[10px] text-slate-600">{storeInfo.address}</p>
+                  <p className="text-[10px] text-slate-600">Tel: {storeInfo.phone}</p>
+                  <p className="text-[10px] text-slate-600">VAT: {storeInfo.vatNumber}</p>
+                </div>
 
-              <div className="flex justify-between text-[10px] text-slate-600 pt-1">
-                <span>Receipt: {lastReceipt.receiptNumber}</span>
-                <span>{lastReceipt.date}</span>
-              </div>
+                <div className="flex justify-between text-[10px] text-slate-600 pt-1">
+                  <span>Receipt: {lastReceipt.receiptNumber}</span>
+                  <span>{lastReceipt.date}</span>
+                </div>
 
-              <div className="border-t border-b border-dashed border-slate-300 py-2 space-y-1">
-                {lastReceipt.items.map((it: any, idx: number) => (
-                  <div key={idx} className="flex justify-between items-start">
-                    <div className="truncate max-w-[170px]">
-                      <span>{it.qty}x {it.name}</span>
+                <div className="border-t border-b border-dashed border-slate-300 py-2 space-y-1">
+                  {lastReceipt.items.map((it: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-start">
+                      <div className="truncate max-w-[170px]">
+                        <span>{it.qty}x {it.name}</span>
+                      </div>
+                      <span>£{(it.price * it.qty).toFixed(2)}</span>
                     </div>
-                    <span>£{(it.price * it.qty).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              <div className="space-y-0.5 text-right pt-1 font-bold">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>£{lastReceipt.subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-slate-600">
-                  <span>VAT:</span>
-                  <span>£{lastReceipt.vatTotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xs font-black border-t border-slate-400 pt-1">
-                  <span>TOTAL PAID:</span>
-                  <span>£{lastReceipt.total.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-slate-600">
-                  <span>Payment:</span>
-                  <span className="uppercase">{lastReceipt.paymentMethod}</span>
-                </div>
-                {lastReceipt.paymentMethod === 'cash' && (
+                <div className="space-y-0.5 text-right pt-1 font-bold">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>£{lastReceipt.subtotal.toFixed(2)}</span>
+                  </div>
                   <div className="flex justify-between text-[10px] text-slate-600">
-                    <span>Change Due:</span>
-                    <span>£{lastReceipt.changeDue.toFixed(2)}</span>
+                    <span>VAT:</span>
+                    <span>£{lastReceipt.vatTotal.toFixed(2)}</span>
                   </div>
-                )}
-              </div>
-
-              {/* Direct Bank Transfer Details */}
-              <div className="border-t border-dashed border-slate-300 pt-2 text-[9.5px] text-slate-800 space-y-0.5">
-                <p className="font-bold text-center uppercase tracking-wider text-[10px] text-slate-900">Direct Bank Transfer</p>
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Name:</span>
-                  <span className="font-bold">Kerala superstore Ltd</span>
+                  <div className="flex justify-between text-xs font-black border-t border-slate-400 pt-1">
+                    <span>TOTAL PAID:</span>
+                    <span>£{lastReceipt.total.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-600">
+                    <span>Payment:</span>
+                    <span className="uppercase">{lastReceipt.paymentMethod}</span>
+                  </div>
+                  {lastReceipt.paymentMethod === 'cash' && (
+                    <div className="flex justify-between text-[10px] text-slate-600">
+                      <span>Change Due:</span>
+                      <span>£{lastReceipt.changeDue.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Sort code:</span>
-                  <span className="font-bold font-mono">04-00-03</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600">ACC.No:</span>
-                  <span className="font-bold font-mono">44347284</span>
-                </div>
-              </div>
 
-              {/* Instagram QR Code Follow Section */}
-              <div className="text-center pt-2.5 border-t border-dashed border-slate-300 space-y-1">
-                <p className="font-bold text-[9px] uppercase tracking-wider text-slate-700">
-                  Follow Us On Instagram
-                </p>
-                <img
-                  src="/instagram-qr.png"
-                  alt="Follow @KERALASUPERSTORE on Instagram"
-                  className="receipt-qr w-24 h-24 mx-auto object-contain"
-                />
-                <p className="font-bold font-mono text-[9px] text-slate-900 tracking-wider">
-                  @KERALASUPERSTORE
-                </p>
-              </div>
+                {/* Direct Bank Transfer Details */}
+                <div className="border-t border-dashed border-slate-300 pt-2 text-[9.5px] text-slate-800 space-y-0.5">
+                  <p className="font-bold text-center uppercase tracking-wider text-[10px] text-slate-900">Direct Bank Transfer</p>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Name:</span>
+                    <span className="font-bold">Kerala superstore Ltd</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Sort code:</span>
+                    <span className="font-bold font-mono">04-00-03</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">ACC.No:</span>
+                    <span className="font-bold font-mono">44347284</span>
+                  </div>
+                </div>
 
-              <div className="text-center pt-2 border-t border-dashed border-slate-300 text-[10px] text-slate-600">
-                <p className="font-bold">Thank you for shopping at Kerala Superstore UK!</p>
-                <p className="font-bold">www.keralasuperstore.com</p>
+                {/* Instagram QR Code Follow Section */}
+                <div className="text-center pt-2.5 border-t border-dashed border-slate-300 space-y-1">
+                  <p className="font-bold text-[9px] uppercase tracking-wider text-slate-700">
+                    Follow Us On Instagram
+                  </p>
+                  <img
+                    src="/instagram-qr.png"
+                    alt="Follow @KERALASUPERSTORE on Instagram"
+                    className="receipt-qr w-24 h-24 mx-auto object-contain"
+                  />
+                  <p className="font-bold font-mono text-[9px] text-slate-900 tracking-wider">
+                    @KERALASUPERSTORE
+                  </p>
+                </div>
+
+                <div className="text-center pt-2 border-t border-dashed border-slate-300 text-[10px] text-slate-600">
+                  <p className="font-bold">Thank you for shopping at Kerala Superstore UK!</p>
+                  <p className="font-bold">www.keralasuperstore.com</p>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-2 pt-1">
+            <div className="space-y-2 pt-1 shrink-0 border-t border-slate-800/80">
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => printElementToThermal('thermal-receipt-preview', receiptPaperWidth, lastReceipt?.paymentMethod === 'cash')}
-                  className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all"
+                  className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all active:scale-95"
                 >
                   <Printer className="w-4 h-4" />
                   <span>Print Bill ({receiptPaperWidth})</span>
@@ -7033,9 +7051,10 @@ export default function PosTerminalPage() {
                 <button
                   type="button"
                   onClick={() => setReceiptModalOpen(false)}
-                  className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                 >
-                  New Sale
+                  <X className="w-4 h-4" />
+                  <span>Close / New Sale</span>
                 </button>
               </div>
 
@@ -7056,20 +7075,27 @@ export default function PosTerminalPage() {
 
       {/* THERMAL RETURN / REFUND VOUCHER MODAL (Formatted 80mm & 58mm ESC/POS layout) */}
       {returnSlipModalOpen && lastReturnSlip && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-3">
-            <div className="flex items-center justify-between">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs isolate overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setReturnSlipModalOpen(false);
+          }}
+        >
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 w-full max-w-sm shadow-2xl space-y-3 my-auto max-h-[94vh] flex flex-col relative animate-scale-up">
+            <div className="flex items-center justify-between shrink-0">
               <span className="text-xs font-bold text-rose-400">Return Processed ✓</span>
               <button
+                type="button"
                 onClick={() => setReturnSlipModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Close return voucher (Esc)"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Return Slip Paper Width Selector */}
-            <div className="flex items-center justify-between bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+            <div className="flex items-center justify-between bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs shrink-0">
               <span className="text-[11px] font-semibold text-slate-400">Printer Roll:</span>
               <div className="flex gap-1">
                 <button
@@ -7097,104 +7123,109 @@ export default function PosTerminalPage() {
               </div>
             </div>
 
-            {/* Return Slip Preview (Thermal Paper Look with Store Logo) */}
-            <div
-              id="thermal-return-preview"
-              className={`bg-white text-slate-950 p-5 rounded-xl font-mono text-[11px] space-y-2 shadow-inner border border-slate-200 ${
-                receiptPaperWidth === '58mm' ? 'paper-58mm max-w-[240px] mx-auto text-[9.5px]' : ''
-              }`}
-            >
-              <div className="text-center space-y-0.5 border-b border-dashed border-slate-300 pb-2">
-                {/* Official Store Logo on Return Voucher */}
-                <img
-                  src="/logo.png"
-                  alt="Kerala Superstore Logo"
-                  width={56}
-                  height={56}
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    if (target.src.indexOf('/branding/') === -1) {
-                      target.src = '/branding/kerala-superstore-round-logo.png';
-                    }
-                  }}
-                  className="receipt-logo w-14 h-14 mx-auto object-contain mb-1"
-                />
-                <h4 className="font-black text-xs uppercase">{storeInfo.name}</h4>
-                <p className="text-[10px] text-slate-600">{storeInfo.address}</p>
-                <p className="text-[10px] text-slate-600">Tel: {storeInfo.phone}</p>
-                <p className="text-[10px] text-slate-600">VAT: {storeInfo.vatNumber}</p>
-                <p className="text-xs font-black text-rose-700 mt-1 uppercase">** SALES RETURN &amp; REFUND VOUCHER **</p>
-              </div>
-
-              <div className="flex justify-between text-[10px] text-slate-600 pt-1">
-                <span>Credit Slip: {lastReturnSlip.returnSlipNumber}</span>
-                <span>{lastReturnSlip.date || 'Today'}</span>
-              </div>
-              <div className="text-[10px] text-slate-600">
-                <span>Original Bill Ref: {lastReturnSlip.originalReceiptNumber}</span>
-              </div>
-
-              <div className="border-t border-b border-dashed border-slate-300 py-2 space-y-1">
-                {lastReturnSlip.items.map((it: any, idx: number) => (
-                  <div key={idx} className="space-y-0.5">
-                    <div className="flex justify-between items-start">
-                      <div className="truncate max-w-[170px]">
-                        <span>{it.qty}x {it.name}</span>
-                      </div>
-                      <span>-£{Number(it.refundAmount || it.price * it.qty).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-[9px] text-slate-500">
-                      <span>Reason: {it.reason}</span>
-                      <span>{it.condition === 'restockable' ? 'Restocked' : 'Waste'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-0.5 text-right pt-1 font-bold">
-                <div className="flex justify-between text-xs font-black border-b border-slate-400 pb-1">
-                  <span>TOTAL REFUNDED:</span>
-                  <span className="text-rose-700">-£{Number(lastReturnSlip.totalRefund).toFixed(2)}</span>
+            {/* Return Slip Preview Scrollable Container */}
+            <div className="flex-1 overflow-y-auto rounded-xl border border-slate-700/50 max-h-[50vh] sm:max-h-[54vh] bg-white shadow-inner">
+              <div
+                id="thermal-return-preview"
+                className={`bg-white text-slate-950 p-4 sm:p-5 font-mono text-[11px] space-y-2 ${
+                  receiptPaperWidth === '58mm' ? 'paper-58mm max-w-[240px] mx-auto text-[9.5px]' : ''
+                }`}
+              >
+                <div className="text-center space-y-0.5 border-b border-dashed border-slate-300 pb-2">
+                  {/* Official Store Logo on Return Voucher */}
+                  <img
+                    src="/logo.png"
+                    alt="Kerala Superstore Logo"
+                    width={56}
+                    height={56}
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src.indexOf('/branding/') === -1) {
+                        target.src = '/branding/kerala-superstore-round-logo.png';
+                      }
+                    }}
+                    className="receipt-logo w-14 h-14 mx-auto object-contain mb-1"
+                  />
+                  <h4 className="font-black text-xs uppercase">{storeInfo.name}</h4>
+                  <p className="text-[10px] text-slate-600">{storeInfo.address}</p>
+                  <p className="text-[10px] text-slate-600">Tel: {storeInfo.phone}</p>
+                  <p className="text-[10px] text-slate-600">VAT: {storeInfo.vatNumber}</p>
+                  <p className="text-xs font-black text-rose-700 mt-1 uppercase">** SALES RETURN &amp; REFUND VOUCHER **</p>
                 </div>
+
                 <div className="flex justify-between text-[10px] text-slate-600 pt-1">
-                  <span>Refund Method:</span>
-                  <span className="uppercase">{lastReturnSlip.refundMethod}</span>
+                  <span>Credit Slip: {lastReturnSlip.returnSlipNumber}</span>
+                  <span>{lastReturnSlip.date || 'Today'}</span>
                 </div>
-                {lastReturnSlip.customerName && (
-                  <div className="flex justify-between text-[10px] text-slate-600">
-                    <span>Customer:</span>
-                    <span>{lastReturnSlip.customerName}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-[10px] text-slate-600">
-                  <span>Cashier:</span>
-                  <span>{lastReturnSlip.cashier}</span>
+                <div className="text-[10px] text-slate-600">
+                  <span>Original Bill Ref: {lastReturnSlip.originalReceiptNumber}</span>
                 </div>
-              </div>
 
-              <div className="text-center pt-3 border-t border-dashed border-slate-300 text-[10px] text-slate-600 space-y-2">
-                <p>Goods returned acknowledged by store.</p>
-                <div className="pt-2 border-t border-dotted border-slate-300">
-                  <p className="text-[9px]">Customer / Cashier Signature: __________________</p>
+                <div className="border-t border-b border-dashed border-slate-300 py-2 space-y-1">
+                  {lastReturnSlip.items.map((it: any, idx: number) => (
+                    <div key={idx} className="space-y-0.5">
+                      <div className="flex justify-between items-start">
+                        <div className="truncate max-w-[170px]">
+                          <span>{it.qty}x {it.name}</span>
+                        </div>
+                        <span>-£{Number(it.refundAmount || it.price * it.qty).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-[9px] text-slate-500">
+                        <span>Reason: {it.reason}</span>
+                        <span>{it.condition === 'restockable' ? 'Restocked' : 'Waste'}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <p className="font-bold">www.keralasuperstore.com</p>
+
+                <div className="space-y-0.5 text-right pt-1 font-bold">
+                  <div className="flex justify-between text-xs font-black border-b border-slate-400 pb-1">
+                    <span>TOTAL REFUNDED:</span>
+                    <span className="text-rose-700">-£{Number(lastReturnSlip.totalRefund).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-600 pt-1">
+                    <span>Refund Method:</span>
+                    <span className="uppercase">{lastReturnSlip.refundMethod}</span>
+                  </div>
+                  {lastReturnSlip.customerName && (
+                    <div className="flex justify-between text-[10px] text-slate-600">
+                      <span>Customer:</span>
+                      <span>{lastReturnSlip.customerName}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-[10px] text-slate-600">
+                    <span>Cashier:</span>
+                    <span>{lastReturnSlip.cashier}</span>
+                  </div>
+                </div>
+
+                <div className="text-center pt-3 border-t border-dashed border-slate-300 text-[10px] text-slate-600 space-y-2">
+                  <p>Goods returned acknowledged by store.</p>
+                  <div className="pt-2 border-t border-dotted border-slate-300">
+                    <p className="text-[9px]">Customer / Cashier Signature: __________________</p>
+                  </div>
+                  <p className="font-bold">www.keralasuperstore.com</p>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="grid grid-cols-2 gap-2 pt-1 shrink-0 border-t border-slate-800/80">
               <button
+                type="button"
                 onClick={() => printElementToThermal('thermal-return-preview', receiptPaperWidth)}
-                className="py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                className="py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all active:scale-95"
               >
                 <Printer className="w-4 h-4" />
                 <span>Print Return Slip</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setReturnSlipModalOpen(false)}
-                className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
               >
-                Done
+                <X className="w-4 h-4" />
+                <span>Close</span>
               </button>
             </div>
           </div>
@@ -7818,23 +7849,30 @@ export default function PosTerminalPage() {
 
       {/* 5. CLOSING STOCK STATEMENT THERMAL PRINT MODAL */}
       {closingStockModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-3 animate-scale-up max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs isolate overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setClosingStockModalOpen(false);
+          }}
+        >
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 w-full max-w-sm shadow-2xl space-y-3 my-auto max-h-[94vh] flex flex-col relative animate-scale-up">
+            <div className="flex items-center justify-between shrink-0">
               <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                 <Boxes className="w-4 h-4" />
                 <span>Closing Stock Audit ✓</span>
               </span>
               <button
+                type="button"
                 onClick={() => setClosingStockModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Close (Esc)"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Paper Width Selector */}
-            <div className="flex items-center justify-between bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+            <div className="flex items-center justify-between bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs shrink-0">
               <span className="text-[11px] font-semibold text-slate-400">Printer Roll:</span>
               <div className="flex gap-1">
                 <button
@@ -7862,100 +7900,105 @@ export default function PosTerminalPage() {
               </div>
             </div>
 
-            {/* Closing Stock Slip Preview (Thermal Paper Look with Store Logo) */}
-            <div
-              id="thermal-closing-stock-preview"
-              className={`bg-white text-slate-950 p-5 rounded-xl font-mono text-[11px] space-y-2 shadow-inner border border-slate-200 ${
-                receiptPaperWidth === '58mm' ? 'paper-58mm max-w-[240px] mx-auto text-[9.5px]' : ''
-              }`}
-            >
-              <div className="text-center space-y-0.5 border-b border-dashed border-slate-300 pb-2">
-                <img
-                  src="/logo.png"
-                  alt="Kerala Superstore Logo"
-                  width={56}
-                  height={56}
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    if (target.src.indexOf('/branding/') === -1) {
-                      target.src = '/branding/kerala-superstore-round-logo.png';
-                    }
-                  }}
-                  className="receipt-logo w-14 h-14 mx-auto object-contain mb-1"
-                />
-                <h4 className="font-black text-xs uppercase">{storeInfo.name}</h4>
-                <p className="text-[10px] text-slate-600">{storeInfo.address}</p>
-                <p className="text-[10px] text-slate-600">Tel: {storeInfo.phone}</p>
-                <p className="text-[10px] text-slate-600">VAT: {storeInfo.vatNumber}</p>
-                <p className="text-xs font-black text-emerald-700 mt-1 uppercase">** DAILY CLOSING STOCK AUDIT **</p>
-              </div>
+            {/* Closing Stock Slip Scrollable Container */}
+            <div className="flex-1 overflow-y-auto rounded-xl border border-slate-700/50 max-h-[50vh] sm:max-h-[54vh] bg-white shadow-inner">
+              <div
+                id="thermal-closing-stock-preview"
+                className={`bg-white text-slate-950 p-4 sm:p-5 font-mono text-[11px] space-y-2 ${
+                  receiptPaperWidth === '58mm' ? 'paper-58mm max-w-[240px] mx-auto text-[9.5px]' : ''
+                }`}
+              >
+                <div className="text-center space-y-0.5 border-b border-dashed border-slate-300 pb-2">
+                  <img
+                    src="/logo.png"
+                    alt="Kerala Superstore Logo"
+                    width={56}
+                    height={56}
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src.indexOf('/branding/') === -1) {
+                        target.src = '/branding/kerala-superstore-round-logo.png';
+                      }
+                    }}
+                    className="receipt-logo w-14 h-14 mx-auto object-contain mb-1"
+                  />
+                  <h4 className="font-black text-xs uppercase">{storeInfo.name}</h4>
+                  <p className="text-[10px] text-slate-600">{storeInfo.address}</p>
+                  <p className="text-[10px] text-slate-600">Tel: {storeInfo.phone}</p>
+                  <p className="text-[10px] text-slate-600">VAT: {storeInfo.vatNumber}</p>
+                  <p className="text-xs font-black text-emerald-700 mt-1 uppercase">** DAILY CLOSING STOCK AUDIT **</p>
+                </div>
 
-              <div className="flex justify-between text-[10px] text-slate-600 pt-1">
-                <span>Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                <span>Time: {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-              <div className="flex justify-between text-[10px] text-slate-600">
-                <span>Till / Register: 01</span>
-                <span>Auditor: {cashierName}</span>
-              </div>
+                <div className="flex justify-between text-[10px] text-slate-600 pt-1">
+                  <span>Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  <span>Time: {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div className="flex justify-between text-[10px] text-slate-600">
+                  <span>Till / Register: 01</span>
+                  <span>Auditor: {cashierName}</span>
+                </div>
 
-              <div className="border-t border-b border-dashed border-slate-300 py-2 space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span>Total Active SKUs:</span>
-                  <span className="font-bold">{closingStockMetrics.totalSkus}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Total Physical Units:</span>
-                  <span className="font-bold">{closingStockMetrics.totalUnits.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-200">
-                  <span>CLOSING VALUATION:</span>
-                  <span className="text-emerald-700 font-mono">£{closingStockMetrics.totalRetailValue.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-rose-600">
-                  <span>Out of Stock (0):</span>
-                  <span>{closingStockMetrics.outOfStockCount} items</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-amber-600">
-                  <span>Low Stock (&le; 5):</span>
-                  <span>{closingStockMetrics.lowStockCount} items</span>
-                </div>
-              </div>
-
-              {/* Category Summary on Receipt */}
-              <div className="py-1 text-[10px] space-y-0.5 border-b border-dashed border-slate-300">
-                <span className="font-bold block uppercase mb-1">Category Valuation:</span>
-                {closingStockMetrics.categoryBreakdown.slice(0, 7).map((c) => (
-                  <div key={c.category} className="flex justify-between">
-                    <span className="truncate max-w-[150px]">{c.category}:</span>
-                    <span>£{c.value.toFixed(2)}</span>
+                <div className="border-t border-b border-dashed border-slate-300 py-2 space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span>Total Active SKUs:</span>
+                    <span className="font-bold">{closingStockMetrics.totalSkus}</span>
                   </div>
-                ))}
-              </div>
-
-              <div className="text-center pt-3 text-[10px] text-slate-600 space-y-2">
-                <p>Official stock closing count verified.</p>
-                <div className="pt-2 border-t border-dotted border-slate-300">
-                  <p className="text-[9px]">Manager Sign: __________________</p>
+                  <div className="flex justify-between">
+                    <span>Total Physical Units:</span>
+                    <span className="font-bold">{closingStockMetrics.totalUnits.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-200">
+                    <span>CLOSING VALUATION:</span>
+                    <span className="text-emerald-700 font-mono">£{closingStockMetrics.totalRetailValue.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-rose-600">
+                    <span>Out of Stock (0):</span>
+                    <span>{closingStockMetrics.outOfStockCount} items</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-amber-600">
+                    <span>Low Stock (&le; 5):</span>
+                    <span>{closingStockMetrics.lowStockCount} items</span>
+                  </div>
                 </div>
-                <p className="font-bold">www.keralasuperstore.com</p>
+
+                {/* Category Summary on Receipt */}
+                <div className="py-1 text-[10px] space-y-0.5 border-b border-dashed border-slate-300">
+                  <span className="font-bold block uppercase mb-1">Category Valuation:</span>
+                  {closingStockMetrics.categoryBreakdown.slice(0, 7).map((c) => (
+                    <div key={c.category} className="flex justify-between">
+                      <span className="truncate max-w-[150px]">{c.category}:</span>
+                      <span>£{c.value.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="text-center pt-3 text-[10px] text-slate-600 space-y-2">
+                  <p>Official stock closing count verified.</p>
+                  <div className="pt-2 border-t border-dotted border-slate-300">
+                    <p className="text-[9px]">Manager Sign: __________________</p>
+                  </div>
+                  <p className="font-bold">www.keralasuperstore.com</p>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="grid grid-cols-2 gap-2 pt-1 shrink-0 border-t border-slate-800/80">
               <button
+                type="button"
                 onClick={() => printElementToThermal('thermal-closing-stock-preview', receiptPaperWidth)}
-                className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all active:scale-95"
               >
                 <Printer className="w-4 h-4" />
                 <span>Print Slip ({receiptPaperWidth})</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setClosingStockModalOpen(false)}
-                className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
               >
-                Done
+                <X className="w-4 h-4" />
+                <span>Close</span>
               </button>
             </div>
           </div>
@@ -8329,23 +8372,30 @@ export default function PosTerminalPage() {
 
       {/* 6. TOTAL SALES / Z-REPORT THERMAL PRINT MODAL */}
       {salesReportModalOpen && reportData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-3 animate-scale-up max-h-[92vh] overflow-y-auto text-slate-100">
-            <div className="flex items-center justify-between">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs isolate overflow-y-auto animate-in fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSalesReportModalOpen(false);
+          }}
+        >
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 w-full max-w-sm shadow-2xl space-y-3 my-auto max-h-[94vh] flex flex-col relative animate-scale-up text-slate-100">
+            <div className="flex items-center justify-between shrink-0">
               <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                 <BarChart3 className="w-4 h-4" />
                 <span>Total Sales / Z-Report</span>
               </span>
               <button
+                type="button"
                 onClick={() => setSalesReportModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Close (Esc)"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Paper Width Selector */}
-            <div className="flex items-center justify-between bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+            <div className="flex items-center justify-between bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs shrink-0">
               <span className="text-[11px] font-semibold text-slate-400">Printer Roll:</span>
               <div className="flex gap-1">
                 <button
@@ -8373,13 +8423,14 @@ export default function PosTerminalPage() {
               </div>
             </div>
 
-            {/* Total Sales Report Slip Preview */}
-            <div
-              id="thermal-sales-report-preview"
-              className={`bg-white text-slate-950 p-5 rounded-xl font-mono text-[11px] space-y-2 shadow-inner border border-slate-200 ${
-                receiptPaperWidth === '58mm' ? 'paper-58mm max-w-[240px] mx-auto text-[9.5px]' : ''
-              }`}
-            >
+            {/* Total Sales Report Slip Scrollable Container */}
+            <div className="flex-1 overflow-y-auto rounded-xl border border-slate-700/50 max-h-[50vh] sm:max-h-[54vh] bg-white shadow-inner">
+              <div
+                id="thermal-sales-report-preview"
+                className={`bg-white text-slate-950 p-4 sm:p-5 font-mono text-[11px] space-y-2 ${
+                  receiptPaperWidth === '58mm' ? 'paper-58mm max-w-[240px] mx-auto text-[9.5px]' : ''
+                }`}
+              >
               <div className="text-center space-y-0.5 border-b border-dashed border-slate-300 pb-2">
                 <img
                   src="/logo.png"
@@ -8504,13 +8555,14 @@ export default function PosTerminalPage() {
                 </div>
                 <p className="font-bold">www.keralasuperstore.com</p>
               </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="grid grid-cols-2 gap-2 pt-1 shrink-0 border-t border-slate-800/80">
               <button
                 type="button"
                 onClick={() => printElementToThermal('thermal-sales-report-preview', receiptPaperWidth)}
-                className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all active:scale-95"
               >
                 <Printer className="w-4 h-4" />
                 <span>Print Slip ({receiptPaperWidth})</span>
@@ -8519,9 +8571,10 @@ export default function PosTerminalPage() {
               <button
                 type="button"
                 onClick={() => setSalesReportModalOpen(false)}
-                className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                className="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
               >
-                Done
+                <X className="w-4 h-4" />
+                <span>Close</span>
               </button>
             </div>
           </div>

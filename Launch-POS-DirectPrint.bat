@@ -26,13 +26,14 @@ if exist "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" (
     set EDGE="C:\Program Files\Microsoft\Edge\Application\msedge.exe"
 )
 
-:: Target URL (Can be local port 809 or 3000 or live cloud)
-set TARGET_URL=http://localhost:809/pos
+:: Target URL
+set TARGET_URL=https://keralasuperstore.com/pos
+set USER_DATA=%LOCALAPPDATA%\KSS_POS_Profile
 
 if not %CHROME%=="" (
-    start "" %CHROME% --kiosk-printing --app=%TARGET_URL%
+    start "" %CHROME% --kiosk-printing --user-data-dir="%USER_DATA%" --app=%TARGET_URL%
 ) else if not %EDGE%=="" (
-    start "" %EDGE% --kiosk-printing --app=%TARGET_URL%
+    start "" %EDGE% --kiosk-printing --user-data-dir="%USER_DATA%" --app=%TARGET_URL%
 ) else (
     start %TARGET_URL%
 )

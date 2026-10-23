@@ -337,13 +337,18 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     visibility: visible !important;
   }
 
+  /* Reset overflow on all wrappers during print to prevent clipping */
+  html, body, div, main {
+    overflow: visible !important;
+  }
+
   /* Force thermal receipt preview to occupy full printable area with crisp black ink */
   #thermal-receipt-preview,
   #thermal-return-preview,
   #thermal-closing-stock-preview,
   #thermal-sales-report-preview,
   .pos-printable-receipt {
-    position: fixed !important;
+    position: absolute !important;
     top: 0 !important;
     left: 0 !important;
     width: 100% !important;

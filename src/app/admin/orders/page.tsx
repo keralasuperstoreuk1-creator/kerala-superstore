@@ -62,6 +62,25 @@ export default function AdminOrdersPage() {
     }
   }, []);
 
+  // ESC hotkey & print cleanup
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPrintingOrder(null);
+        setDeletingOrder(null);
+      }
+    };
+    const handleAfterPrint = () => {
+      setPrintingOrder(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, []);
+
   const saveOrders = (updated: Order[]) => {
     setOrders(updated);
     try {

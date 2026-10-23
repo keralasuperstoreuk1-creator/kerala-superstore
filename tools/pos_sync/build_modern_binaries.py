@@ -23,13 +23,17 @@ def build():
     cmd_agent = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
-        "--onedir", # Build onedir or onefile
         "--onefile",
         "--windowed",
         "--name", "KSS-POS-Sync",
         f"--add-data={ctk_path};customtkinter/",
         f"--add-data={icon_path};.",
         f"--icon={icon_path}",
+        "--hidden-import=customtkinter",
+        "--hidden-import=PIL",
+        "--hidden-import=PIL.ImageTk",
+        "--hidden-import=pyodbc",
+        "--hidden-import=requests",
         "--distpath", dist_dir,
         "--workpath", build_dir,
         os.path.join(base_dir, "modern_sync_agent.py")
@@ -52,6 +56,11 @@ def build():
         f"--add-data={agent_exe};.",
         f"--add-data={icon_path};.",
         f"--icon={icon_path}",
+        "--hidden-import=customtkinter",
+        "--hidden-import=PIL",
+        "--hidden-import=PIL.ImageTk",
+        "--hidden-import=win32com",
+        "--hidden-import=pythoncom",
         "--distpath", dist_dir,
         "--workpath", build_dir,
         os.path.join(base_dir, "modern_installer.py")
