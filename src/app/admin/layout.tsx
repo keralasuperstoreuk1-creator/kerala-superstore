@@ -138,14 +138,14 @@ export default function AdminLayout({
         <div className="overflow-y-auto">
           {/* Logo & Store Info */}
           <div className="p-4 border-b border-slate-800">
-            <Link href="/admin" className="flex items-center gap-3">
-              <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-emerald-500 bg-emerald-950 shrink-0 flex items-center justify-center p-0.5">
+            <Link href="/admin" className="flex items-center gap-3 group">
+              <div className="relative w-12 h-12 shrink-0 flex items-center justify-center transition-transform group-hover:scale-105 filter drop-shadow-md">
                 <img
                   src="/logo.png"
                   alt="Kerala Superstore Admin"
-                  width={44}
-                  height={44}
-                  loading="lazy"
+                  width={48}
+                  height={48}
+                  loading="eager"
                   decoding="async"
                   onError={(e) => {
                     const target = e.currentTarget;
@@ -153,11 +153,11 @@ export default function AdminLayout({
                       target.src = '/branding/kerala-superstore-round-logo.png';
                     }
                   }}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain select-none"
                 />
               </div>
               <div>
-                <h2 className="font-black text-sm text-white tracking-wide">KERALA SUPERSTORE</h2>
+                <h2 className="font-black text-sm text-white tracking-wide group-hover:text-emerald-400 transition-colors">KERALA SUPERSTORE</h2>
                 <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span>Manchester M9</span>

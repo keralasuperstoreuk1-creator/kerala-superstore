@@ -2639,13 +2639,21 @@ export default function PosTerminalPage() {
           {/* Official Store Logo */}
           <Link
             href="/"
-            className="w-12 h-12 rounded-2xl bg-white p-1 flex items-center justify-center shadow-lg shadow-emerald-950/40 hover:scale-105 transition-transform border border-emerald-500/30 overflow-hidden shrink-0"
+            className="w-12 h-12 flex items-center justify-center hover:scale-110 transition-transform filter drop-shadow-md shrink-0"
             title="Kerala Superstore Main Website"
           >
             <img
               src="/logo.png"
               alt="Kerala Superstore Official Logo"
-              className="w-full h-full object-contain"
+              width={48}
+              height={48}
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (target.src.indexOf('/branding/') === -1) {
+                  target.src = '/branding/kerala-superstore-round-logo.png';
+                }
+              }}
+              className="w-full h-full object-contain select-none"
             />
           </Link>
 
@@ -2798,14 +2806,37 @@ export default function PosTerminalPage() {
           themeMode === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
         }`}>
           <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="w-10 h-10 shrink-0 flex items-center justify-center hover:scale-105 transition-transform filter drop-shadow-md"
+              title="Kerala Superstore Main Website"
+            >
+              <img
+                src="/logo.png"
+                alt="Kerala Superstore"
+                width={40}
+                height={40}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target.src.indexOf('/branding/') === -1) {
+                    target.src = '/branding/kerala-superstore-round-logo.png';
+                  }
+                }}
+                className="w-full h-full object-contain select-none"
+              />
+            </Link>
             <div className="flex flex-col">
-              <span className="text-sm font-black text-white tracking-tight flex items-center gap-2">
+              <span className={`text-sm font-black tracking-tight flex items-center gap-2 ${
+                themeMode === 'light' ? 'text-slate-900' : 'text-white'
+              }`}>
                 <span>{storeInfo.name}</span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold uppercase tracking-wider">
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold uppercase tracking-wider">
                   UK Retail POS 2026
                 </span>
               </span>
-              <span className="text-[11px] text-slate-400 font-medium">
+              <span className={`text-[11px] font-medium ${
+                themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'
+              }`}>
                 {storeInfo.branch} • {storeInfo.address}
               </span>
             </div>
@@ -6884,6 +6915,14 @@ export default function PosTerminalPage() {
                 <img
                   src="/logo.png"
                   alt="Kerala Superstore Logo"
+                  width={56}
+                  height={56}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.indexOf('/branding/') === -1) {
+                      target.src = '/branding/kerala-superstore-round-logo.png';
+                    }
+                  }}
                   className="receipt-logo w-14 h-14 mx-auto object-contain mb-1"
                 />
                 <h4 className="font-black text-xs uppercase">{storeInfo.name}</h4>
@@ -7061,6 +7100,14 @@ export default function PosTerminalPage() {
                 <img
                   src="/logo.png"
                   alt="Kerala Superstore Logo"
+                  width={56}
+                  height={56}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.indexOf('/branding/') === -1) {
+                      target.src = '/branding/kerala-superstore-round-logo.png';
+                    }
+                  }}
                   className="receipt-logo w-14 h-14 mx-auto object-contain mb-1"
                 />
                 <h4 className="font-black text-xs uppercase">{storeInfo.name}</h4>
@@ -7817,6 +7864,14 @@ export default function PosTerminalPage() {
                 <img
                   src="/logo.png"
                   alt="Kerala Superstore Logo"
+                  width={56}
+                  height={56}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.indexOf('/branding/') === -1) {
+                      target.src = '/branding/kerala-superstore-round-logo.png';
+                    }
+                  }}
                   className="receipt-logo w-14 h-14 mx-auto object-contain mb-1"
                 />
                 <h4 className="font-black text-xs uppercase">{storeInfo.name}</h4>
@@ -8011,6 +8066,14 @@ export default function PosTerminalPage() {
                   <img
                     src="/logo.png"
                     alt="Kerala Superstore"
+                    width={64}
+                    height={64}
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src.indexOf('/branding/') === -1) {
+                        target.src = '/branding/kerala-superstore-round-logo.png';
+                      }
+                    }}
                     className="w-16 h-16 object-contain"
                   />
                   <div>
@@ -8312,6 +8375,14 @@ export default function PosTerminalPage() {
                 <img
                   src="/logo.png"
                   alt="Kerala Superstore Logo"
+                  width={56}
+                  height={56}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.indexOf('/branding/') === -1) {
+                      target.src = '/branding/kerala-superstore-round-logo.png';
+                    }
+                  }}
                   className="receipt-logo w-14 h-14 mx-auto object-contain mb-1"
                 />
                 <h4 className="font-black text-xs uppercase">{storeInfo.name}</h4>

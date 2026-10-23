@@ -104,27 +104,25 @@ export default function AdminLoginPage() {
           {/* Logo & Header */}
           <div className="text-center space-y-3 mb-8">
             <div className="inline-flex relative">
-              <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-amber-500 via-emerald-500 to-amber-300 shadow-lg mx-auto">
-                <div className="w-full h-full rounded-full bg-emerald-950 flex items-center justify-center overflow-hidden relative p-1">
-                  <img
-                    src="/logo.png"
-                    alt="Kerala Superstore"
-                    width={72}
-                    height={72}
-                    loading="eager"
-                    decoding="async"
-                    onError={(e) => {
-                      const target = e.currentTarget;
-                      if (target.src.indexOf('/branding/') === -1) {
-                        target.src = '/branding/kerala-superstore-round-logo.png';
-                      }
-                    }}
-                    className="w-full h-full object-contain"
-                  />
+              <div className="w-24 h-24 relative mx-auto flex items-center justify-center filter drop-shadow-xl hover:scale-105 transition-transform">
+                <img
+                  src="/logo.png"
+                  alt="Kerala Superstore"
+                  width={96}
+                  height={96}
+                  loading="eager"
+                  decoding="async"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.indexOf('/branding/') === -1) {
+                      target.src = '/branding/kerala-superstore-round-logo.png';
+                    }
+                  }}
+                  className="w-full h-full object-contain select-none"
+                />
+                <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-emerald-600 border-2 border-slate-900 text-amber-300 flex items-center justify-center shadow">
+                  <Lock className="w-3.5 h-3.5" />
                 </div>
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-emerald-600 border-2 border-slate-900 text-amber-300 flex items-center justify-center shadow">
-                <Lock className="w-3.5 h-3.5" />
               </div>
             </div>
 
