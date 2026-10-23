@@ -756,6 +756,74 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   background-color: #f8fafc !important;
 }
 
+/* ==========================================================================
+   THERMAL RECEIPT PRINTER ENGINE (POS-58 & POS-80 Continuous Roll Support)
+   Eliminates top/bottom blank paper feeds and fits POS thermal paper roll
+   ========================================================================== */
+@media print {
+  @page {
+    size: auto;
+    margin: 0mm !important;
+  }
 
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
 
+  /* When printing directly, hide app chrome and modals */
+  body * {
+    visibility: hidden;
+  }
 
+  #thermal-receipt-preview,
+  #thermal-receipt-preview *,
+  #thermal-return-preview,
+  #thermal-return-preview *,
+  #thermal-closing-stock-preview,
+  #thermal-closing-stock-preview *,
+  #thermal-sales-report-preview,
+  #thermal-sales-report-preview *,
+  .thermal-printable,
+  .thermal-printable * {
+    visibility: visible !important;
+  }
+
+  #thermal-receipt-preview,
+  #thermal-return-preview,
+  #thermal-closing-stock-preview,
+  #thermal-sales-report-preview,
+  .thermal-printable {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    margin: 0 !important;
+    padding: 1.5mm 1mm 1.5mm 1mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 48mm !important;
+    max-width: 48mm !important;
+    font-size: 9.5px !important;
+    line-height: 1.25 !important;
+  }
+
+  #thermal-receipt-preview:not(.paper-58mm),
+  #thermal-return-preview:not(.paper-58mm),
+  #thermal-closing-stock-preview:not(.paper-58mm),
+  #thermal-sales-report-preview:not(.paper-58mm) {
+    width: 72mm !important;
+    max-width: 72mm !important;
+    font-size: 11px !important;
+  }
+
+  button, nav, header, footer, .no-print {
+    display: none !important;
+  }
+}

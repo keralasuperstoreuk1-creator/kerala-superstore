@@ -535,8 +535,8 @@ export default function PosTerminalPage() {
     }
   };
 
-  // Universal Thermal Receipt Printer Engine (Works on Epson, Star, Munbyn, Bixolon, Windows Drivers)
-  // Clean, Zero-Iframe, Zero-Blink, Silent Print Compatible
+  // Universal Thermal Receipt Printer Engine (Works on POS-58, POS-80, Epson, Star, Munbyn, Bixolon, Windows Drivers)
+  // Clean, Isolated Margin-Free Thermal Roll Engine with Zero Extra Blank Feed
   const printElementToThermal = (
     elementId: string,
     paperWidth: '80mm' | '58mm' = receiptPaperWidth,
@@ -554,19 +554,142 @@ export default function PosTerminalPage() {
     if (w.__kss_drawer_serial_port && w.__kss_drawer_serial_port.writable && elementId === 'thermal-receipt-preview' && lastReceipt) {
       printReceiptViaEscPos(lastReceipt, paperWidth).then((success) => {
         if (success) return;
-        window.print();
+        doIsolatedPrint();
       }).catch(() => {
-        window.print();
+        doIsolatedPrint();
       });
       return;
     }
 
-    // 3. Clean Browser Print: Zero iframes, no DOM node destruction, no screen blinking!
-    // Handled perfectly by @media print in globals.css
-    try {
-      window.print();
-    } catch (err) {
-      console.warn('Window print error:', err);
+    doIsolatedPrint();
+
+    function doIsolatedPrint() {
+      const el = document.getElementById(elementId);
+      if (!el) {
+        window.print();
+        return;
+      }
+
+      // Printable width for thermal receipt paper rolls:
+      // POS-58 paper roll has printable width of 48mm (~185px)
+      // POS-80 paper roll has printable width of 72mm (~275px)
+      const printableWidthMm = paperWidth === '58mm' ? '48mm' : '72mm';
+      const fontSize = paperWidth === '58mm' ? '9.5px' : '11px';
+
+      // Clean up any previous print iframe
+      const oldFrame = document.getElementById('kss-thermal-print-frame');
+      if (oldFrame) {
+        try { oldFrame.remove(); } catch {}
+      }
+
+      const iframe = document.createElement('iframe');
+      iframe.id = 'kss-thermal-print-frame';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow?.document || iframe.contentDocument;
+      if (!doc) {
+        window.print();
+        return;
+      }
+
+      doc.open();
+      doc.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <title>Kerala Superstore Receipt</title>
+            <style>
+              @page {
+                size: ${printableWidthMm} auto;
+                margin: 0mm !important;
+              }
+              *, *:before, *:after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+              }
+              html, body {
+                width: ${printableWidthMm} !important;
+                max-width: ${printableWidthMm} !important;
+                margin: 0 !important;
+                padding: 1.5mm 1mm 1.5mm 1mm !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-family: 'Courier New', Courier, monospace !important;
+                font-size: ${fontSize} !important;
+                line-height: 1.25 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              img {
+                max-width: 100% !important;
+                height: auto !important;
+                display: block;
+                margin: 0 auto;
+                filter: grayscale(100%) contrast(140%);
+              }
+              .receipt-logo {
+                width: ${paperWidth === '58mm' ? '38px' : '48px'} !important;
+                height: ${paperWidth === '58mm' ? '38px' : '48px'} !important;
+                margin: 0 auto 3px auto !important;
+              }
+              .receipt-qr {
+                width: ${paperWidth === '58mm' ? '68px' : '88px'} !important;
+                height: ${paperWidth === '58mm' ? '68px' : '88px'} !important;
+                margin: 3px auto !important;
+              }
+              .text-center { text-align: center !important; }
+              .text-right { text-align: right !important; }
+              .font-bold { font-weight: bold !important; }
+              .font-black { font-weight: 900 !important; }
+              .uppercase { text-transform: uppercase !important; }
+              .flex { display: flex !important; }
+              .justify-between { justify-content: space-between !important; }
+              .items-center { align-items: center !important; }
+              .items-start { align-items: flex-start !important; }
+              .border-b { border-bottom: 1px dashed #333 !important; }
+              .border-t { border-top: 1px dashed #333 !important; }
+              .border-dashed { border-style: dashed !important; }
+              .py-1 { padding-top: 2px !important; padding-bottom: 2px !important; }
+              .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
+              .pt-1 { padding-top: 2px !important; }
+              .pt-2 { padding-top: 4px !important; }
+              .pb-1 { padding-bottom: 2px !important; }
+              .pb-2 { padding-bottom: 4px !important; }
+              .space-y-1 > * + * { margin-top: 2px !important; }
+              .space-y-0\\.5 > * + * { margin-top: 1px !important; }
+              .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+              .no-print { display: none !important; }
+            </style>
+          </head>
+          <body>
+            ${el.innerHTML}
+          </body>
+        </html>
+      `);
+      doc.close();
+
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (e) {
+          console.warn('Iframe print error, falling back to window.print:', e);
+          window.print();
+        } finally {
+          setTimeout(() => {
+            try { iframe.remove(); } catch {}
+          }, 4000);
+        }
+      }, 200);
     }
   };
 
