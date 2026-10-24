@@ -441,13 +441,18 @@ class PosSyncEngine:
 
                 # Auto-enrich and upsert products into live storefront products table
                 PATTERNS = [
-                    (r"mary|st\.?\s*mary", "/products/religious/mother-mary-2ft.jpg", "Religious", "religious"),
-                    (r"joseph|st\.?\s*joseph", "/products/religious/st-joseph-child-jesus-1-5ft.jpg", "Religious", "religious"),
+                    (r"red.*(?:jesus|heart)|(?:jesus|heart).*red", "/products/religious/sacred-heart-jesus-red-1-5ft.jpg", "Religious", "religious"),
+                    (r"cyan|blue.*(?:jesus|heart)|(?:jesus|heart).*blue", "/products/religious/sacred-heart-jesus-cyan-1-5ft.jpg", "Religious", "religious"),
+                    (r"white.*(?:jesus|heart)|(?:jesus|heart).*white", "/products/religious/sacred-heart-jesus-white-1-5ft.jpg", "Religious", "religious"),
+                    (r"lourdes", "/products/religious/our-lady-lourdes-2ft.jpg", "Religious", "religious"),
+                    (r"immaculate", "/products/religious/immaculate-heart-mary-1-5ft.jpg", "Religious", "religious"),
+                    (r"mary|st\.?\s*mary", "/products/religious/our-lady-lourdes-2ft.jpg", "Religious", "religious"),
+                    (r"joseph|st\.?\s*joseph", "/products/religious/st-joseph-child-jesus-green-1-5ft.jpg", "Religious", "religious"),
                     (r"jesus|christ", "/products/religious/jesus-lilies-2ft.jpg", "Religious", "religious"),
                     (r"holy family", "/products/religious/holy-family-1-5ft.jpg", "Religious", "religious"),
                     (r"angel", "/products/religious/praying-angel-1ft.jpg", "Religious", "religious"),
                     (r"krishna", "/products/religious/krishna-statue.jpg", "Religious", "religious"),
-                    (r"statue", "/products/religious/mother-mary-2ft.jpg", "Religious", "religious"),
+                    (r"statue", "/products/religious/our-lady-lourdes-2ft.jpg", "Religious", "religious"),
                     (r"agarbatti|dhoop|camphor|pooja|vilakkenna", "/products/religious/krishna-statue.jpg", "Religious", "religious"),
                     (r"matta|palakkad", "/products/matta-rice.png", "Rice & Rice Products", "rice-and-rice-products"),
                     (r"kaima|jeerakasala|biriyani rice|biryani rice", "/products/kaima-rice.png", "Rice & Rice Products", "rice-and-rice-products"),

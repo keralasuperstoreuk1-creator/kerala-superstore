@@ -205,11 +205,14 @@ export function matchProductToVariety(product: Product, variety: string): boolea
   }
 
   // Religious statue varieties
+  if (v.includes('lourdes')) return /lourdes/i.test(pName);
+  if (v.includes('immaculate')) return /immaculate/i.test(pName);
   if (v.includes('mary')) return /mary/i.test(pName);
   if (v.includes('joseph')) return /joseph/i.test(pName);
   if (v.includes('jesus')) return /jesus|christ/i.test(pName) && !/joseph|family/i.test(pName);
   if (v.includes('family')) return /family/i.test(pName);
   if (v.includes('angel')) return /angel/i.test(pName);
+  if (v.includes('krishna')) return /krishna/i.test(pName);
 
   // Generic fallback: check if the variety phrase is in product name
   const words = v.split(/[\s/()]+/).filter(w => w.length > 2);

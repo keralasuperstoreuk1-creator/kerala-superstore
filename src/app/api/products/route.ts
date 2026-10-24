@@ -104,13 +104,18 @@ export async function GET(req: NextRequest) {
 
             let img = p.image_url || '/products/matta-rice.png';
             if (isReligious && (!img || img.includes('banana-chips') || img.includes('spices.jpg') || img.includes('matta-rice'))) {
-              if (/mary/i.test(p.name)) img = '/products/religious/mother-mary-2ft.jpg';
-              else if (/joseph/i.test(p.name)) img = '/products/religious/st-joseph-child-jesus-1-5ft.jpg';
-              else if (/jesus|christ/i.test(p.name)) img = '/products/religious/jesus-lilies-2ft.jpg';
+              if (/red/i.test(p.name) && /jesus|heart/i.test(p.name)) img = '/products/religious/sacred-heart-jesus-red-1-5ft.jpg';
+              else if (/cyan|blue/i.test(p.name) && /jesus|heart/i.test(p.name)) img = '/products/religious/sacred-heart-jesus-cyan-1-5ft.jpg';
+              else if (/white/i.test(p.name) && /jesus|heart/i.test(p.name)) img = '/products/religious/sacred-heart-jesus-white-1-5ft.jpg';
+              else if (/lourdes/i.test(p.name)) img = '/products/religious/our-lady-lourdes-2ft.jpg';
+              else if (/immaculate/i.test(p.name)) img = '/products/religious/immaculate-heart-mary-1-5ft.jpg';
+              else if (/mary/i.test(p.name)) img = '/products/religious/our-lady-lourdes-2ft.jpg';
+              else if (/joseph/i.test(p.name)) img = '/products/religious/st-joseph-child-jesus-green-1-5ft.jpg';
               else if (/holy family/i.test(p.name)) img = '/products/religious/holy-family-1-5ft.jpg';
               else if (/angel/i.test(p.name)) img = '/products/religious/praying-angel-1ft.jpg';
               else if (/krishna/i.test(p.name)) img = '/products/religious/krishna-statue.jpg';
-              else img = '/products/religious/mother-mary-2ft.jpg';
+              else if (/jesus|christ/i.test(p.name)) img = '/products/religious/jesus-lilies-2ft.jpg';
+              else img = '/products/religious/our-lady-lourdes-2ft.jpg';
             }
 
             return {

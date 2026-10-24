@@ -85,13 +85,18 @@ const IMAGE_KEYWORD_MAP: Array<{ regex: RegExp; image: string }> = [
   { regex: /appam chatti/i, image: '/products/appam-chatti.png' },
   { regex: /uruli|bronze/i, image: '/products/bronze-uruli.png' },
   { regex: /tea|chai|munnar/i, image: '/products/tea-munnar.png' },
-  { regex: /mother mary|mary|st\.?\s*mary/i, image: '/products/religious/mother-mary-2ft.jpg' },
-  { regex: /st\.?\s*joseph|joseph/i, image: '/products/religious/st-joseph-child-jesus-1-5ft.jpg' },
-  { regex: /jesus|christ/i, image: '/products/religious/jesus-lilies-2ft.jpg' },
+  { regex: /red.*(?:jesus|heart)|(?:jesus|heart).*red/i, image: '/products/religious/sacred-heart-jesus-red-1-5ft.jpg' },
+  { regex: /cyan|blue.*(?:jesus|heart)|(?:jesus|heart).*blue/i, image: '/products/religious/sacred-heart-jesus-cyan-1-5ft.jpg' },
+  { regex: /white.*(?:jesus|heart)|(?:jesus|heart).*white/i, image: '/products/religious/sacred-heart-jesus-white-1-5ft.jpg' },
+  { regex: /lourdes/i, image: '/products/religious/our-lady-lourdes-2ft.jpg' },
+  { regex: /immaculate/i, image: '/products/religious/immaculate-heart-mary-1-5ft.jpg' },
+  { regex: /mother mary|mary|st\.?\s*mary/i, image: '/products/religious/our-lady-lourdes-2ft.jpg' },
+  { regex: /st\.?\s*joseph|joseph/i, image: '/products/religious/st-joseph-child-jesus-green-1-5ft.jpg' },
   { regex: /holy family/i, image: '/products/religious/holy-family-1-5ft.jpg' },
   { regex: /angel|praying angel/i, image: '/products/religious/praying-angel-1ft.jpg' },
   { regex: /krishna/i, image: '/products/religious/krishna-statue.jpg' },
-  { regex: /statue/i, image: '/products/religious/mother-mary-2ft.jpg' },
+  { regex: /jesus|christ/i, image: '/products/religious/jesus-lilies-2ft.jpg' },
+  { regex: /statue/i, image: '/products/religious/our-lady-lourdes-2ft.jpg' },
 ];
 
 /**
