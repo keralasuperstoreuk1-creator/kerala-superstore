@@ -85,11 +85,13 @@ const IMAGE_KEYWORD_MAP: Array<{ regex: RegExp; image: string }> = [
   { regex: /appam chatti/i, image: '/products/appam-chatti.png' },
   { regex: /uruli|bronze/i, image: '/products/bronze-uruli.png' },
   { regex: /tea|chai|munnar/i, image: '/products/tea-munnar.png' },
-  { regex: /mother mary|mary statue/i, image: '/products/religious/mother-mary-2ft.jpg' },
+  { regex: /mother mary|mary|st\.?\s*mary/i, image: '/products/religious/mother-mary-2ft.jpg' },
   { regex: /st\.?\s*joseph|joseph/i, image: '/products/religious/st-joseph-child-jesus-1-5ft.jpg' },
   { regex: /jesus|christ/i, image: '/products/religious/jesus-lilies-2ft.jpg' },
   { regex: /holy family/i, image: '/products/religious/holy-family-1-5ft.jpg' },
   { regex: /angel|praying angel/i, image: '/products/religious/praying-angel-1ft.jpg' },
+  { regex: /krishna/i, image: '/products/religious/krishna-statue.jpg' },
+  { regex: /statue/i, image: '/products/religious/mother-mary-2ft.jpg' },
 ];
 
 /**
@@ -116,7 +118,10 @@ export function autoEnrichPosProduct(item: PosSyncItem): Product {
   let category = 'Spices & Whole Condiments';
   let categorySlug = 'spices-and-whole-condiments';
 
-  if (/statue|mary|jesus|joseph|angel|holy family|crucifix|cross|rosary|religious|prayer/i.test(cleanDesc)) {
+  const isReligiousItem = !/rosemary|croissant/i.test(cleanDesc) &&
+    /\b(statue|mary|jesus|joseph|angel|holy family|crucifix|cross|rosary|religious|prayer|zion arts|krishna|pooja|vilakkenna|agarbatti|dhoop|camphor)\b/i.test(cleanDesc);
+
+  if (isReligiousItem) {
     category = 'Religious';
     categorySlug = 'religious';
   } else if (/rice|matta|jeerakasala|kaima|ponni|idli rice|sona masoori/i.test(cleanDesc)) {

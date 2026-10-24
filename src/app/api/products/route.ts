@@ -87,8 +87,10 @@ export async function GET(req: NextRequest) {
             let categorySlug = p.category_slug || 'grocery';
 
             // Detect Religious category from tags or product name
-            const isReligious = (p.tags && Array.isArray(p.tags) && p.tags.some((t: string) => /religious|statue|christian|church|altar|prayer/i.test(t))) ||
-              /\b(statue|mother mary|child jesus|holy family|praying angel)\b/i.test(p.name || '');
+            const isReligious = !/rosemary|croissant/i.test(p.name || '') && (
+              (p.tags && Array.isArray(p.tags) && p.tags.some((t: string) => /religious|statue|christian|church|altar|prayer|marian|catholic|krishna|pooja/i.test(t))) ||
+              /\b(statue|mother mary|child jesus|holy family|praying angel|crucifix|cross|rosary|sree krishna)\b/i.test(p.name || '')
+            );
 
             if (isReligious) {
               category = 'Religious';
@@ -99,6 +101,17 @@ export async function GET(req: NextRequest) {
             const offerPriceNum = p.offer_price ? Number(p.offer_price) : undefined;
             // Only consider offerPrice if it's strictly a discount lower than selling price
             const validOffer = offerPriceNum !== undefined && offerPriceNum < price ? offerPriceNum : undefined;
+
+            let img = p.image_url || '/products/matta-rice.png';
+            if (isReligious && (!img || img.includes('banana-chips') || img.includes('spices.jpg') || img.includes('matta-rice'))) {
+              if (/mary/i.test(p.name)) img = '/products/religious/mother-mary-2ft.jpg';
+              else if (/joseph/i.test(p.name)) img = '/products/religious/st-joseph-child-jesus-1-5ft.jpg';
+              else if (/jesus|christ/i.test(p.name)) img = '/products/religious/jesus-lilies-2ft.jpg';
+              else if (/holy family/i.test(p.name)) img = '/products/religious/holy-family-1-5ft.jpg';
+              else if (/angel/i.test(p.name)) img = '/products/religious/praying-angel-1ft.jpg';
+              else if (/krishna/i.test(p.name)) img = '/products/religious/krishna-statue.jpg';
+              else img = '/products/religious/mother-mary-2ft.jpg';
+            }
 
             return {
               id: p.id || `prod-${p.slug}`,
@@ -115,7 +128,7 @@ export async function GET(req: NextRequest) {
               barcode: p.barcode,
               description: p.description || '',
               tags: p.tags || [],
-              imageUrl: p.image_url || '/products/matta-rice.png',
+              imageUrl: img,
               status: p.status || 'published',
               createdAt: p.created_at || new Date().toISOString()
             };

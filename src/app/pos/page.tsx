@@ -2556,7 +2556,7 @@ export default function PosTerminalPage() {
     products.forEach((p) => {
       if (p.category) set.add(p.category);
     });
-    return ['All', ...Array.from(set).slice(0, 9)];
+    return ['All', ...Array.from(set)];
   }, [products]);
 
   // Filtered products for touch grid

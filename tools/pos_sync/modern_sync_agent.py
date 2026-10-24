@@ -441,6 +441,14 @@ class PosSyncEngine:
 
                 # Auto-enrich and upsert products into live storefront products table
                 PATTERNS = [
+                    (r"mary|st\.?\s*mary", "/products/religious/mother-mary-2ft.jpg", "Religious", "religious"),
+                    (r"joseph|st\.?\s*joseph", "/products/religious/st-joseph-child-jesus-1-5ft.jpg", "Religious", "religious"),
+                    (r"jesus|christ", "/products/religious/jesus-lilies-2ft.jpg", "Religious", "religious"),
+                    (r"holy family", "/products/religious/holy-family-1-5ft.jpg", "Religious", "religious"),
+                    (r"angel", "/products/religious/praying-angel-1ft.jpg", "Religious", "religious"),
+                    (r"krishna", "/products/religious/krishna-statue.jpg", "Religious", "religious"),
+                    (r"statue", "/products/religious/mother-mary-2ft.jpg", "Religious", "religious"),
+                    (r"agarbatti|dhoop|camphor|pooja|vilakkenna", "/products/religious/krishna-statue.jpg", "Religious", "religious"),
                     (r"matta|palakkad", "/products/matta-rice.png", "Rice & Rice Products", "rice-and-rice-products"),
                     (r"kaima|jeerakasala|biriyani rice|biryani rice", "/products/kaima-rice.png", "Rice & Rice Products", "rice-and-rice-products"),
                     (r"ponni|sona masoori|idli rice|rice", "/products/pavizham-rice.png", "Rice & Rice Products", "rice-and-rice-products"),
@@ -481,12 +489,14 @@ class PosSyncEngine:
                     desc = item.get("description", "").strip()
                     bc = str(item.get("barcode", "")).strip()
                     if not desc or not bc: continue
-                    img = lookup_google_image(desc, bc) or "/products/banana-chips.png"
+                    img = lookup_google_image(desc, bc) or "/categories/spices.jpg"
                     cat = "General Grocery"
                     catslug = "grocery"
                     for pattern, m_img, m_cat, m_slug in PATTERNS:
                         if re.search(pattern, desc, re.IGNORECASE):
-                            if img == "/products/banana-chips.png":
+                            if "rosemary" in desc.lower() or "croissant" in desc.lower():
+                                continue
+                            if img == "/categories/spices.jpg":
                                 img = m_img
                             cat = m_cat
                             catslug = m_slug

@@ -117,7 +117,7 @@ const DEFAULT_CONFIG: StoreConfig = {
   standardDeliveryCharge: 3.99,
   phone: '+44 7749 132122',
   whatsapp: '+44 7749 132122',
-  address: 'Unit 2, 73 Old Market Street, Manchester',
+  address: 'Unit 2, 73 Old Market Street, Manchester M9 8DX',
   postcode: 'M9 8DX',
   deliveryZones: DEFAULT_DELIVERY_ZONES,
   offerBanner: DEFAULT_OFFER_BANNER,

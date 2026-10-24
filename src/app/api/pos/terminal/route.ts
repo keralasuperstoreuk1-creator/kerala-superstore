@@ -447,6 +447,13 @@ export async function GET(req: NextRequest) {
 
         const getFallbackImage = (desc: string): string => {
           const lower = desc.toLowerCase();
+          if (/mary/i.test(lower) && !/rosemary/i.test(lower)) return '/products/religious/mother-mary-2ft.jpg';
+          if (/joseph/i.test(lower)) return '/products/religious/st-joseph-child-jesus-1-5ft.jpg';
+          if (/jesus|christ/i.test(lower)) return '/products/religious/jesus-lilies-2ft.jpg';
+          if (/holy family/i.test(lower)) return '/products/religious/holy-family-1-5ft.jpg';
+          if (/angel/i.test(lower)) return '/products/religious/praying-angel-1ft.jpg';
+          if (/krishna/i.test(lower)) return '/products/religious/krishna-statue.jpg';
+          if (/statue/i.test(lower)) return '/products/religious/mother-mary-2ft.jpg';
           if (/(rice|matta|ponni|jeerakasala|biryani rice|basmati|pachari)/i.test(lower)) return '/categories/rice.jpg';
           if (/(masala|powder|chilli|coriander|turmeric|curry|sambar|rasam|pepper|jeera|cumin)/i.test(lower)) return '/categories/masala.jpg';
           if (/(pickle|achar|chutney|chammanthi)/i.test(lower)) return '/categories/pickles.jpg';
@@ -465,6 +472,7 @@ export async function GET(req: NextRequest) {
             const desc = item.description || 'Kerala Grocery Item';
             const cleanDesc = desc.toLowerCase().replace(/[^a-z0-9]/g, '');
             const isNonFood = isNonFoodOrToiletries(desc);
+            const isReligiousItem = /\b(statue|mary|jesus|joseph|angel|holy family|crucifix|cross|rosary|christian|prayer altar|zion arts|krishna|pooja|vilakkenna|agarbatti|dhoop|camphor)\b/i.test(desc) && !/rosemary|croissant/i.test(desc);
 
             // Tier 1: Exact Barcode Match (matches 2,977+ items)
             let matchedMeta = imageMapByBarcode.get(bc);
@@ -494,15 +502,31 @@ export async function GET(req: NextRequest) {
               }
             }
 
+            let itemCategory = item.category;
+            if (!itemCategory) {
+              if (isReligiousItem) {
+                itemCategory = 'Religious';
+              } else if (isNonFood) {
+                itemCategory = 'Household & Toiletries';
+              } else {
+                itemCategory = 'General Grocery';
+              }
+            }
+
+            let itemImage = matchedMeta?.imageUrl;
+            if (!itemImage || itemImage.includes('banana-chips') || itemImage.includes('spices.jpg')) {
+              itemImage = getFallbackImage(desc);
+            }
+
             return {
               barcode: bc,
               sku: item.sku || bc,
               name: desc,
               price: Number(item.price) || 0,
               stock: Number(item.quantity) || 0,
-              category: item.category || (isNonFood ? 'Household & Toiletries' : 'General Grocery'),
+              category: itemCategory,
               sizeWeight: matchedMeta?.sizeWeight || 'Standard',
-              imageUrl: matchedMeta?.imageUrl || getFallbackImage(desc),
+              imageUrl: itemImage,
               vatRate: isNonFood ? 20 : 0, // UK HMRC Rule: Basic groceries = 0% VAT, non-food/cosmetics = 20%
               active: item.active !== false,
             };

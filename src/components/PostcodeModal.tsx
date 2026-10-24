@@ -52,7 +52,7 @@ export const PostcodeModal: React.FC<PostcodeModalProps> = ({
           </div>
           <div>
             <h3 className="font-black text-sm sm:text-base text-slate-900">Check UK Delivery Rates</h3>
-            <p className="text-xs text-slate-500">Area-based pricing for Manchester, Greater Manchester &amp; UK Nationwide</p>
+            <p className="text-xs text-slate-500">Dispatched from Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX</p>
           </div>
         </div>
 
@@ -131,7 +131,7 @@ export const PostcodeModal: React.FC<PostcodeModalProps> = ({
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             Cash on Delivery Available
           </span>
-          <span className="text-[10px] text-slate-400">Unit 2, 73 Old Market St, Manchester</span>
+          <span className="text-[10px] text-slate-500 font-medium">Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX</span>
         </div>
       </div>
     </div>

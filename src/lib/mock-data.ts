@@ -6,7 +6,7 @@ export const INITIAL_SETTINGS: StoreSettings = {
   phone: "+44 7749 132122",
   whatsapp: "+44 7749 132122",
   email: "info@keralasuperstores.com",
-  address: "Unit 2, 73 Old Market Street, Manchester",
+  address: "Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX",
   postcode: "M9 8DX",
   freeDeliveryThreshold: 50.00,
   standardDeliveryCharge: 3.99,

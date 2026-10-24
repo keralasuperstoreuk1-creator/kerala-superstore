@@ -105,8 +105,11 @@ export function matchProductToCategory(product: Product, categorySlugOrName: str
 
   // 11. Religious Items (cat-11)
   if (target.includes('relig') || target.includes('statue') || target.includes('christian')) {
+    if (pName.includes('rosemary') || pName.includes('croissant') || pName.includes('chip') || pName.includes('snack') || pName.includes('biscuit') || pName.includes('crisp')) {
+      return false;
+    }
     const isRelTag = (product.tags || []).some(t => /relig|statue|christian|church|prayer|marian|catholic/i.test(t));
-    const relRegex = /\b(statue|mary|jesus|joseph|angel|holy family|crucifix|cross|rosary|christian|prayer altar|zion arts)\b/i;
+    const relRegex = /\b(statue|mary|jesus|joseph|angel|holy family|crucifix|cross|rosary|christian|prayer altar|zion arts|krishna|pooja|vilakkenna|agarbatti|dhoop|camphor)\b/i;
     return isRelTag || relRegex.test(pName) || relRegex.test(pCat) || pSlug.includes('relig');
   }
 

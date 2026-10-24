@@ -320,7 +320,7 @@ export const CartDrawer: React.FC = () => {
                     <span>Payment: Cash on Delivery (COD)</span>
                   </div>
                   <p className="mt-1 text-[11px] text-amber-800">
-                    Pay in cash directly to our delivery courier when your fresh Kerala groceries arrive at your UK doorstep.
+                    Pay in cash directly to our delivery courier when your fresh Kerala groceries arrive at your UK doorstep. Dispatched from <strong>Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX</strong>.
                   </p>
                 </div>
 
@@ -541,6 +541,9 @@ export const CartDrawer: React.FC = () => {
                   <span className="font-semibold text-slate-900">
                     {deliveryCharge === 0 ? '£0.00' : `£${deliveryCharge.toFixed(2)}`}
                   </span>
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  📍 Dispatched from Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX
                 </div>
                 <div className="flex justify-between border-t border-slate-200 pt-2 text-sm font-black text-slate-900">
                   <span>Total Amount</span>
