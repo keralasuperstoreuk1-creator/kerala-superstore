@@ -86,10 +86,24 @@ export async function GET(req: NextRequest) {
             let category = p.category || 'General Grocery';
             let categorySlug = p.category_slug || 'grocery';
 
-            // Detect Religious category from tags or product name
-            const isReligious = !/rosemary|croissant/i.test(p.name || '') && (
-              (p.tags && Array.isArray(p.tags) && p.tags.some((t: string) => /religious|statue|christian|church|altar|prayer|marian|catholic|krishna|pooja/i.test(t))) ||
-              /\b(statue|mother mary|child jesus|holy family|praying angel|crucifix|cross|rosary|sree krishna)\b/i.test(p.name || '')
+            // Detect Religious category: strictly devotional statues, excluding groceries/foods/incense
+            const nonReligiousKeywords = /\b(rice|oil|peanut|ball|candy|snack|chip|biscuit|crisp|flour|podi|masala|dal|pickle|agarbatti|dhoop|camphor|incense|soap|hair|shampoo|uruli|chatti|rosemary|croissant|dum\s*biriyani|biryani)\b/i;
+            const isNonReligious = nonReligiousKeywords.test(p.name || '');
+
+            const isKnownStatueBarcode = [
+              '319931991', '319931992', '319931993', 
+              '339933991', '339933992', '339933993', 
+              '369936993699', '249924992499', '149914991', 
+              '4504501', '149914992', '149914994', '298319863'
+            ].includes(String(p.barcode || '').trim());
+
+            const isReligious = !isNonReligious && (
+              isKnownStatueBarcode ||
+              /\b(statue|figurine|holy family|crucifix|sacred heart|our lady of lourdes|immaculate heart)\b/i.test(p.name || '') ||
+              (
+                (p.tags && Array.isArray(p.tags) && p.tags.some((t: string) => /religious|statue|christian|marian|catholic/i.test(t))) &&
+                /\b(statue|jesus|mary|joseph|angel|krishna|lourdes)\b/i.test(p.name || '')
+              )
             );
 
             if (isReligious) {

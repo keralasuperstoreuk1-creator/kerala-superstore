@@ -447,17 +447,27 @@ export async function GET(req: NextRequest) {
 
         const getFallbackImage = (desc: string): string => {
           const lower = desc.toLowerCase();
-          if (/mary/i.test(lower) && !/rosemary/i.test(lower)) return '/products/religious/mother-mary-2ft.jpg';
-          if (/joseph/i.test(lower)) return '/products/religious/st-joseph-child-jesus-1-5ft.jpg';
-          if (/jesus|christ/i.test(lower)) return '/products/religious/jesus-lilies-2ft.jpg';
-          if (/holy family/i.test(lower)) return '/products/religious/holy-family-1-5ft.jpg';
-          if (/angel/i.test(lower)) return '/products/religious/praying-angel-1ft.jpg';
-          if (/krishna/i.test(lower)) return '/products/religious/krishna-statue.jpg';
-          if (/statue/i.test(lower)) return '/products/religious/mother-mary-2ft.jpg';
+          const isFoodOrGrocery = /(rice|matta|ponni|jeerakasala|biryani|basmati|pachari|masala|powder|chilli|coriander|turmeric|curry|sambar|rasam|pepper|jeera|pickle|achar|chips|murukku|mixture|snack|biscuit|rusk|halwa|puttu|appam|flour|oil|ghee|dal|gram|lentil|frozen|fish|meat|chicken|soap|shampoo|peanut)/i.test(lower);
+          
+          if (!isFoodOrGrocery) {
+            if (/red.*(?:jesus|heart)/i.test(lower)) return '/products/religious/sacred-heart-jesus-red-1-5ft.jpg';
+            if (/cyan|blue.*(?:jesus|heart)/i.test(lower)) return '/products/religious/sacred-heart-jesus-cyan-1-5ft.jpg';
+            if (/white.*(?:jesus|heart)/i.test(lower)) return '/products/religious/sacred-heart-jesus-white-1-5ft.jpg';
+            if (/lourdes/i.test(lower)) return '/products/religious/our-lady-lourdes-2ft.jpg';
+            if (/immaculate/i.test(lower)) return '/products/religious/immaculate-heart-mary-1-5ft.jpg';
+            if (/mary.*statue|statue.*mary/i.test(lower)) return '/products/religious/our-lady-lourdes-2ft.jpg';
+            if (/joseph.*statue|statue.*joseph/i.test(lower)) return '/products/religious/st-joseph-child-jesus-green-1-5ft.jpg';
+            if (/jesus.*statue|statue.*jesus/i.test(lower)) return '/products/religious/jesus-lilies-2ft.jpg';
+            if (/holy family/i.test(lower)) return '/products/religious/holy-family-1-5ft.jpg';
+            if (/angel/i.test(lower)) return '/products/religious/praying-angel-1ft.jpg';
+            if (/krishna.*statue|statue.*krishna/i.test(lower)) return '/products/religious/krishna-statue.jpg';
+            if (/statue/i.test(lower)) return '/products/religious/our-lady-lourdes-2ft.jpg';
+          }
+
           if (/(rice|matta|ponni|jeerakasala|biryani rice|basmati|pachari)/i.test(lower)) return '/categories/rice.jpg';
           if (/(masala|powder|chilli|coriander|turmeric|curry|sambar|rasam|pepper|jeera|cumin)/i.test(lower)) return '/categories/masala.jpg';
           if (/(pickle|achar|chutney|chammanthi)/i.test(lower)) return '/categories/pickles.jpg';
-          if (/(chips|murukku|mixture|bonda|crisp|snack|cookie|biscuit|digestive|heart|rusk|halwa|kuzhalappam)/i.test(lower)) return '/categories/snacks.jpg';
+          if (/(chips|murukku|mixture|bonda|crisp|snack|cookie|biscuit|digestive|heart|rusk|halwa|kuzhalappam|peanut)/i.test(lower)) return '/categories/snacks.jpg';
           if (/(puttu|appam|idiyappam|dosa|idli|ada|payasam|vermicelli|rava|wheat|flour|maida)/i.test(lower)) return '/categories/breakfast.jpg';
           if (/(oil|ghee|nallenna|velichenna|gingelly)/i.test(lower)) return '/categories/oils.jpg';
           if (/(dal|gram|lentil|payar|peas|kadala|chana|toor|urad|moong)/i.test(lower)) return '/categories/pulses.jpg';
@@ -472,7 +482,17 @@ export async function GET(req: NextRequest) {
             const desc = item.description || 'Kerala Grocery Item';
             const cleanDesc = desc.toLowerCase().replace(/[^a-z0-9]/g, '');
             const isNonFood = isNonFoodOrToiletries(desc);
-            const isReligiousItem = /\b(statue|mary|jesus|joseph|angel|holy family|crucifix|cross|rosary|christian|prayer altar|zion arts|krishna|pooja|vilakkenna|agarbatti|dhoop|camphor)\b/i.test(desc) && !/rosemary|croissant/i.test(desc);
+            const isNonReligious = /\b(rice|oil|peanut|ball|candy|snack|chip|biscuit|crisp|flour|podi|masala|dal|pickle|agarbatti|dhoop|camphor|incense|soap|hair|shampoo|uruli|chatti|rosemary|croissant|dum\s*biriyani|biryani)\b/i.test(desc);
+            const isKnownStatueBc = [
+              '319931991', '319931992', '319931993', 
+              '339933991', '339933992', '339933993', 
+              '369936993699', '249924992499', '149914991', 
+              '4504501', '149914992', '149914994', '298319863'
+            ].includes(bc);
+            const isReligiousItem = !isNonReligious && (
+              isKnownStatueBc ||
+              /\b(statue|figurine|holy family|crucifix|sacred heart|our lady of lourdes|immaculate heart)\b/i.test(desc)
+            );
 
             // Tier 1: Exact Barcode Match (matches 2,977+ items)
             let matchedMeta = imageMapByBarcode.get(bc);

@@ -105,12 +105,24 @@ export function matchProductToCategory(product: Product, categorySlugOrName: str
 
   // 11. Religious Items (cat-11)
   if (target.includes('relig') || target.includes('statue') || target.includes('christian')) {
-    if (pName.includes('rosemary') || pName.includes('croissant') || pName.includes('chip') || pName.includes('snack') || pName.includes('biscuit') || pName.includes('crisp')) {
+    // Strictly exclude any groceries, foods, rice, oils, snacks, sweets, powders, incense
+    if (/\b(rice|oil|peanut|ball|candy|snack|chip|biscuit|crisp|flour|podi|masala|dal|pickle|agarbatti|dhoop|camphor|incense|soap|hair|shampoo|uruli|chatti|rosemary|croissant|dum\s*biriyani|biryani)\b/i.test(pName)) {
       return false;
     }
-    const isRelTag = (product.tags || []).some(t => /relig|statue|christian|church|prayer|marian|catholic/i.test(t));
-    const relRegex = /\b(statue|mary|jesus|joseph|angel|holy family|crucifix|cross|rosary|christian|prayer altar|zion arts|krishna|pooja|vilakkenna|agarbatti|dhoop|camphor)\b/i;
-    return isRelTag || relRegex.test(pName) || relRegex.test(pCat) || pSlug.includes('relig');
+
+    const isKnownStatueBarcode = [
+      '319931991', '319931992', '319931993', 
+      '339933991', '339933992', '339933993', 
+      '369936993699', '249924992499', '149914991', 
+      '4504501', '149914992', '149914994', '298319863'
+    ].includes(String(product.barcode || '').trim());
+
+    if (isKnownStatueBarcode) return true;
+
+    const isStatueName = /\b(statue|figurine|holy family|crucifix|sacred heart|our lady of lourdes|immaculate heart)\b/i.test(pName);
+    const isRelTag = (product.tags || []).some(t => /relig|statue|christian|marian|catholic/i.test(String(t)));
+
+    return isStatueName || (isRelTag && /\b(jesus|mary|joseph|angel|krishna|lourdes)\b/i.test(pName));
   }
 
   // Direct matches
