@@ -125,6 +125,7 @@ export async function GET(req: NextRequest) {
               else if (/immaculate/i.test(p.name)) img = '/products/religious/immaculate-heart-mary-1-5ft.jpg';
               else if (/mary/i.test(p.name)) img = '/products/religious/our-lady-lourdes-2ft.jpg';
               else if (/joseph/i.test(p.name)) img = '/products/religious/st-joseph-child-jesus-green-1-5ft.jpg';
+              else if (/anthony|antony/i.test(p.name)) img = '/products/religious/saint-anthony-1-5ft.jpg';
               else if (/holy family/i.test(p.name)) img = '/products/religious/holy-family-1-5ft.jpg';
               else if (/angel/i.test(p.name)) img = '/products/religious/praying-angel-1ft.jpg';
               else if (/krishna/i.test(p.name)) img = '/products/religious/krishna-statue.jpg';

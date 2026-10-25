@@ -92,6 +92,7 @@ const IMAGE_KEYWORD_MAP: Array<{ regex: RegExp; image: string }> = [
   { regex: /immaculate/i, image: '/products/religious/immaculate-heart-mary-1-5ft.jpg' },
   { regex: /mother mary|mary|st\.?\s*mary/i, image: '/products/religious/our-lady-lourdes-2ft.jpg' },
   { regex: /st\.?\s*joseph|joseph/i, image: '/products/religious/st-joseph-child-jesus-green-1-5ft.jpg' },
+  { regex: /anthony|antony/i, image: '/products/religious/saint-anthony-1-5ft.jpg' },
   { regex: /holy family/i, image: '/products/religious/holy-family-1-5ft.jpg' },
   { regex: /angel|praying angel/i, image: '/products/religious/praying-angel-1ft.jpg' },
   { regex: /krishna/i, image: '/products/religious/krishna-statue.jpg' },
