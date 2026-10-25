@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { WhatsAppOrderModal } from '@/components/WhatsAppOrderModal';
 
 // Official authentic WhatsApp SVG icon
 export const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = "w-7 h-7" }) => (
@@ -15,23 +16,39 @@ export const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = "w-
 );
 
 export const WhatsAppButton: React.FC = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
-    <aside aria-label="WhatsApp quick chat" className="fixed bottom-20 sm:bottom-6 right-3.5 sm:right-6 z-40 flex items-center group">
-      <span className="hidden sm:block mr-2 px-3 py-1.5 bg-slate-950/95 text-white text-xs font-bold rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-all border border-emerald-500/30 whitespace-nowrap">
-        💬 Chat on WhatsApp (+44 7749 132122)
-      </span>
-      <a
-        href={`https://wa.me/447749132122?text=${encodeURIComponent("Hello Kerala Superstore Manchester! I'm on your website and would like some assistance with an order.")}`}
-        target="_blank"
-        rel="noreferrer"
-        className="w-11 h-11 sm:w-12 sm:h-12 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all relative border-2 border-white ring-2 ring-emerald-500/30 cursor-pointer"
-        aria-label="Contact us on WhatsApp"
-        title="Chat with Kerala Superstore on WhatsApp"
-      >
-        <WhatsAppIcon className="w-6 h-6 sm:w-6.5 sm:h-6.5 text-white fill-current" />
-        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-amber-400 rounded-full border-2 border-white animate-ping" />
-        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-amber-400 rounded-full border-2 border-white" />
-      </a>
-    </aside>
+    <>
+      <aside aria-label="WhatsApp quick order" className="fixed bottom-20 sm:bottom-6 right-3.5 sm:right-6 z-40 flex items-center group">
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="hidden sm:flex items-center gap-2 mr-2 px-3.5 py-2 bg-slate-950/95 text-white text-xs font-bold rounded-2xl shadow-xl hover:bg-slate-900 transition-all border border-emerald-500/40 hover:scale-105 active:scale-95 cursor-pointer"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>📝 WhatsApp Order (ലിസ്റ്റ് അയക്കൂ)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="w-12 h-12 sm:w-13 sm:h-13 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all relative border-2 border-white ring-4 ring-emerald-500/20 cursor-pointer"
+          aria-label="Order via WhatsApp"
+          title="WhatsApp Quick Order / ഷോപ്പിംഗ് ലിസ്റ്റ് അയക്കൂ"
+        >
+          <WhatsAppIcon className="w-6.5 h-6.5 sm:w-7 sm:h-7 text-white fill-current" />
+          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-400 border-2 border-white"></span>
+          </span>
+        </button>
+      </aside>
+
+      <WhatsAppOrderModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </>
   );
 };

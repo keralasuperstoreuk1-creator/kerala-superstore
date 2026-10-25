@@ -65,6 +65,8 @@ class PosSyncEngine:
         self.last_inventory_sync = 0
         self.inventory_interval_seconds = 300  # Full inventory scan every 5 minutes (saves POS CPU & disk)
         self.last_synced_tran_id = None
+        self.synced_tran_ids_set = set()
+        self.pending_sales = []
 
     def get_db_connection(self):
         try:
@@ -323,8 +325,8 @@ class PosSyncEngine:
             headers = {"Content-Type": "application/json", "X-POS-SYNC-KEY": api_key}
             sales_payload = {"source": "RetailV2-POS (Manchester)", "sales": sales}
             urls_to_try = [
-                self.config.get("website_url", "https://keralasuperstore.com").rstrip("/"),
-                "https://kerala-superstore.onrender.com"
+                "https://kerala-superstore.onrender.com",
+                self.config.get("website_url", "https://keralasuperstore.com").rstrip("/")
             ]
             sent_sales = False
             for base_u in urls_to_try:
@@ -336,11 +338,19 @@ class PosSyncEngine:
                     if resp.status_code == 200:
                         self.logger(f"Transmitted {len(sales)} live sales to Daily Report ({base_u}) ✔", "success")
                         sent_sales = True
+                        for s in sales:
+                            t_id = str(s.get("tranId", "")).strip()
+                            if t_id:
+                                self.synced_tran_ids_set.add(t_id)
+                        self.pending_sales = []
+                        if len(self.synced_tran_ids_set) > 600:
+                            self.synced_tran_ids_set = set(list(self.synced_tran_ids_set)[-300:])
                         break
-                except Exception:
+                except Exception as ex:
                     pass
             if not sent_sales:
-                self.logger("Sales transmission notice: Retrying next cycle", "warning")
+                self.logger(f"Sales transmission failed: Queued {len(sales)} bills to retry next cycle.", "warning")
+                self.pending_sales = sales
 
         # 1. Direct Supabase Cloud Database Mirror (Permanent Zero-Latency Sync)
         sb_url = self.config.get("supabase_url", "").rstrip("/")
@@ -576,17 +586,27 @@ class PosSyncEngine:
                     self.last_inventory_sync = now
                     self.logger(f"Read {len(items):,} items from RetailV2 inventory safely.", "info")
 
-            # Instant 1ms check for new sales (Zero-Lock)
-            latest_id = self.get_latest_tran_id()
-            has_new_sales = force_inventory or (latest_id and latest_id != self.last_synced_tran_id) or (self.last_synced_tran_id is None)
-
+            # Check for new sales or retry pending failed sales
             sales = None
-            if has_new_sales:
-                sales = self.fetch_sales_from_db(limit=25)
+            recent_sales = self.fetch_sales_from_db(limit=30)
+            new_sales = []
+            if recent_sales:
+                for s in recent_sales:
+                    tid = str(s.get("tranId", "")).strip()
+                    if tid and tid not in self.synced_tran_ids_set:
+                        new_sales.append(s)
+
+            combined_sales = self.pending_sales + new_sales
+            if combined_sales:
+                seen = set()
+                sales = []
+                for s in combined_sales:
+                    tid = str(s.get("tranId", "")).strip()
+                    if tid and tid not in seen:
+                        seen.add(tid)
+                        sales.append(s)
                 if sales:
-                    self.last_synced_tran_id = latest_id
-                    if latest_id:
-                        self.logger(f"⚡ Live sale ticket #{latest_id} detected! Synced to Web POS.", "success")
+                    self.logger(f"⚡ {len(sales)} live sale ticket(s) detected! Syncing to Web POS...", "info")
 
             if not items and not sales:
                 return

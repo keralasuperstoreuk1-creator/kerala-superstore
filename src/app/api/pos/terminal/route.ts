@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { getUnifiedProductCatalog, markCatalogStale } from '@/lib/product-catalog';
 import { isNonFoodOrToiletries } from '@/lib/product-matching';
 import { isR2Configured, saveJsonToR2, getJsonFromR2 } from '@/lib/cloudflare-r2';
+import { getStoredTransactions, saveStoredTransactions } from '@/lib/pos-transactions-store';
 
 const POS_TRANSACTIONS_R2_KEY = 'pos/transactions.json';
 
@@ -97,6 +98,20 @@ async function getAllTransactions(): Promise<PosTransaction[]> {
     };
   };
 
+  // 1. Read from persistent transactions store (disk + store)
+  try {
+    const stored = await getStoredTransactions();
+    if (Array.isArray(stored)) {
+      stored.forEach((t) => {
+        const key = t.receiptNumber || t.id;
+        if (key) mergedMap.set(key, healTx(t));
+      });
+    }
+  } catch (err) {
+    console.warn('Error reading from getStoredTransactions:', err);
+  }
+
+  // 2. Read from Cloudflare R2 if available
   if (isR2Configured()) {
     try {
       const r2Txs = await getJsonFromR2<PosTransaction[]>(POS_TRANSACTIONS_R2_KEY);
@@ -111,6 +126,7 @@ async function getAllTransactions(): Promise<PosTransaction[]> {
     }
   }
 
+  // 3. Merge in-memory transactions
   inMemoryTransactions.forEach((t) => {
     const key = t.receiptNumber || t.id;
     if (key) mergedMap.set(key, healTx(t));
@@ -686,6 +702,13 @@ export async function POST(req: NextRequest) {
       };
 
       inMemoryTransactions.push(transaction);
+
+      // Persist permanently to unified store (Disk + Memory + R2)
+      try {
+        await saveStoredTransactions([transaction as any]);
+      } catch (storeErr) {
+        console.warn('Could not save transaction to local store:', storeErr);
+      }
 
       // Persist permanently to Cloudflare R2 Cloud
       if (isR2Configured()) {

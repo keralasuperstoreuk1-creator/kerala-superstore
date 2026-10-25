@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStoreConfig } from '@/context/StoreConfigContext';
+import { WhatsAppIcon } from '@/components/WhatsAppButton';
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -559,6 +560,18 @@ export const CartDrawer: React.FC = () => {
                   >
                     <span>Proceed to UK Cash on Delivery Checkout</span>
                     <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const itemsText = cart.map(it => `• ${it.product.name} (Qty: ${it.quantity}) - £${((it.product.offerPrice || it.product.price) * it.quantity).toFixed(2)}`).join('\n');
+                      const msg = `🛒 *Kerala Superstore Manchester — Quick WhatsApp Order*\n\n${itemsText}\n\n*Total:* £${finalTotalAmount.toFixed(2)}\n\n_Please confirm delivery schedule to my address. Thank you!_`;
+                      window.open(`https://wa.me/447749132122?text=${encodeURIComponent(msg)}`, '_blank');
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-bold text-xs shadow-sm transition-all cursor-pointer active:scale-98"
+                  >
+                    <WhatsAppIcon className="w-4 h-4 fill-current text-white" />
+                    <span>Or Send Order to WhatsApp (+44 7749 132122)</span>
                   </button>
                   <button
                     type="button"

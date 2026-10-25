@@ -4,6 +4,7 @@ import { upsertPosProductsToCatalog, getUnifiedProductCatalog, autoEnrichPosProd
 import { supabaseAdmin } from '@/lib/supabase';
 import { searchProductGoogleImage } from '@/lib/serper';
 import { isR2Configured, saveJsonToR2, getJsonFromR2 } from '@/lib/cloudflare-r2';
+import { saveStoredTransactions } from '@/lib/pos-transactions-store';
 
 const DEFAULT_POS_SECRET = process.env.POS_SYNC_SECRET || 'kss_pos_sync_key_2026_live';
 
@@ -214,25 +215,11 @@ export async function POST(req: NextRequest) {
 
       syncedSalesCount = syncedSales.length;
 
-      if (isR2Configured()) {
-        try {
-          const existing = (await getJsonFromR2<any[]>('pos/transactions.json')) || [];
-          const existingMap = new Map();
-          existing.forEach((t: any) => {
-            const key = t.receiptNumber || t.id;
-            if (key) existingMap.set(key, t);
-          });
-          syncedSales.forEach((t: any) => {
-            const key = t.receiptNumber || t.id;
-            if (key) existingMap.set(key, t);
-          });
-          const merged = Array.from(existingMap.values())
-            .sort((a: any, b: any) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
-            .slice(0, 2000);
-          await saveJsonToR2('pos/transactions.json', merged);
-        } catch (r2Err) {
-          console.warn('Could not save synced sales to R2:', r2Err);
-        }
+      // Persistently record sales in Memory + Disk + R2
+      try {
+        await saveStoredTransactions(syncedSales as any);
+      } catch (saveErr) {
+        console.warn('Could not save synced sales to transactions store:', saveErr);
       }
 
       if (supabaseAdmin) {

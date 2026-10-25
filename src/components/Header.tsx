@@ -22,6 +22,8 @@ import { CATEGORIES } from '@/lib/mock-data';
 import { LuxuryStoreLogo } from '@/components/LuxuryStoreLogo';
 import { PwaInstallPrompt } from '@/components/PwaInstallPrompt';
 import { AppleIcon, AndroidIcon } from '@/components/AppDownloadModal';
+import { WhatsAppOrderModal } from '@/components/WhatsAppOrderModal';
+import { WhatsAppIcon } from '@/components/WhatsAppButton';
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -46,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { isIOS, isAndroid, deferredPrompt, triggerInstall, installApp, openModal } = useAppDownload();
   const [searchQuery, setSearchQuery] = useState(searchQueryProp);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
 
   // Sync internal search query if parent updates it (e.g. reset filters)
   React.useEffect(() => {
@@ -243,6 +246,18 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action Buttons: App Download & Shopping Cart (Mobile Optimized, No Overflow) */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* WhatsApp Quick Shopping List Order Button */}
+            <button
+              type="button"
+              onClick={() => setIsWhatsAppModalOpen(true)}
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-emerald-500/50 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-emerald-950 transition-all text-xs font-black shadow-2xs group cursor-pointer active:scale-95 shrink-0"
+              title="WhatsApp Quick Order / ഷോപ്പിംഗ് ലിസ്റ്റ് അയക്കൂ"
+            >
+              <WhatsAppIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#25D366] fill-current shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] sm:text-xs font-black whitespace-nowrap">
+                <span className="hidden sm:inline">WhatsApp </span>Order
+              </span>
+            </button>
             {/* Official App Download Button (Auto-detects iPhone or Android on click) */}
             {(config.modules?.showAppDownload ?? true) && (
               <button
@@ -434,6 +449,11 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       )}
+
+      <WhatsAppOrderModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
+      />
     </header>
   );
 };
