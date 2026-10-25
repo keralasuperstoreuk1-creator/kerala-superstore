@@ -93,8 +93,8 @@ export async function GET(req: NextRequest) {
             const isKnownStatueBarcode = [
               '319931991', '319931992', '319931993', 
               '339933991', '339933992', '339933993', 
-              '369936993699', '249924992499', '149914991', 
-              '4504501', '149914992', '149914994', '298319863',
+              '369936993699', '249924992499', 
+              '4504501', '4504502', '149914992', '149914994', '298319863',
               '599959991', '99990002', '649964991'
             ].includes(String(p.barcode || '').trim());
 
@@ -102,8 +102,8 @@ export async function GET(req: NextRequest) {
               isKnownStatueBarcode ||
               /\b(statue|figurine|holy family|crucifix|sacred heart|our lady of lourdes|immaculate heart)\b/i.test(p.name || '') ||
               (
-                (p.tags && Array.isArray(p.tags) && p.tags.some((t: string) => /religious|statue|christian|marian|catholic/i.test(t))) &&
-                /\b(statue|jesus|mary|joseph|angel|krishna|lourdes)\b/i.test(p.name || '')
+                (p.tags && Array.isArray(p.tags) && p.tags.some((t: string) => /religious|statue|christian|marian|catholic|hindu/i.test(t))) &&
+                /\b(statue|jesus|mary|joseph|krishna|lourdes)\b/i.test(p.name || '')
               )
             );
 
@@ -131,8 +131,8 @@ export async function GET(req: NextRequest) {
               else if (/joseph/i.test(p.name)) img = '/products/religious/st-joseph-child-jesus-purple-1-5ft.jpg';
               else if (/anthony|antony/i.test(p.name)) img = '/products/religious/saint-anthony-1-5ft.jpg';
               else if (/holy family/i.test(p.name)) img = '/products/religious/holy-family-1-5ft.jpg';
-              else if (/angel/i.test(p.name)) img = '/products/religious/praying-angel-1ft.jpg';
-              else if (/krishna/i.test(p.name)) img = '/products/religious/krishna-statue.jpg';
+              else if (/2\.8|marble/i.test(p.name) && /krishna/i.test(p.name)) img = '/products/religious/lord-krishna-marble-white-2-8ft.jpg';
+              else if (/krishna/i.test(p.name)) img = '/products/religious/lord-krishna-blue-1-6ft.jpg';
               else if (/jesus.*lilies|lilies.*jesus/i.test(p.name)) img = '/products/religious/jesus-lilies-2ft.jpg';
               else if (/jesus|christ/i.test(p.name)) img = '/products/religious/jesus-lilies-2ft.jpg';
               else img = '/products/religious/our-lady-lourdes-2ft.jpg';
