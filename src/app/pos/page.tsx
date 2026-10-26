@@ -618,26 +618,6 @@ export default function PosTerminalPage() {
         console.warn('QR canvas conversion notice:', e);
       }
 
-      // Create an offscreen rendered iframe with real layout dimensions so Chrome computes exact content height
-      const iframe = document.createElement('iframe');
-      iframe.id = 'kss-thermal-print-frame';
-      iframe.style.position = 'fixed';
-      iframe.style.top = '0';
-      iframe.style.left = '0';
-      iframe.style.width = `${rollWidthMm}mm`;
-      iframe.style.height = '1200px';
-      iframe.style.border = '0';
-      iframe.style.opacity = '0.01';
-      iframe.style.pointerEvents = 'none';
-      iframe.style.zIndex = '-99999';
-      document.body.appendChild(iframe);
-
-      const doc = iframe.contentWindow?.document || iframe.contentDocument;
-      if (!doc) {
-        window.print();
-        return;
-      }
-
       // Prepare HTML content with guaranteed logo & QR images
       let printHtml = el.innerHTML;
       if (logoDataUrl) {
@@ -652,182 +632,201 @@ export default function PosTerminalPage() {
         printHtml = printHtml.replace(/src="\/instagram-qr\.png"/i, `src="${window.location.origin}/instagram-qr.png"`);
       }
 
+      const fullHtml = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <base href="${window.location.origin}/" />
+    <title>Kerala Superstore Receipt</title>
+    <style id="receipt-print-style">
+      @page {
+        size: ${rollWidthMm}mm auto;
+        margin: 0mm !important;
+      }
+      *, *:before, *:after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        border: 0 solid transparent !important;
+        border-left: none !important;
+        border-right: none !important;
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+      }
+      html, body {
+        width: 100% !important;
+        max-width: ${rollWidthMm}mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+        font-size: ${fontSize} !important;
+        line-height: 1.25 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      #receipt-print-wrapper {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        max-width: ${rollWidthMm}mm !important;
+        margin: 0 !important;
+        padding: 0 1.5mm 1mm 1.5mm !important;
+        box-sizing: border-box !important;
+      }
+      img {
+        max-width: 100% !important;
+        height: auto !important;
+        display: block;
+        margin: 0 auto;
+      }
+      .receipt-logo {
+        width: ${paperWidth === '58mm' ? '46px' : '58px'} !important;
+        height: ${paperWidth === '58mm' ? '46px' : '58px'} !important;
+        object-fit: contain !important;
+        display: block !important;
+        margin: 0 auto 3px auto !important;
+      }
+      .receipt-qr {
+        width: ${paperWidth === '58mm' ? '70px' : '88px'} !important;
+        height: ${paperWidth === '58mm' ? '70px' : '88px'} !important;
+        object-fit: contain !important;
+        display: block !important;
+        margin: 4px auto !important;
+      }
+      .text-center { text-align: center !important; }
+      .text-right { text-align: right !important; }
+      .font-bold { font-weight: bold !important; }
+      .font-black { font-weight: 900 !important; }
+      .uppercase { text-transform: uppercase !important; }
+      .flex { display: flex !important; }
+      .justify-between { justify-content: space-between !important; }
+      .items-center { align-items: center !important; }
+      .items-start { align-items: flex-start !important; }
+      .gap-1 { gap: 4px !important; }
+      .flex-1 { flex: 1 1 0% !important; min-width: 0 !important; }
+      .shrink-0 { flex-shrink: 0 !important; }
+      .whitespace-nowrap { white-space: nowrap !important; }
+      .border-b {
+        border-bottom: 1px dashed #000000 !important;
+        border-top: none !important;
+        border-left: none !important;
+        border-right: none !important;
+      }
+      .border-t {
+        border-top: 1px dashed #000000 !important;
+        border-bottom: none !important;
+        border-left: none !important;
+        border-right: none !important;
+      }
+      .border-t.border-b {
+        border-top: 1px dashed #000000 !important;
+        border-bottom: 1px dashed #000000 !important;
+        border-left: none !important;
+        border-right: none !important;
+      }
+      .py-1 { padding-top: 2px !important; padding-bottom: 2px !important; }
+      .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
+      .pt-1 { padding-top: 2px !important; }
+      .pt-2 { padding-top: 4px !important; }
+      .pt-2\.5 { padding-top: 5px !important; }
+      .pb-1 { padding-bottom: 2px !important; }
+      .pb-2 { padding-bottom: 4px !important; }
+      .space-y-1 > * + * { margin-top: 2px !important; }
+      .space-y-0\.5 > * + * { margin-top: 1px !important; }
+      .space-y-2 > * + * { margin-top: 4px !important; }
+      .truncate { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+      .no-print { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div id="receipt-print-wrapper">
+      ${printHtml}
+    </div>
+  </body>
+</html>`;
+
+      // Method 1: Dedicated clean popup window (Most reliable on Windows POS printers, immune to modal centering)
+      let printWin: Window | null = null;
+      try {
+        printWin = window.open('', '_blank', 'width=380,height=600,left=200,top=100');
+      } catch (e) {
+        printWin = null;
+      }
+
+      if (printWin && printWin.document) {
+        printWin.document.open();
+        printWin.document.write(fullHtml);
+        printWin.document.close();
+
+        const triggerPopupPrint = () => {
+          try {
+            printWin.focus();
+            printWin.print();
+          } catch (e) {
+            console.warn('Popup print error:', e);
+          } finally {
+            setTimeout(() => {
+              try { printWin.close(); } catch {}
+            }, 600);
+          }
+        };
+
+        const imgs = Array.from(printWin.document.images || []);
+        if (imgs.length === 0) {
+          setTimeout(triggerPopupPrint, 60);
+        } else {
+          let loaded = 0;
+          let done = false;
+          const checkOne = () => {
+            loaded++;
+            if (loaded >= imgs.length && !done) {
+              done = true;
+              setTimeout(triggerPopupPrint, 50);
+            }
+          };
+          imgs.forEach((img) => {
+            if (img.complete && img.naturalWidth > 0) checkOne();
+            else {
+              img.onload = checkOne;
+              img.onerror = checkOne;
+            }
+          });
+          setTimeout(() => { if (!done) { done = true; triggerPopupPrint(); } }, 500);
+        }
+        return;
+      }
+
+      // Method 2: Offscreen iframe fallback (if popups are blocked)
+      const iframe = document.createElement('iframe');
+      iframe.id = 'kss-thermal-print-frame';
+      iframe.style.position = 'fixed';
+      iframe.style.bottom = '0';
+      iframe.style.right = '0';
+      iframe.style.width = `${rollWidthMm}mm`;
+      iframe.style.height = '100px';
+      iframe.style.border = '0';
+      iframe.style.opacity = '0.01';
+      iframe.style.zIndex = '99999';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow?.document || iframe.contentDocument;
+      if (!doc) {
+        window.print();
+        return;
+      }
+
       doc.open();
-      doc.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8" />
-            <base href="${window.location.origin}/" />
-            <title>Kerala Superstore Receipt</title>
-            <style id="receipt-print-style">
-              @page {
-                size: ${rollWidthMm}mm auto;
-                margin: 0mm !important;
-              }
-              *, *:before, *:after {
-                box-sizing: border-box;
-                margin: 0;
-                padding: 0;
-                border: 0 solid transparent !important;
-                border-left: none !important;
-                border-right: none !important;
-                color: #000000 !important;
-                -webkit-text-fill-color: #000000 !important;
-              }
-              html, body {
-                width: 100% !important;
-                max-width: ${rollWidthMm}mm !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: #ffffff !important;
-                color: #000000 !important;
-                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
-                font-size: ${fontSize} !important;
-                line-height: 1.25 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
-              #receipt-print-wrapper {
-                width: 100% !important;
-                max-width: ${rollWidthMm}mm !important;
-                margin: 0 !important;
-                padding: 1mm 1.5mm 1mm 1.5mm !important;
-                box-sizing: border-box !important;
-              }
-              img {
-                max-width: 100% !important;
-                height: auto !important;
-                display: block;
-                margin: 0 auto;
-              }
-              .receipt-logo {
-                width: ${paperWidth === '58mm' ? '46px' : '58px'} !important;
-                height: ${paperWidth === '58mm' ? '46px' : '58px'} !important;
-                object-fit: contain !important;
-                display: block !important;
-                margin: 0 auto 3px auto !important;
-              }
-              .receipt-qr {
-                width: ${paperWidth === '58mm' ? '70px' : '88px'} !important;
-                height: ${paperWidth === '58mm' ? '70px' : '88px'} !important;
-                object-fit: contain !important;
-                display: block !important;
-                margin: 4px auto !important;
-              }
-              .text-center { text-align: center !important; }
-              .text-right { text-align: right !important; }
-              .font-bold { font-weight: bold !important; }
-              .font-black { font-weight: 900 !important; }
-              .uppercase { text-transform: uppercase !important; }
-              .flex { display: flex !important; }
-              .justify-between { justify-content: space-between !important; }
-              .items-center { align-items: center !important; }
-              .items-start { align-items: flex-start !important; }
-              .gap-1 { gap: 4px !important; }
-              .flex-1 { flex: 1 1 0% !important; min-width: 0 !important; }
-              .shrink-0 { flex-shrink: 0 !important; }
-              .whitespace-nowrap { white-space: nowrap !important; }
-              .border-b {
-                border-bottom: 1px dashed #000000 !important;
-                border-top: none !important;
-                border-left: none !important;
-                border-right: none !important;
-              }
-              .border-t {
-                border-top: 1px dashed #000000 !important;
-                border-bottom: none !important;
-                border-left: none !important;
-                border-right: none !important;
-              }
-              .border-t.border-b {
-                border-top: 1px dashed #000000 !important;
-                border-bottom: 1px dashed #000000 !important;
-                border-left: none !important;
-                border-right: none !important;
-              }
-              .py-1 { padding-top: 2px !important; padding-bottom: 2px !important; }
-              .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
-              .pt-1 { padding-top: 2px !important; }
-              .pt-2 { padding-top: 4px !important; }
-              .pt-2\.5 { padding-top: 5px !important; }
-              .pb-1 { padding-bottom: 2px !important; }
-              .pb-2 { padding-bottom: 4px !important; }
-              .space-y-1 > * + * { margin-top: 2px !important; }
-              .space-y-0\.5 > * + * { margin-top: 1px !important; }
-              .space-y-2 > * + * { margin-top: 4px !important; }
-              .truncate { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
-              .no-print { display: none !important; }
-            </style>
-          </head>
-          <body>
-            <div id="receipt-print-wrapper">
-              ${printHtml}
-            </div>
-          </body>
-        </html>
-      `);
+      doc.write(fullHtml);
       doc.close();
 
-      // Ensure all images are fully loaded and measure exact final height before opening print dialog
-      const triggerPrintNow = () => {
+      const triggerIframePrint = () => {
         try {
-          // Measure the exact rendered receipt content inside the iframe
-          const wrapper = doc.getElementById('receipt-print-wrapper') || doc.body;
-          const rect = wrapper.getBoundingClientRect();
-          const renderedPx = Math.ceil(rect.height || wrapper.offsetHeight || wrapper.scrollHeight || 0);
-
-          // Calculate precise millimeter height from 96 DPI + 3mm safety margin for thermal cutter
-          let finalHeightMm = 70;
-          if (renderedPx > 30) {
-            finalHeightMm = Math.ceil((renderedPx / 96) * 25.4) + 3;
-          }
-
-          // Inject precise final @page size so Chrome never feeds excess blank paper
-          const pageStyle = doc.createElement('style');
-          pageStyle.id = 'receipt-dynamic-page-size';
-          pageStyle.textContent = `
-            @page {
-              size: ${rollWidthMm}mm ${finalHeightMm}mm !important;
-              margin: 0mm !important;
-            }
-            html, body {
-              width: ${rollWidthMm}mm !important;
-              height: ${finalHeightMm}mm !important;
-              max-height: ${finalHeightMm}mm !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              position: absolute !important;
-              top: 0 !important;
-              left: 0 !important;
-              overflow: hidden !important;
-            }
-            #receipt-print-wrapper {
-              position: absolute !important;
-              top: 0 !important;
-              left: 0 !important;
-              margin: 0 !important;
-              padding: 1mm 1.5mm 1mm 1.5mm !important;
-              width: ${rollWidthMm}mm !important;
-              max-width: ${rollWidthMm}mm !important;
-              max-height: ${finalHeightMm}mm !important;
-              overflow: hidden !important;
-              box-sizing: border-box !important;
-            }
-          `;
-          doc.head.appendChild(pageStyle);
-
-          setTimeout(() => {
-            try {
-              iframe.contentWindow?.focus();
-              iframe.contentWindow?.print();
-            } catch (err) {
-              console.warn('Iframe print error, falling back to window.print:', err);
-              window.print();
-            }
-          }, 50);
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
         } catch (e) {
-          console.warn('Print trigger error, falling back:', e);
           window.print();
         } finally {
           setTimeout(() => {
@@ -836,20 +835,20 @@ export default function PosTerminalPage() {
         }
       };
 
-      const imgs = Array.from(doc.images || []);
-      if (imgs.length === 0) {
-        setTimeout(triggerPrintNow, 80);
+      const iframeImgs = Array.from(doc.images || []);
+      if (iframeImgs.length === 0) {
+        setTimeout(triggerIframePrint, 60);
       } else {
         let loaded = 0;
         let fired = false;
         const onOne = () => {
           loaded++;
-          if (loaded >= imgs.length && !fired) {
+          if (loaded >= iframeImgs.length && !fired) {
             fired = true;
-            setTimeout(triggerPrintNow, 60);
+            setTimeout(triggerIframePrint, 50);
           }
         };
-        imgs.forEach((img) => {
+        iframeImgs.forEach((img) => {
           if (img.complete && img.naturalWidth > 0) {
             onOne();
           } else {
@@ -860,9 +859,9 @@ export default function PosTerminalPage() {
         setTimeout(() => {
           if (!fired) {
             fired = true;
-            triggerPrintNow();
+            triggerIframePrint();
           }
-        }, 1200);
+        }, 500);
       }
     }
   };
