@@ -354,6 +354,7 @@ export default function PosTerminalPage() {
   // Daily Report & Closing Stock State
   const [reportData, setReportData] = useState<any | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
+  const [isSyncingReport, setIsSyncingReport] = useState(false);
   const [closingStockModalOpen, setClosingStockModalOpen] = useState(false);
 
   // Total Sales & Closing Stock Sub-tabs & Filter State
@@ -1450,8 +1451,9 @@ export default function PosTerminalPage() {
   }, [dateSoldMap]);
 
   // Load Total Sales & Period Report
-  const fetchReport = async (periodOverride?: string, fromDate?: string, toDate?: string) => {
-    if (activeTab === 'reports') {
+  const fetchReport = async (periodOverride?: string, fromDate?: string, toDate?: string, isSilent: boolean = false) => {
+    setIsSyncingReport(true);
+    if (activeTab === 'reports' && !isSilent && !reportData) {
       setLoadingReport(true);
     }
     try {
@@ -1670,10 +1672,11 @@ export default function PosTerminalPage() {
       console.error('Report fetch error:', err);
     } finally {
       setLoadingReport(false);
+      setIsSyncingReport(false);
     }
   };
 
-  const fetchDailyReport = () => fetchReport();
+  const fetchDailyReport = (isSilent = true) => fetchReport(undefined, undefined, undefined, isSilent);
 
 
 
@@ -2390,10 +2393,10 @@ export default function PosTerminalPage() {
 
   useEffect(() => {
     if (activeTab === 'reports') {
-      fetchDailyReport();
-      // Near real-time auto-sync: Poll every 10 seconds for instant cashier sale appearance
+      fetchDailyReport(false);
+      // Near real-time auto-sync: Poll every 10 seconds silently in background without screen flicker
       const reportTimer = setInterval(() => {
-        fetchDailyReport();
+        fetchDailyReport(true);
       }, 10000);
       return () => clearInterval(reportTimer);
     }
@@ -6015,17 +6018,17 @@ export default function PosTerminalPage() {
 
                     <div className="flex items-center gap-2">
                       <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-semibold text-emerald-400">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span>Live Auto-Sync (10s)</span>
+                        <span className={`w-2 h-2 rounded-full ${isSyncingReport ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'}`} />
+                        <span>{isSyncingReport ? 'Syncing...' : 'Live Auto-Sync (10s)'}</span>
                       </div>
 
                       <button
                         type="button"
-                        onClick={() => fetchReport()}
+                        onClick={() => fetchReport(undefined, undefined, undefined, true)}
                         className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition-all cursor-pointer"
                         title="Reload live report data"
                       >
-                        <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${loadingReport ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncingReport || loadingReport ? 'animate-spin' : ''}`} />
                         <span>Refresh</span>
                       </button>
 
@@ -6130,7 +6133,7 @@ export default function PosTerminalPage() {
                   )}
                 </div>
 
-                {loadingReport ? (
+                {loadingReport && !reportData ? (
                   <div className="p-12 text-center text-slate-500 bg-slate-900/50 rounded-3xl border border-slate-800">
                     <RefreshCw className="w-8 h-8 animate-spin mx-auto text-emerald-500 mb-2" />
                     <span className="text-xs font-bold">Calculating sales metrics for {salesPeriod}...</span>
