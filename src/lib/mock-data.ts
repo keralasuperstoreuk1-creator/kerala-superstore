@@ -1541,7 +1541,7 @@ export const INITIAL_DAILY_SPECIALS: DailySpecial[] = [
     portionsTotal: 60,
     portionsRemaining: 24,
     isSoldOut: false,
-    imageUrl: "/categories/snacks.jpg",
+    imageUrl: "/specials/evening_chaya_snack_box.jpg",
     badge: "☕ Evening Chaya Special",
     createdAt: "2026-03-30T11:00:00Z"
   }

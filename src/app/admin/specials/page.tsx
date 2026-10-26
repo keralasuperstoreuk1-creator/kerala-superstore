@@ -623,7 +623,7 @@ export default function AdminSpecialsPage() {
                   {[
                     { title: 'Thalassery Chicken Dum Biriyani', price: '£7.99', badge: '🔥 Chef Special', img: '/specials/thalassery_chicken_biriyani.jpg' },
                     { title: 'Malabar Porotta & Dark Beef Roast', price: '£8.49', badge: '⭐ Bestseller', img: '/specials/porotta_beef_roast.jpg' },
-                    { title: 'Evening Chaya & Pazham Pori Box', price: '£3.99', badge: '☕ Tea Special', img: '/categories/snacks.jpg' },
+                    { title: 'Evening Chaya & Pazham Pori Box', price: '£3.99', badge: '☕ Tea Special', img: '/specials/evening_chaya_snack_box.jpg' },
                   ].map((item, idx) => (
                     <div
                       key={idx}
