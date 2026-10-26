@@ -4,6 +4,10 @@ import { getUnifiedProductCatalog, markCatalogStale } from '@/lib/product-catalo
 import { isNonFoodOrToiletries } from '@/lib/product-matching';
 import { isR2Configured, saveJsonToR2, getJsonFromR2 } from '@/lib/cloudflare-r2';
 import { getStoredTransactions, saveStoredTransactions } from '@/lib/pos-transactions-store';
+import posImageOverrides from '@/lib/pos-image-overrides.json';
+
+// Hand-reviewed barcode -> photo list for POS items whose names didn't auto-match a catalogue photo.
+const POS_IMAGE_OVERRIDES = posImageOverrides as Record<string, string>;
 
 const POS_TRANSACTIONS_R2_KEY = 'pos/transactions.json';
 
@@ -489,7 +493,9 @@ export async function GET(req: NextRequest) {
           if (/(dal|gram|lentil|payar|peas|kadala|chana|toor|urad|moong)/i.test(lower)) return '/categories/pulses.jpg';
           if (/(frozen|fish|meat|kappa|tapioca|mutton|beef|chicken|porotta|paratha)/i.test(lower)) return '/categories/frozen.jpg';
           if (/(cooker|pan|pot|knife|pooja|lamp|vessel|kitchen|soap|shampoo|paste|cleaner|brush|detergent)/i.test(lower)) return '/categories/kitchenwares.jpg';
-          return '/categories/spices.jpg';
+          // No confident match: return empty so the POS shows a clean name tile
+          // instead of the same generic spices photo on hundreds of products.
+          return '';
         };
 
         if (posData && posData.length > 0) {
@@ -551,7 +557,7 @@ export async function GET(req: NextRequest) {
 
             let itemImage = matchedMeta?.imageUrl;
             if (!itemImage || itemImage.includes('banana-chips') || itemImage.includes('spices.jpg')) {
-              itemImage = getFallbackImage(desc);
+              itemImage = POS_IMAGE_OVERRIDES[bc] || getFallbackImage(desc);
             }
 
             return {
@@ -590,7 +596,7 @@ export async function GET(req: NextRequest) {
         stock: Number(p.stock) || 0,
         category: p.category || 'General Grocery',
         sizeWeight: p.sizeWeight || 'Standard',
-        imageUrl: p.imageUrl || '/categories/spices.jpg',
+        imageUrl: p.imageUrl || '',
         vatRate: isNonFoodOrToiletries(p.name) ? 20 : 0,
         active: true,
       }));

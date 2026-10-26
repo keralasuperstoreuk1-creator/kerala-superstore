@@ -143,6 +143,30 @@ const POPULAR_UK_WHOLESALERS = [
   "Malabar Spices Manchester",
 ];
 
+// The generic spices photo used to be stamped on every product without a real packshot,
+// making hundreds of items look identical. Treat it as "no image" (also covers cached data).
+function hasRealProductImage(url?: string): boolean {
+  return !!url && !url.includes('/categories/spices.jpg');
+}
+
+const NAME_TILE_GRADIENTS = [
+  'from-emerald-600 to-teal-700',
+  'from-amber-500 to-orange-600',
+  'from-sky-600 to-indigo-700',
+  'from-rose-500 to-pink-700',
+  'from-violet-600 to-purple-700',
+  'from-lime-600 to-green-700',
+];
+
+function getNameTile(name: string) {
+  const words = name.replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/).filter(Boolean);
+  const initials = (words.length >= 2 ? words[0][0] + words[1][0] : (words[0] || '?').slice(0, 2)).toUpperCase();
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return { initials, gradient: NAME_TILE_GRADIENTS[hash % NAME_TILE_GRADIENTS.length] };
+}
+
+
 type PosTab = 'till' | 'purchase' | 'returns' | 'stock_manager' | 'reports' | 'barcode' | 'history';
 
 // Isolated Clock Micro-Component (Prevents entire 8,000-line POS page from re-rendering every 1 second)
@@ -3622,13 +3646,23 @@ export default function PosTerminalPage() {
                       >
                         {/* Image Showcase */}
                         <div className="relative w-full aspect-square rounded-xl bg-slate-950/80 overflow-hidden mb-2 border border-slate-800/50">
-                          <Image
-                            src={prod.imageUrl || '/categories/spices.jpg'}
-                            alt={prod.name}
-                            fill
-                            className="object-contain p-1 group-hover:scale-105 transition-transform"
-                            loading="lazy"
-                          />
+                          {hasRealProductImage(prod.imageUrl) ? (
+                            <Image
+                              src={prod.imageUrl}
+                              alt={prod.name}
+                              fill
+                              className="object-contain p-1 group-hover:scale-105 transition-transform"
+                              loading="lazy"
+                            />
+                          ) : (() => {
+                            const tile = getNameTile(prod.name);
+                            return (
+                              <div className={`absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br ${tile.gradient} p-2 text-center`}>
+                                <span className="text-3xl font-black text-white/95 tracking-wide drop-shadow">{tile.initials}</span>
+                                <span className="mt-1 text-[9px] font-semibold text-white/80 line-clamp-2 leading-tight">{prod.name}</span>
+                              </div>
+                            );
+                          })()}
                           {/* Stock pill */}
                           <span
                             className={`absolute bottom-1 right-1 text-[9px] font-black px-1.5 py-0.5 rounded-md ${
