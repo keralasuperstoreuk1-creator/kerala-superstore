@@ -776,6 +776,17 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     overflow: visible !important;
   }
 
+  /* Cancel all modal centering and offsets during print so receipt anchors to physical page top */
+  .fixed,
+  .relative,
+  div[role="dialog"] {
+    position: static !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+  }
+
   /* When printing directly, hide app chrome and modals */
   body * {
     visibility: hidden;
@@ -799,11 +810,11 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   #thermal-closing-stock-preview,
   #thermal-sales-report-preview,
   .thermal-printable {
-    position: absolute !important;
+    position: fixed !important;
     left: 0 !important;
     top: 0 !important;
     margin: 0 !important;
-    padding: 1.5mm 1mm 1.5mm 1mm !important;
+    padding: 1mm 1.5mm 1mm 1.5mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     border: none !important;
@@ -812,6 +823,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     max-width: 48mm !important;
     font-size: 9.5px !important;
     line-height: 1.25 !important;
+    z-index: 999999 !important;
   }
 
   #thermal-receipt-preview:not(.paper-58mm),

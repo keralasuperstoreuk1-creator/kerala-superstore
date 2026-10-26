@@ -795,11 +795,24 @@ export default function PosTerminalPage() {
               width: ${rollWidthMm}mm !important;
               height: ${finalHeightMm}mm !important;
               max-height: ${finalHeightMm}mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              position: absolute !important;
+              top: 0 !important;
+              left: 0 !important;
               overflow: hidden !important;
             }
             #receipt-print-wrapper {
+              position: absolute !important;
+              top: 0 !important;
+              left: 0 !important;
+              margin: 0 !important;
+              padding: 1mm 1.5mm 1mm 1.5mm !important;
+              width: ${rollWidthMm}mm !important;
+              max-width: ${rollWidthMm}mm !important;
               max-height: ${finalHeightMm}mm !important;
               overflow: hidden !important;
+              box-sizing: border-box !important;
             }
           `;
           doc.head.appendChild(pageStyle);
