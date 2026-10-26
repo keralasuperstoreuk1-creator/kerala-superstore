@@ -1015,6 +1015,33 @@ export default function PosTerminalPage() {
     }
   };
 
+  // Direct Hardware Thermal Printing via WebSerial (Bypasses Browser Preview, Zero Margin, Instant Cut)
+  const handleDirectUsbPrintReceipt = async () => {
+    if (!lastReceipt) return;
+    const w = window as any;
+    try {
+      if (w.__kss_drawer_serial_port?.writable) {
+        const ok = await printReceiptViaEscPos(lastReceipt, receiptPaperWidth);
+        if (ok) return;
+      }
+      if ('serial' in navigator) {
+        const port = await (navigator as any).serial.requestPort();
+        await port.open({ baudRate: 9600 });
+        w.__kss_drawer_serial_port = port;
+        setDrawerHardwareStatus('connected');
+        await printReceiptViaEscPos(lastReceipt, receiptPaperWidth);
+        return;
+      } else {
+        printElementToThermal('thermal-receipt-preview', receiptPaperWidth, lastReceipt?.paymentMethod === 'cash');
+      }
+    } catch (err: any) {
+      if (err.name !== 'NotFoundError') {
+        console.warn('Direct print fallback:', err);
+        printElementToThermal('thermal-receipt-preview', receiptPaperWidth, lastReceipt?.paymentMethod === 'cash');
+      }
+    }
+  };
+
 
 
   // Audio Beep Generator using Web Audio API
@@ -7480,12 +7507,12 @@ export default function PosTerminalPage() {
               {/* Direct Hardware USB Print Option (Bypasses Preview completely) */}
               <button
                 type="button"
-                onClick={handlePairHardwarePrinter}
-                className="w-full py-1.5 px-3 bg-slate-950 hover:bg-slate-800/80 text-emerald-400 border border-emerald-500/30 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                onClick={handleDirectUsbPrintReceipt}
+                className="w-full py-2 px-3 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm"
                 title="Connect printer directly via USB for instant silent printing without any preview dialog"
               >
                 <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Direct USB Print (1-Click Pair • Zero Preview)</span>
+                <span>Direct USB Print (Zero Margin • Instant Cut)</span>
               </button>
             </div>
           </div>
