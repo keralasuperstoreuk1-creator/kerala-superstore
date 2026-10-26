@@ -763,6 +763,36 @@ export default function PosTerminalPage() {
 
         const triggerPopupPrint = () => {
           try {
+            const wrapper = printWin.document.getElementById('receipt-print-wrapper') || printWin.document.body;
+            const rect = wrapper.getBoundingClientRect();
+            const renderedPx = Math.ceil(rect.height || wrapper.offsetHeight || wrapper.scrollHeight || 0);
+
+            let finalHeightMm = 80;
+            if (renderedPx > 30) {
+              finalHeightMm = Math.ceil((renderedPx / 96) * 25.4) + 3;
+            }
+
+            const dynamicStyle = printWin.document.createElement('style');
+            dynamicStyle.textContent = `
+              @page {
+                size: ${rollWidthMm}mm ${finalHeightMm}mm !important;
+                margin: 0mm !important;
+              }
+              html, body {
+                width: ${rollWidthMm}mm !important;
+                height: ${finalHeightMm}mm !important;
+                max-height: ${finalHeightMm}mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+              }
+              #receipt-print-wrapper {
+                max-height: ${finalHeightMm}mm !important;
+                overflow: hidden !important;
+              }
+            `;
+            printWin.document.head.appendChild(dynamicStyle);
+
             printWin.focus();
             printWin.print();
           } catch (e) {
@@ -770,7 +800,7 @@ export default function PosTerminalPage() {
           } finally {
             setTimeout(() => {
               try { printWin.close(); } catch {}
-            }, 600);
+            }, 800);
           }
         };
 
@@ -824,6 +854,36 @@ export default function PosTerminalPage() {
 
       const triggerIframePrint = () => {
         try {
+          const wrapper = doc.getElementById('receipt-print-wrapper') || doc.body;
+          const rect = wrapper.getBoundingClientRect();
+          const renderedPx = Math.ceil(rect.height || wrapper.offsetHeight || wrapper.scrollHeight || 0);
+
+          let finalHeightMm = 80;
+          if (renderedPx > 30) {
+            finalHeightMm = Math.ceil((renderedPx / 96) * 25.4) + 3;
+          }
+
+          const dynamicStyle = doc.createElement('style');
+          dynamicStyle.textContent = `
+            @page {
+              size: ${rollWidthMm}mm ${finalHeightMm}mm !important;
+              margin: 0mm !important;
+            }
+            html, body {
+              width: ${rollWidthMm}mm !important;
+              height: ${finalHeightMm}mm !important;
+              max-height: ${finalHeightMm}mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              overflow: hidden !important;
+            }
+            #receipt-print-wrapper {
+              max-height: ${finalHeightMm}mm !important;
+              overflow: hidden !important;
+            }
+          `;
+          doc.head.appendChild(dynamicStyle);
+
           iframe.contentWindow?.focus();
           iframe.contentWindow?.print();
         } catch (e) {
