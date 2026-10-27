@@ -3,6 +3,9 @@ import { getUnifiedProductCatalog, matchProductToCategory, saveDynamicProducts, 
 import { supabaseAdmin } from '@/lib/supabase';
 import { Product } from '@/types';
 import { searchProductGoogleImage } from '@/lib/serper';
+import posImageOverrides from '@/lib/pos-image-overrides.json';
+
+const posImageOverridesMap = posImageOverrides as Record<string, string>;
 
 // In-memory catalog cache for lightning fast responses (< 10ms)
 let cachedCatalog: Product[] | null = null;
@@ -117,25 +120,78 @@ export async function GET(req: NextRequest) {
             // Only consider offerPrice if it's strictly a discount lower than selling price
             const validOffer = offerPriceNum !== undefined && offerPriceNum < price ? offerPriceNum : undefined;
 
+            const bc = String(p.barcode || '').trim();
             let img = p.image_url || '/products/matta-rice.png';
-            if (isReligious && (!img || img.includes('banana-chips') || img.includes('spices.jpg') || img.includes('matta-rice'))) {
-              if (/red/i.test(p.name) && /jesus|heart/i.test(p.name)) img = '/products/religious/sacred-heart-jesus-red-1-5ft.jpg';
-              else if (/cyan|blue/i.test(p.name) && /jesus|heart/i.test(p.name)) img = '/products/religious/sacred-heart-jesus-cyan-1-5ft.jpg';
-              else if ((/2\s*(?:ft|feet)/i.test(p.name) || /649964991/.test(p.barcode || '')) && /jesus|heart/i.test(p.name)) img = '/products/religious/sacred-heart-jesus-white-gold-2ft.jpg';
-              else if (/white/i.test(p.name) && /jesus|heart/i.test(p.name)) img = '/products/religious/sacred-heart-jesus-white-1-5ft.jpg';
-              else if (/lourdes/i.test(p.name)) img = '/products/religious/our-lady-lourdes-2ft.jpg';
-              else if (/immaculate/i.test(p.name)) img = '/products/religious/immaculate-heart-mary-1-5ft.jpg';
-              else if (/2\s*(?:ft|feet)|99990002|outstretched/i.test((p.name || '') + (p.barcode || ''))) img = '/products/religious/mother-mary-white-gold-2ft.jpg';
-              else if (/mary/i.test(p.name)) img = '/products/religious/mother-mary-white-gold-2ft.jpg';
-              else if (/purple/i.test(p.name) && /joseph/i.test(p.name)) img = '/products/religious/st-joseph-child-jesus-purple-1-5ft.jpg';
-              else if (/joseph/i.test(p.name)) img = '/products/religious/st-joseph-child-jesus-purple-1-5ft.jpg';
-              else if (/anthony|antony/i.test(p.name)) img = '/products/religious/saint-anthony-1-5ft.jpg';
-              else if (/holy family/i.test(p.name)) img = '/products/religious/holy-family-1-5ft.jpg';
-              else if (/2\.8|marble/i.test(p.name) && /krishna/i.test(p.name)) img = '/products/religious/lord-krishna-marble-white-2-8ft.jpg';
-              else if (/krishna/i.test(p.name)) img = '/products/religious/lord-krishna-blue-1-6ft.jpg';
-              else if (/jesus.*lilies|lilies.*jesus/i.test(p.name)) img = '/products/religious/jesus-lilies-2ft.jpg';
-              else if (/jesus|christ/i.test(p.name)) img = '/products/religious/jesus-lilies-2ft.jpg';
-              else img = '/products/religious/our-lady-lourdes-2ft.jpg';
+
+            if (isReligious) {
+              if (!img || img.includes('banana-chips') || img.includes('spices.jpg') || img.includes('matta-rice')) {
+                if (/red/i.test(p.name) && /jesus|heart/i.test(p.name)) img = '/products/religious/sacred-heart-jesus-red-1-5ft.jpg';
+                else if (/cyan|blue/i.test(p.name) && /jesus|heart/i.test(p.name)) img = '/products/religious/sacred-heart-jesus-cyan-1-5ft.jpg';
+                else if ((/2\s*(?:ft|feet)/i.test(p.name) || /649964991/.test(p.barcode || '')) && /jesus|heart/i.test(p.name)) img = '/products/religious/sacred-heart-jesus-white-gold-2ft.jpg';
+                else if (/white/i.test(p.name) && /jesus|heart/i.test(p.name)) img = '/products/religious/sacred-heart-jesus-white-1-5ft.jpg';
+                else if (/lourdes/i.test(p.name)) img = '/products/religious/our-lady-lourdes-2ft.jpg';
+                else if (/immaculate/i.test(p.name)) img = '/products/religious/immaculate-heart-mary-1-5ft.jpg';
+                else if (/2\s*(?:ft|feet)|99990002|outstretched/i.test((p.name || '') + (p.barcode || ''))) img = '/products/religious/mother-mary-white-gold-2ft.jpg';
+                else if (/mary/i.test(p.name)) img = '/products/religious/mother-mary-white-gold-2ft.jpg';
+                else if (/purple/i.test(p.name) && /joseph/i.test(p.name)) img = '/products/religious/st-joseph-child-jesus-purple-1-5ft.jpg';
+                else if (/joseph/i.test(p.name)) img = '/products/religious/st-joseph-child-jesus-purple-1-5ft.jpg';
+                else if (/anthony|antony/i.test(p.name)) img = '/products/religious/saint-anthony-1-5ft.jpg';
+                else if (/holy family/i.test(p.name)) img = '/products/religious/holy-family-1-5ft.jpg';
+                else if (/2\.8|marble/i.test(p.name) && /krishna/i.test(p.name)) img = '/products/religious/lord-krishna-marble-white-2-8ft.jpg';
+                else if (/krishna/i.test(p.name)) img = '/products/religious/lord-krishna-blue-1-6ft.jpg';
+                else if (/jesus.*lilies|lilies.*jesus/i.test(p.name)) img = '/products/religious/jesus-lilies-2ft.jpg';
+                else if (/jesus|christ/i.test(p.name)) img = '/products/religious/jesus-lilies-2ft.jpg';
+                else img = '/products/religious/our-lady-lourdes-2ft.jpg';
+              }
+            } else {
+              // 1. Hand-reviewed barcode override photo
+              if (bc && posImageOverridesMap[bc]) {
+                img = posImageOverridesMap[bc];
+              } else {
+                const isRealExternal = img.startsWith('http') && !img.includes('banana-chips') && !img.includes('spices.jpg');
+                const isGenuineChips = /\b(banana chips|nendran chips|chips|upperi|sarkara varatty|sharkara upperi|tapioca chips|crisps)\b/i.test(p.name || '');
+
+                // Prevent fake banana-chips images from legacy database script
+                if (!isRealExternal && (!isGenuineChips && img.includes('banana-chips'))) {
+                  const pName = p.name || '';
+                  if (/sambar/i.test(pName)) img = '/products/sambar-powder.png';
+                  else if (/chicken/i.test(pName)) img = '/products/chicken-masala.png';
+                  else if (/meat|beef|mutton/i.test(pName)) img = '/products/meat-masala.png';
+                  else if (/fish|meen|anchovy|prawn/i.test(pName)) img = '/products/fish-masala.png';
+                  else if (/kashmiri|chilli|chilly|mulaku/i.test(pName)) img = '/products/kashmiri-chilli.png';
+                  else if (/turmeric|manjal/i.test(pName)) img = '/products/sambar-powder.png';
+                  else if (/coriander|malli/i.test(pName)) img = '/products/sambar-powder.png';
+                  else if (/pepper|kurumulaku/i.test(pName)) img = '/products/black-pepper.png';
+                  else if (/cardamom|elakka/i.test(pName)) img = '/products/cardamom.png';
+                  else if (/clove|gramboo/i.test(pName)) img = '/products/cloves.png';
+                  else if (/star anise|thakkolam/i.test(pName)) img = '/products/star-anise.png';
+                  else if (/masala|curry powder|rasam|garam/i.test(pName)) img = '/products/sambar-powder.png';
+                  else if (/matta|palakkad/i.test(pName)) img = '/products/matta-rice.png';
+                  else if (/kaima|jeerakasala|biryani rice|biriyani rice/i.test(pName)) img = '/products/kaima-rice.png';
+                  else if (/pavizham|ponni|idli rice|rice/i.test(pName)) img = '/products/pavizham-rice.png';
+                  else if (/puttu/i.test(pName)) img = '/products/puttu-podi.png';
+                  else if (/appam|idiyappam|pathiri|atta|maida|flour/i.test(pName)) img = '/products/appam-podi.png';
+                  else if (/rava|suji|sooji/i.test(pName)) img = '/products/roasted-rava.png';
+                  else if (/mixture|murukku|kuzhalappam|achappam|sev|bites|snack|chocolate|biscuit|cookie|rusk|cake|sweet|candy|halwa|laddu/i.test(pName)) img = '/products/kerala-mixture.png';
+                  else if (/kera|velichenna/i.test(pName)) img = '/products/kera-coconut-oil.png';
+                  else if (/gingelly|nallenna|sesame/i.test(pName)) img = '/products/gingelly-oil.png';
+                  else if (/ghee|malabar ghee|neyy/i.test(pName)) img = '/products/malabar-ghee.png';
+                  else if (/oil/i.test(pName)) img = '/products/coconut-oil.png';
+                  else if (/mango pickle|cut mango|manga achar/i.test(pName)) img = '/products/cut-mango-pickle.png';
+                  else if (/puli inji/i.test(pName)) img = '/products/puli-inji.png';
+                  else if (/pickle|achar/i.test(pName)) img = '/products/mango-pickle.png';
+                  else if (/cherupayar|moong/i.test(pName)) img = '/products/cherupayar.png';
+                  else if (/toor|tuvar|dal|parippu/i.test(pName)) img = '/products/toor-dal.png';
+                  else if (/kadala|chickpea|chana/i.test(pName)) img = '/products/kadala.png';
+                  else if (/urad|uzhunnu|payar|gram/i.test(pName)) img = '/products/cherupayar.png';
+                  else if (/kappa|tapioca/i.test(pName)) img = '/products/frozen-kappa.png';
+                  else if (/parotta|porotta/i.test(pName)) img = '/products/malabar-parotta.png';
+                  else if (/grated coconut|coconut/i.test(pName)) img = '/products/grated-coconut.png';
+                  else if (/tea|chai|coffee|bru|horlicks/i.test(pName)) img = '/products/tea-munnar.png';
+                  else if (/soap|shampoo|paste|cleaner|brush|harpic|colgate|vim|comfort|ariel|surf|medimix|chandrika|lux|dettol|vicks/i.test(pName)) img = '/products/appam-chatti.png';
+                  else img = '/products/matta-rice.png';
+                }
+              }
             }
 
             return {
