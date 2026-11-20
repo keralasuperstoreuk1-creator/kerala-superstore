@@ -53,3 +53,6 @@ next-env.d.ts
 /tools/pos_sync/dist/
 /tools/pos_sync/config.json
 
+
+# product image fix working files
+scratch/product-images/

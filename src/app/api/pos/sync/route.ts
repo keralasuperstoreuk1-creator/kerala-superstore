@@ -272,13 +272,29 @@ export async function POST(req: NextRequest) {
             .upsert(posRows, { onConflict: 'barcode' });
         }
 
+        // Keep any real image a product already has, so stock syncs never
+        // overwrite a correct photo with a generic placeholder.
+        const syncItems = items.filter(i => i.barcode && i.description);
+        const existingImages = new Map<string, string>();
+        const slugs = syncItems.map(i => autoEnrichPosProduct(i).slug);
+        for (let s = 0; s < slugs.length; s += 200) {
+          const { data: existing } = await supabaseAdmin
+            .from('products')
+            .select('slug,image_url')
+            .in('slug', slugs.slice(s, s + 200));
+          for (const row of existing || []) {
+            if (row.image_url && String(row.image_url).startsWith('http')) {
+              existingImages.set(row.slug, row.image_url);
+            }
+          }
+        }
+
         // Also enrich and upsert into products table with Google Images via Serper
         const productRows = await Promise.all(
-          items
-            .filter(i => i.barcode && i.description)
+          syncItems
             .map(async i => {
               const enriched = autoEnrichPosProduct(i);
-              let imgUrl = enriched.imageUrl;
+              let imgUrl = existingImages.get(enriched.slug) || enriched.imageUrl;
               // If image is a local placeholder, attempt Google Image search by brand + name
               if (!imgUrl || !imgUrl.startsWith('http')) {
                 try {
