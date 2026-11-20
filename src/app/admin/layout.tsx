@@ -57,8 +57,13 @@ export default function AdminLayout({
     }
   }, [pathname, router]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     clearAdminSession();
+    try {
+      await fetch('/api/admin/login', { method: 'DELETE', credentials: 'same-origin' });
+    } catch {
+      // still go to the login page
+    }
     router.replace('/admin/login');
   };
 

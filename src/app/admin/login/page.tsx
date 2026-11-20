@@ -15,11 +15,7 @@ import {
   KeyRound,
   AlertCircle
 } from 'lucide-react';
-import { 
-  getAdminCredentials, 
-  setAdminAuthenticatedSession, 
-  isUserAdminAuthenticated 
-} from '@/lib/admin-auth';
+import { setAdminAuthenticatedSession, clearAdminSession } from '@/lib/admin-auth';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -30,12 +26,11 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // If already authenticated, redirect to dashboard
+  // The server only shows this page when there is no valid session cookie,
+  // so drop any stale browser-side login flag (avoids a redirect loop).
   useEffect(() => {
-    if (isUserAdminAuthenticated()) {
-      router.replace('/admin');
-    }
-  }, [router]);
+    clearAdminSession();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,16 +43,11 @@ export default function AdminLoginPage() {
     setErrorMsg(null);
 
     try {
-      const storedCreds = getAdminCredentials();
-
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username,
-          password,
-          customCredentials: storedCreds,
-        }),
+        credentials: 'same-origin',
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
@@ -68,28 +58,11 @@ export default function AdminLoginPage() {
       } else {
         setErrorMsg(data.error || 'Incorrect Username or Password. Please try again.');
       }
-    } catch (err: any) {
-      // Local offline fallback validation
-      const stored = getAdminCredentials();
-      if (
-        (username.trim() === stored.username && password.trim() === stored.password) ||
-        (username.trim() === 'admin' && password.trim() === 'kerala2026@admin')
-      ) {
-        setAdminAuthenticatedSession(username.trim());
-        router.replace('/admin');
-      } else {
-        setErrorMsg('Invalid login credentials. Please check your password.');
-      }
+    } catch {
+      setErrorMsg('Could not reach the server. Please check your internet connection and try again.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleFillDemo = () => {
-    const creds = getAdminCredentials();
-    setUsername(creds.username || 'admin');
-    setPassword(creds.password || 'kerala2026@admin');
-    setErrorMsg(null);
   };
 
   return (
@@ -203,14 +176,6 @@ export default function AdminLoginPage() {
                 />
                 <span className="text-xs text-slate-400">Keep me signed in (30 days)</span>
               </label>
-
-              <button
-                type="button"
-                onClick={handleFillDemo}
-                className="text-[11px] font-bold text-amber-400 hover:text-amber-300 hover:underline cursor-pointer"
-              >
-                Auto-Fill Defaults
-              </button>
             </div>
 
             <button

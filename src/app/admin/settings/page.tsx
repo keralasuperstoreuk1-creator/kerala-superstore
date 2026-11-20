@@ -169,19 +169,10 @@ export default function AdminSettingsPage() {
 
   // Admin Security & Credentials State
   const [adminUser, setAdminUser] = useState(DEFAULT_ADMIN_USERNAME);
-  const [adminPass, setAdminPass] = useState(DEFAULT_ADMIN_PASSWORD);
-  const [confirmPass, setConfirmPass] = useState(DEFAULT_ADMIN_PASSWORD);
+  const [adminPass, setAdminPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
   const [showSecurityPass, setShowSecurityPass] = useState(false);
   const [securityError, setSecurityError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const creds = getAdminCredentials();
-    if (creds.username) setAdminUser(creds.username);
-    if (creds.password) {
-      setAdminPass(creds.password);
-      setConfirmPass(creds.password);
-    }
-  }, []);
 
   // Delivery Zones
   const [isAddingZone, setIsAddingZone] = useState(false);
@@ -270,20 +261,15 @@ export default function AdminSettingsPage() {
       return;
     }
 
-    const saved = saveAdminCredentials(adminUser.trim(), adminPass.trim());
-    if (saved) {
-      showSuccess('Admin username and password updated successfully!');
-    } else {
-      setSecurityError('Failed to save credentials.');
-    }
+    setSecurityError(
+      'The admin password is now set on the server for security. Change it in Railway → kerala-superstore → Variables → ADMIN_PASSWORD (and ADMIN_USERNAME), then redeploy.'
+    );
   };
 
   const handleResetDefaultCredentials = () => {
-    setAdminUser(DEFAULT_ADMIN_USERNAME);
-    setAdminPass(DEFAULT_ADMIN_PASSWORD);
-    setConfirmPass(DEFAULT_ADMIN_PASSWORD);
-    saveAdminCredentials(DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD);
-    showSuccess(`Reset to default: ${DEFAULT_ADMIN_USERNAME} / ${DEFAULT_ADMIN_PASSWORD}`);
+    setSecurityError(
+      'Default passwords have been removed for security. The admin login uses the ADMIN_PASSWORD variable in Railway.'
+    );
   };
 
   return (
