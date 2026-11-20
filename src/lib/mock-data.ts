@@ -1643,7 +1643,7 @@ export const INITIAL_BUNDLES: import('@/types').ComboBundle[] = [
     regularPrice: 34.53,
     bundlePrice: 27.99,
     savingsText: "Save £6.54 (19% OFF)",
-    imageUrl: "/branding/kerala-grocery-basket.jpg",
+    imageUrl: "/bundles/onam-sadhya-feast-kit.jpg",
     isActive: true,
     isPopular: true,
     createdAt: "2026-03-15T12:00:00Z"
@@ -1664,7 +1664,7 @@ export const INITIAL_BUNDLES: import('@/types').ComboBundle[] = [
     regularPrice: 18.95,
     bundlePrice: 14.50,
     savingsText: "Save £4.45 (23% OFF)",
-    imageUrl: "/categories/snacks.jpg",
+    imageUrl: "/bundles/malabar-tea-snack-combo.jpg",
     isActive: true,
     isPopular: true,
     createdAt: "2026-03-20T12:00:00Z"
@@ -1686,7 +1686,7 @@ export const INITIAL_BUNDLES: import('@/types').ComboBundle[] = [
     regularPrice: 24.24,
     bundlePrice: 19.99,
     savingsText: "Save £4.25 (18% OFF)",
-    imageUrl: "/branding/kerala-grocery-basket.jpg",
+    imageUrl: "/bundles/malayali-student-starter-kit.jpg",
     isActive: true,
     isPopular: false,
     createdAt: "2026-03-22T12:00:00Z"
