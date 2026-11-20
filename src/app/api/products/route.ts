@@ -60,15 +60,22 @@ export async function GET(req: NextRequest) {
             .limit(1000);
           if (!error && data) dbProducts.push(...data);
         } else {
-          // Full catalog or category fetch: paginate to load all store products (2,977+)
+          // Full catalog or category fetch: paginate deterministically by id so Postgres never repeats/skips rows across pages
+          const seenDbIds = new Set<string>();
           while (true) {
             const { data, error } = await supabaseAdmin
               .from('products')
               .select('*')
               .eq('status', 'published')
+              .order('id', { ascending: true })
               .range(offset, offset + PAGE_SIZE - 1);
             if (error || !data || data.length === 0) break;
-            dbProducts.push(...data);
+            for (const row of data) {
+              const rowKey = String(row.id || '');
+              if (rowKey && seenDbIds.has(rowKey)) continue;
+              if (rowKey) seenDbIds.add(rowKey);
+              dbProducts.push(row);
+            }
             if (data.length < PAGE_SIZE) break;
             offset += PAGE_SIZE;
             if (offset > 10000) break;
@@ -188,7 +195,6 @@ export async function GET(req: NextRequest) {
                   else if (/parotta|porotta/i.test(pName)) img = '/products/malabar-parotta.png';
                   else if (/grated coconut|coconut/i.test(pName)) img = '/products/grated-coconut.png';
                   else if (/tea|chai|coffee|bru|horlicks/i.test(pName)) img = '/products/tea-munnar.png';
-                  else if (/soap|shampoo|paste|cleaner|brush|harpic|colgate|vim|comfort|ariel|surf|medimix|chandrika|lux|dettol|vicks/i.test(pName)) img = '/products/appam-chatti.png';
                   else img = '/products/matta-rice.png';
                 }
               }
@@ -213,6 +219,21 @@ export async function GET(req: NextRequest) {
               status: p.status || 'published',
               createdAt: p.created_at || new Date().toISOString()
             };
+          });
+
+          // Deduplicate by normalized barcode (ignoring leading zeros) and exact (name + price)
+          const seenBarcodes = new Set<string>();
+          const seenNamePrice = new Set<string>();
+          mapped = mapped.filter((item) => {
+            const normBc = String(item.barcode || '').trim().replace(/^0+/, '');
+            if (normBc.length >= 4) {
+              if (seenBarcodes.has(normBc)) return false;
+              seenBarcodes.add(normBc);
+            }
+            const npKey = `${(item.name || '').trim().toLowerCase().replace(/\s+/g, ' ')}::${Number(item.price || 0).toFixed(2)}`;
+            if (seenNamePrice.has(npKey)) return false;
+            seenNamePrice.add(npKey);
+            return true;
           });
 
           if (isFullCatalogRequest) {

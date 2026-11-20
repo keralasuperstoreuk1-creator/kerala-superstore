@@ -83,8 +83,10 @@ export const TodayOffersMovingShowcase: React.FC<TodayOffersMovingShowcaseProps>
 
   if (!products || products.length === 0) return null;
 
-  // Duplicate items 3 times for a seamless continuous loop
-  const displayItems = products.concat(products).concat(products);
+  // Deduplicate offers by id so the same item never repeats in the showcase
+  const uniqueProducts = Array.from(new Map(products.map((p) => [p.id, p])).values());
+  // Only duplicate once for marquee loop if there are enough distinct offers
+  const displayItems = uniqueProducts.length >= 6 ? uniqueProducts.concat(uniqueProducts) : uniqueProducts;
 
   return (
     <section id="special-offers-section" className="w-full max-w-7xl mx-auto px-4 py-6">

@@ -7,26 +7,29 @@ trigger: always_on
 Always read this before debugging "site down", "logo/images not loading",
 "old version showing", or anything about Vercel / Netlify / domain.
 
-## Current hosting (since 21 Oct 2026)
-- **Website is hosted on RENDER (Web Service).**
-  - Render Service: `kerala-superstore`
-  - URL: `https://kerala-superstore.onrender.com`
+## Current hosting (since 18 Nov 2026)
+- **Website is hosted on RAILWAY (Hobby Plan).**
+  - Project: `kerala-superstore` (ID: `8453e1f3-26ea-4e66-9b3e-0750ec51497f`)
+  - Service: `kerala-superstore` (ID: `b25be591-a0da-483b-ada8-2e38b50a5cd2`)
+  - Live Railway URL: `https://kerala-superstore-production.up.railway.app`
   - Auto-deploys from GitHub repo `keralasuperstoreuk1-creator/kerala-superstore`, branch `main`.
+- **Render (`kerala-superstore.onrender.com`) is SUSPENDED / INACTIVE.** Suspended on 15 Nov 2026.
 - **Netlify (`cute-narwhal-264948.netlify.app`) is EXHAUSTED / INACTIVE.** Hit 503 "usage_exceeded" on 21 Oct 2026.
 - **Vercel (`kerala-superstore.vercel.app`) is OLD / abandoned.** Moved away earlier because of bandwidth limits (402).
-- Start command on Render: `npx next start -p $PORT` (managed via `npm start`).
 
 ## Domain
 - `keralasuperstore.com` is registered at **Namecheap** (Namecheap BasicDNS).
-- Namecheap domain contacts (seen 20 Oct 2026):
-  - **Registrant** (gets the WHOIS verification email): Sreejith Attingal – `s.sreejith0@gmail.com`
+- Namecheap domain contacts:
+  - **Registrant**: Sreejith Attingal – `s.sreejith0@gmail.com`
   - Admin / Technical / Billing: Thomas Mathew, Kerala Superstore Ltd – `keralasuperstoreltd@gmail.com`
-- Correct DNS on Render (Namecheap → Domain List → Manage → Advanced DNS):
+- Correct DNS on Railway (Namecheap → Domain List → Manage → Advanced DNS):
 
-  | Type  | Host | Value                                |
-  |-------|------|--------------------------------------|
-  | A     | `@`  | `216.24.57.1` (Render load balancer) |
-  | CNAME | `www`| `kerala-superstore.onrender.com`     |
+  | Type         | Host                  | Value                                                                             |
+  |--------------|-----------------------|-----------------------------------------------------------------------------------|
+  | CNAME / ALIAS| `@`                   | `bdtep2be.up.railway.app`                                                         |
+  | TXT          | `_railway-verify`      | `railway-verify=0a16e80d54ce2af477435179ddd47639037eb5799fc5b74a360fd2a601e72628`|
+  | CNAME        | `www`                 | `binlkxjg.up.railway.app`                                                         |
+  | TXT          | `_railway-verify.www` | `railway-verify=f90c3cc7bd93df87001d729afb2f0a78e10401dd860a9cd416130014564c949d`|
 
 - If the domain resolves to `198.54.117.242` and shows
   "Registrant WHOIS contact information verification | Namecheap", the domain is
