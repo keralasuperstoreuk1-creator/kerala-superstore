@@ -119,6 +119,15 @@ export default function HomePage() {
     };
   }, []);
 
+  // Footer and shared links use /?category=<slug>; open that department once products load.
+  useEffect(() => {
+    const slug = new URLSearchParams(window.location.search).get('category');
+    if (slug && CATEGORIES.some((c) => c.slug === slug)) {
+      setSelectedCategory(slug);
+      setTimeout(() => document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' }), 400);
+    }
+  }, []);
+
   const handleSelectCategory = (slug: string | null) => {
     setSelectedCategory(slug);
     if (slug) {
@@ -663,7 +672,7 @@ export default function HomePage() {
       {/* Mobile-First Sticky Bottom Navigation & Cart Preview */}
       <MobileBottomNav
         onOpenCategories={scrollToDepartments}
-        onOpenDeals={scrollToOffers}
+        onWhatsApp={() => setIsWhatsAppOpen(true)}
         onGoHome={() => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
           setSelectedCategory(null);
