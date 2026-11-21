@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
         if (search) {
           const { data, error } = await supabaseAdmin
             .from('products')
-            .select('*')
+            .select('*, categories(name, slug)')
             .eq('status', 'published')
             .ilike('name', `%${search}%`)
             .limit(1000);
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
           while (true) {
             const { data, error } = await supabaseAdmin
               .from('products')
-              .select('*')
+              .select('*, categories(name, slug)')
               .eq('status', 'published')
               .order('id', { ascending: true })
               .range(offset, offset + PAGE_SIZE - 1);
@@ -93,8 +93,10 @@ export async function GET(req: NextRequest) {
               detectedBrand = 'Zion Arts';
             }
 
-            let category = p.category || 'General Grocery';
-            let categorySlug = p.category_slug || 'grocery';
+            // Category saved in the database (products.category_id -> categories) wins;
+            // products without one fall back to name-based matching in product-matching.ts.
+            let category = p.categories?.name || p.category || 'General Grocery';
+            let categorySlug = p.categories?.slug || p.category_slug || 'grocery';
 
             // Detect Religious category: strictly devotional statues, excluding groceries/foods/incense
             const nonReligiousKeywords = /\b(rice|oil|peanut|ball|candy|snack|chip|biscuit|crisp|flour|podi|masala|dal|pickle|agarbatti|dhoop|camphor|incense|soap|hair|shampoo|uruli|chatti|rosemary|croissant|dum\s*biriyani|biryani)\b/i;

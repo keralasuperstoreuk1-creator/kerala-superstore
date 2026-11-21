@@ -47,7 +47,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     id: "cat-4",
-    name: "Breakfast Powders",
+    name: "Breakfast Powders & Flours",
     slug: "breakfast-powders",
     description: "Puttu Podi, Appam Podi, Idiyappam Podi, Rava, Wheat",
     iconName: "Coffee",
@@ -114,6 +114,126 @@ export const CATEGORIES: Category[] = [
     imageUrl: "/categories/kitchenwares.jpg",
     itemCount: 18,
     varieties: ["Bronze Uruli (Mannar)", "Stainless Steel Puttu Kudam", "Non-Stick Appam Chatti", "Cast Iron Tawa", "Coconut Scraper (Chirava)"]
+  },
+  {
+    id: "cat-12",
+    name: "Biscuits & Sweets",
+    slug: "biscuits-and-sweets",
+    description: "Biscuits, rusks, cakes, chocolates, halwa and Kerala sweets",
+    iconName: "Cookie",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/feb9d45b-5754-4fd8-9fb5-26b445d10c13.jpg",
+    itemCount: 472,
+    varieties: ["Biscuit", "Rusk", "Cake", "Halwa", "Chocolate", "Payasam"]
+  },
+  {
+    id: "cat-13",
+    name: "Tea, Coffee & Drinks",
+    slug: "tea-coffee-and-drinks",
+    description: "Kerala tea, filter coffee, health drinks, juices and soft drinks",
+    iconName: "Coffee",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/25263609-e0ed-4630-b490-5dd9907ece4d.jpg",
+    itemCount: 220,
+    varieties: ["Tea", "Coffee", "Horlicks", "Juice", "Water"]
+  },
+  {
+    id: "cat-14",
+    name: "Ready to Eat & Instant",
+    slug: "ready-to-eat",
+    description: "Ready-to-eat curries, thoran, sadhya packs, noodles and batters",
+    iconName: "Utensils",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/45e52a33-7830-4b28-a631-4af454b0656f.jpg",
+    itemCount: 342,
+    varieties: ["Curry", "Thoran", "Sadhya", "Noodles", "Batter", "Chapathi"]
+  },
+  {
+    id: "cat-15",
+    name: "Sauces, Pastes & Baking",
+    slug: "sauces-pastes-and-baking",
+    description: "Coconut milk, tamarind, sauces, salt, essences and baking needs",
+    iconName: "Jar",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/8d0635a5-b769-4c81-a189-552cfdb4af93.jpg",
+    itemCount: 169,
+    varieties: ["Coconut Milk", "Tamarind", "Sauce", "Salt", "Essence"]
+  },
+  {
+    id: "cat-16",
+    name: "Dry Fruits, Nuts & Sugar",
+    slug: "dry-fruits-nuts-and-sugar",
+    description: "Cashew, almonds, raisins, dates, jaggery and sugar",
+    iconName: "CircleDot",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/7fd6881d-0b48-4514-9e54-e83498a60f99.jpg",
+    itemCount: 84,
+    varieties: ["Cashew", "Almond", "Raisins", "Dates", "Jaggery"]
+  },
+  {
+    id: "cat-17",
+    name: "Dairy & Eggs",
+    slug: "dairy",
+    description: "Milk, yogurt, butter, paneer, cheese and eggs",
+    iconName: "Droplet",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/48a8cd50-f212-48e5-ae4d-dfcde604c80e.jpg",
+    itemCount: 35,
+    varieties: ["Milk", "Yogurt", "Butter", "Paneer", "Eggs"]
+  },
+  {
+    id: "cat-18",
+    name: "Fresh Vegetables & Fruits",
+    slug: "fresh-vegetables-and-fruits",
+    description: "Fresh Kerala vegetables, plantain and fruit",
+    iconName: "Leaf",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/42d8dc94-2694-49af-aab1-d653df163a0f.jpg",
+    itemCount: 14,
+    varieties: []
+  },
+  {
+    id: "cat-19",
+    name: "Dry Fish",
+    slug: "dry-fish",
+    description: "Dried shrimp, sole, ribbon fish and more",
+    iconName: "Snowflake",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/1e968ebe-7f89-4a26-b321-c790342f2ebf.jpg",
+    itemCount: 10,
+    varieties: []
+  },
+  {
+    id: "cat-20",
+    name: "Personal Care",
+    slug: "personal-care",
+    description: "Ayurvedic soaps, hair oils, toothpaste and skin care",
+    iconName: "Droplet",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/94c73332-78a4-4d85-a5a6-120364815976.jpg",
+    itemCount: 162,
+    varieties: ["Soap", "Hair Oil", "Shampoo", "Toothpaste"]
+  },
+  {
+    id: "cat-21",
+    name: "Household & Cleaning",
+    slug: "household-and-cleaning",
+    description: "Dishwash, detergent, tissue, foil, bags and batteries",
+    iconName: "Utensils",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/b351aeb9-a73a-45a5-a521-730a95a3bd34.jpg",
+    itemCount: 60,
+    varieties: []
+  },
+  {
+    id: "cat-22",
+    name: "Ayurveda & Health",
+    slug: "ayurveda-and-health",
+    description: "Kottakkal, Dhathri, arishtams, thailams and everyday remedies",
+    iconName: "Leaf",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/bcffb71a-beba-465b-ab7b-9bacbd9298c9.jpg",
+    itemCount: 68,
+    varieties: []
+  },
+  {
+    id: "cat-23",
+    name: "Pooja Essentials",
+    slug: "pooja-essentials",
+    description: "Agarbatti, camphor, pooja oil and nilavilakku",
+    iconName: "Flame",
+    imageUrl: "https://pub-1224a2c0eeef442090d49ac5a026c2ee.r2.dev/products/google/2ef6f962-2b6a-407a-8145-f60d27b02a07.jpg",
+    itemCount: 23,
+    varieties: []
   },
   {
     id: "cat-11",

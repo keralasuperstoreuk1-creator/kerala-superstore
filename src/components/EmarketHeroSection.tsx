@@ -96,7 +96,9 @@ export const EmarketHeroSection: React.FC<EmarketHeroSectionProps> = ({
       if (savedCats) {
         const parsedCats = JSON.parse(savedCats);
         if (Array.isArray(parsedCats) && parsedCats.length > 0) {
-          setCategoriesList(parsedCats);
+          // Keep saved edits, but always include categories added since they were saved.
+          const savedSlugs = new Set(parsedCats.map((c: Category) => c.slug));
+          setCategoriesList([...parsedCats, ...CATEGORIES.filter((c) => !savedSlugs.has(c.slug))]);
         }
       }
     } catch {}

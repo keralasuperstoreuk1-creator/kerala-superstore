@@ -32,6 +32,11 @@ export function matchProductToCategory(product: Product, categorySlugOrName: str
   const pCat = (product.category || '').toLowerCase().trim();
   const pSlug = (product.categorySlug || '').toLowerCase().trim();
 
+  // A product with a saved category belongs to exactly that category.
+  if (pSlug && pSlug !== 'grocery') {
+    return pSlug === target || pCat === target;
+  }
+
   // If product is non-food / toiletries / soap, NEVER allow it into food categories
   const isFoodCategory = [
     'rice', 'pulse', 'dal', 'masala', 'curry', 'breakfast', 'podi',

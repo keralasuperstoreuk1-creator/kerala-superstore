@@ -336,6 +336,11 @@ export function matchProductToCategory(product: Product, categorySlugOrName: str
   const pCat = (product.category || '').toLowerCase().trim();
   const pName = (product.name || '').toLowerCase().trim();
 
+  // A product with a saved category belongs to exactly that category.
+  if (pSlug && pSlug !== 'grocery') {
+    return pSlug === target || pCat === target;
+  }
+
   // 1. Direct or partial match
   if (pSlug === target || pCat === target) return true;
   if (pSlug.includes(target) || target.includes(pSlug)) return true;
