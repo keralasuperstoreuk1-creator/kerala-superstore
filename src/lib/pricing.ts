@@ -9,50 +9,25 @@ export interface DisplayPricing {
 }
 
 /**
- * Computes display pricing for products:
- * - sellingPrice: Exactly the physical POS price (£)
- * - cutPrice: A struck-through Was/RRP price that is 5% to 9% higher than the POS price
- * - discountPercent: The percentage saved (5% to 9%)
- * - hasDiscount: True when cutPrice > sellingPrice
- * - savings: The difference in £ between cutPrice and sellingPrice
+ * Display pricing that matches what the basket charges (offerPrice ?? price).
+ * A struck-through "was" price is shown ONLY when the product has a genuine
+ * offer price below its normal price — never an invented reference price
+ * (UK DMCC Act 2024 / CMA pricing rules).
  */
 export function getProductDisplayPricing(product: Product): DisplayPricing {
-  const sellingPrice = Number(product.price) || 0;
-  if (sellingPrice <= 0) {
+  const price = Number(product.price) || 0;
+  const offer = product.offerPrice != null ? Number(product.offerPrice) : undefined;
+
+  if (price > 0 && offer !== undefined && offer > 0 && offer < price) {
+    const savings = Math.round((price - offer) * 100) / 100;
     return {
-      sellingPrice: 0,
-      cutPrice: undefined,
-      discountPercent: 0,
-      hasDiscount: false,
-      savings: 0,
+      sellingPrice: offer,
+      cutPrice: price,
+      discountPercent: Math.round((savings / price) * 100),
+      hasDiscount: true,
+      savings,
     };
   }
 
-  // Deterministic seed based on product id and name (stable 5% - 9% markup)
-  const seedString = (product.id || '') + (product.name || '');
-  let hash = 0;
-  for (let i = 0; i < seedString.length; i++) {
-    hash = (hash * 31 + seedString.charCodeAt(i)) % 1000;
-  }
-  // Generates 5%, 6%, 7%, 8%, or 9%
-  const markupPercent = 5 + (Math.abs(hash) % 5);
-
-  // Calculate cutPrice (Was / RRP) 5-9% higher
-  let cutPrice = Math.round(sellingPrice * (1 + markupPercent / 100) * 100) / 100;
-
-  // Guarantee cut price is visibly higher (at least +£0.15)
-  if (cutPrice <= sellingPrice + 0.10) {
-    cutPrice = Math.round((sellingPrice + 0.20) * 100) / 100;
-  }
-
-  const discountPercent = Math.round(((cutPrice - sellingPrice) / cutPrice) * 100);
-  const savings = Math.max(0, Math.round((cutPrice - sellingPrice) * 100) / 100);
-
-  return {
-    sellingPrice,
-    cutPrice,
-    discountPercent: Math.max(discountPercent, markupPercent),
-    hasDiscount: cutPrice > sellingPrice,
-    savings,
-  };
+  return { sellingPrice: price, cutPrice: undefined, discountPercent: 0, hasDiscount: false, savings: 0 };
 }

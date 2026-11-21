@@ -2,20 +2,24 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { 
-  ShoppingCart, 
-  Check, 
-  ShieldCheck,
-  Star,
-  Zap,
-  Bell,
-  X,
-  CheckCircle2
-} from 'lucide-react';
+import { Check, ShieldCheck, Bell, X, CheckCircle2 } from 'lucide-react';
+import { HandPlus } from '@/components/home/HandIcons';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { useStoreConfig } from '@/context/StoreConfigContext';
 import { getProductDisplayPricing } from '@/lib/pricing';
+
+const TAG_TILTS = ['-3deg', '2deg', '-1.5deg', '2.5deg', '-2deg'];
+
+/** POS names are ALL CAPS ("MATTA RICE NILA 5KG"); show them as "Matta Rice Nila 5kg". */
+export function displayName(name: string): string {
+  if (!name || name !== name.toUpperCase()) return name;
+  return name
+    .toLowerCase()
+    .split(/(\s+)/)
+    .map((w) => (/\d/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join('');
+}
 
 interface ProductCardProps {
   product: Product;
@@ -32,7 +36,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
   const [notifySuccess, setNotifySuccess] = useState(false);
 
   const isOutOfStock = product.stock <= 0;
-  const { sellingPrice, cutPrice, discountPercent, hasDiscount } = getProductDisplayPricing(product);
+  const { sellingPrice, cutPrice, hasDiscount } = getProductDisplayPricing(product);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -73,51 +77,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
     setImgSrc(product.imageUrl || '/products/matta-rice.png');
   }, [product.imageUrl]);
 
+  const tilt = TAG_TILTS[(product.id || product.name).length % TAG_TILTS.length];
+  const showBrand = product.brand && product.brand !== 'Kerala Superstore';
+  const showSize = product.sizeWeight && product.sizeWeight !== 'Standard';
+  const lowStock = !isOutOfStock && product.stock <= (product.lowStockThreshold || 5);
+
   return (
     <>
-      <div 
+      <div
         onClick={() => onOpenDetails && onOpenDetails(product)}
-        className="group bg-white rounded-3xl border border-slate-200/90 hover:border-emerald-500/70 hover:shadow-2xl transition-all duration-300 flex flex-col overflow-hidden relative cursor-pointer transform hover:-translate-y-1"
+        className="group h-full bg-white rounded-[10px] border border-shop-line hover:border-shop-green transition-colors flex flex-col overflow-hidden relative cursor-pointer"
       >
-        {/* Badges Bar */}
-        <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
+        <div className="absolute top-2.5 left-2 z-10 pointer-events-none flex flex-col items-start gap-1">
           {isOutOfStock ? (
-            <span className="bg-slate-900 text-white font-black text-[10px] px-2.5 py-1 rounded-full shadow-lg uppercase tracking-wider">
-              Out of Stock
-            </span>
-          ) : discountPercent > 0 ? (
-            <span className="bg-gradient-to-r from-rose-600 via-amber-500 to-rose-600 text-white font-black text-[10px] px-2.5 py-1 rounded-full shadow-lg uppercase tracking-wider flex items-center gap-1 animate-pulse border border-white/30">
-              <span className="text-xs">🔥</span> Save {discountPercent}% • Deal
-            </span>
-          ) : product.isBestseller ? (
-            <span className="bg-slate-900/90 backdrop-blur-md text-amber-300 font-bold text-[10px] px-2.5 py-0.5 rounded-full shadow-md uppercase tracking-wider flex items-center gap-1 border border-white/10">
-              Bestseller
-            </span>
-          ) : (
-            <span className="bg-emerald-900/80 backdrop-blur-md text-emerald-200 font-bold text-[10px] px-2 py-0.5 rounded-full">
-              Kerala Authentic
-            </span>
-          )}
-
-          {!isOutOfStock && product.stock <= (product.lowStockThreshold || 10) ? (
-            <span className="bg-amber-500 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full shadow-sm border border-amber-300">
-              🔥 Only {product.stock} left
-            </span>
-          ) : !isOutOfStock ? (
-            <span className="bg-emerald-800/85 backdrop-blur-md text-emerald-100 font-bold text-[9px] px-2 py-0.5 rounded-full shadow-sm border border-emerald-600/40">
-              ✓ In Stock ({product.stock})
-            </span>
+            <span className="bg-shop-ink text-white font-bold text-[10px] px-2 py-0.5 rounded">Out of stock</span>
+          ) : hasDiscount ? (
+            <span className="offer-stamp">OFFER</span>
           ) : null}
         </div>
 
-        {/* Product Image Area with Studio Lighting */}
-        <div className="relative w-full aspect-square bg-gradient-to-b from-slate-50 via-white to-slate-50 overflow-hidden flex items-center justify-center p-4">
+        <div className="relative w-full aspect-square flex items-center justify-center p-3">
           <Image
             src={imgSrc}
             alt={product.name}
-            width={360}
-            height={360}
-            className={`object-contain w-full h-full group-hover:scale-108 transition-transform duration-500 ${isOutOfStock ? 'grayscale-50 opacity-70' : ''}`}
+            width={320}
+            height={320}
+            className={`object-contain w-full h-full ${isOutOfStock ? 'grayscale opacity-60' : ''}`}
             onError={(e) => {
               setImgSrc('/products/matta-rice.png');
               const target = e.currentTarget as HTMLImageElement;
@@ -126,98 +111,55 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
               }
             }}
           />
-          
-          {/* Pack Size Pill */}
-          <div className="absolute bottom-2.5 left-3">
-            <span className="text-[10px] bg-slate-900/85 backdrop-blur-md text-white font-bold px-2 py-0.5 rounded-lg shadow-sm">
-              {product.sizeWeight}
-            </span>
-          </div>
+          {lowStock && (
+            <span className="absolute bottom-1.5 right-2 font-hand text-[17px] font-bold text-shop-red -rotate-3">only {product.stock} left</span>
+          )}
         </div>
 
-        {/* Product Content Details */}
-        <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-          <div>
-            <div className="flex items-center justify-between text-[11px] mb-1">
-              <span className="font-black text-emerald-800 uppercase tracking-wider text-[10px] bg-emerald-50 px-2 py-0.5 rounded-md">
-                {product.brand}
+        <div className="px-3 pb-3 flex-1 flex flex-col gap-1">
+          {(showBrand || showSize) && (
+            <span className="text-[11px] sm:text-xs text-shop-muted truncate">
+              {[showBrand ? product.brand : null, showSize ? product.sizeWeight : null].filter(Boolean).join(' · ')}
+            </span>
+          )}
+          <h3 className="text-[13px] sm:text-sm font-semibold leading-snug text-shop-ink line-clamp-2 min-h-[2.5em]">
+            {displayName(product.name)}
+          </h3>
+          {product.allergens && product.allergens.length > 0 && (
+            <span className="flex items-center gap-1 text-[10px] text-shop-muted truncate" title={product.allergens.join(', ')}>
+              <ShieldCheck className="w-3 h-3 text-shop-green shrink-0" />
+              <span className="truncate">{product.allergens[0]}</span>
+            </span>
+          )}
+
+          <div className="mt-auto pt-2 flex items-end justify-between gap-2">
+            <div className="flex flex-col items-start">
+              <span className="price-tag text-[24px] sm:text-[27px]" style={{ transform: `rotate(${tilt})` }}>
+                £{sellingPrice.toFixed(2)}
               </span>
-              <div className="flex items-center gap-1 text-slate-500 font-semibold text-[10px]">
-                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                <span>4.9</span>
-              </div>
-            </div>
-
-            <h3 className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-emerald-800 transition-colors line-clamp-2 leading-snug">
-              {product.name}
-            </h3>
-
-            {/* Natasha's Law Allergen Indicator */}
-            {product.allergens && product.allergens.length > 0 && (
-              <div className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-500 truncate" title={product.allergens.join(', ')}>
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">{product.allergens[0]}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Pricing & Add / Notify Button */}
-          <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-            <div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-base sm:text-lg font-black text-slate-900">
-                  £{sellingPrice.toFixed(2)}
-                </span>
-                {hasDiscount && cutPrice && (
-                  <span className="text-xs text-slate-400 line-through font-medium">
-                    £{cutPrice.toFixed(2)}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[9px] text-emerald-700 font-semibold flex items-center gap-0.5">
-                  <Zap className="w-2.5 h-2.5" /> Express UK Dispatch
-                </span>
-                <span className="text-[9px] font-bold text-slate-400">•</span>
-                <span className={`text-[9px] font-bold ${isOutOfStock ? 'text-slate-400' : 'text-emerald-700 font-black'}`}>
-                  {isOutOfStock ? 'Out of Stock' : `Stock: ${product.stock}`}
-                </span>
-              </div>
+              {hasDiscount && cutPrice && (
+                <span className="text-[11px] text-shop-muted line-through mt-1">was £{cutPrice.toFixed(2)}</span>
+              )}
             </div>
 
             {isOutOfStock ? (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowNotifyModal(true);
-                }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-[11px] font-black bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm transition-all active:scale-95"
-                title="Notify me when restocked"
+                onClick={(e) => { e.stopPropagation(); setShowNotifyModal(true); }}
+                className="h-11 px-2.5 rounded-[9px] border-[1.5px] border-shop-brown text-shop-brown text-[12px] font-bold flex items-center gap-1 cursor-pointer"
+                title="Tell me when it's back"
               >
                 <Bell className="w-3.5 h-3.5" />
-                <span>Notify Me</span>
+                <span>Notify</span>
               </button>
             ) : (
               <button
                 onClick={handleAdd}
-                className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer ${
-                  added
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-emerald-800 hover:bg-emerald-700 text-white hover:shadow-lg'
+                aria-label={added ? `${product.name} added` : `Add ${product.name} to basket`}
+                className={`w-11 h-11 rounded-[9px] flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
+                  added ? 'bg-shop-green text-white' : 'bg-shop-yellow text-shop-ink'
                 }`}
-                title="Add to Basket"
               >
-                {added ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Added</span>
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>Add</span>
-                  </>
-                )}
+                {added ? <Check className="w-4 h-4" /> : <HandPlus />}
               </button>
             )}
           </div>

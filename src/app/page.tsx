@@ -42,6 +42,8 @@ import { AppDownloadSection } from '@/components/AppDownloadSection';
 import { EmarketHeroSection } from '@/components/EmarketHeroSection';
 import { FeaturedArchedCategories } from '@/components/FeaturedArchedCategories';
 import { ComboBundlesShowcase } from '@/components/ComboBundlesShowcase';
+import { WhatsAppOrderModal } from '@/components/WhatsAppOrderModal';
+import { HomeHero, ServiceStrip, DepartmentGrid, ProductRail, BrandStrip, HelloFromShop, WhatsAppBand } from '@/components/home/HomeSections';
 import { CATEGORIES, BRANDS, INITIAL_PRODUCTS } from '@/lib/mock-data';
 import { Product, Category } from '@/types';
 import { useStoreConfig } from '@/context/StoreConfigContext';
@@ -64,6 +66,7 @@ export default function HomePage() {
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
   const [isPostcodeModalOpen, setIsPostcodeModalOpen] = useState(false);
   const [quickShopCategory, setQuickShopCategory] = useState<Category | null>(null);
+  const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
 
   // Sync products from /api/products (including live POS additions & stock) and localStorage
   useEffect(() => {
@@ -209,6 +212,37 @@ export default function HomePage() {
     }
   };
 
+  // ---- Homepage rows (Option 7) ----
+  const hasOwnPhoto = (p: Product) => (p.imageUrl || '').includes('/products/google/');
+  // Homepage rows favour well-known brands so the first products customers see are familiar packs.
+  const BRANDS_FIRST = new RegExp('(eastern|melam|nirapara|brahmins|double horse|ajmi|kitchen treasures|palat|pavizham|saras|tasty nibbles|loyal|haldiram|britannia|parle|medimix|dettol|vim|colgate|santoor|chandrika|kpl|milma|aashirvaad|tata|bru|horlicks)', 'i');
+  const pickFrom = (slugs: string[], n = 6) =>
+    products
+      .filter((p) => slugs.includes(p.categorySlug) && p.stock > 0 && hasOwnPhoto(p))
+      .sort((a, b) => Number(BRANDS_FIRST.test(b.name)) - Number(BRANDS_FIRST.test(a.name)))
+      .slice(0, n);
+  const STAPLE_IDS = [
+    '305f1d4a-1584-4728-8f09-258adcb8b3da', // Aashirvaad atta 5kg
+    '29196cbc-03c1-475f-a2cc-fc486a70dae3', // Double Horse matta 5kg
+    'b03e219a-44af-4424-b0df-c475006b8d8c', // Milma ghee
+    'afce7cad-51bb-499f-b97c-264c2dccbd66', // KPL coconut oil
+  ];
+  const staples = useMemo(() => {
+    const byId = STAPLE_IDS.map((id) => products.find((p) => p.id === id && p.stock > 0)).filter(Boolean) as Product[];
+    return byId.length >= 4 ? byId : [...byId, ...pickFrom(['rice-and-rice-products', 'oils-and-ghee'], 4 - byId.length)];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products]);
+  const categoryCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    products.forEach((p) => { m[p.categorySlug] = (m[p.categorySlug] || 0) + 1; });
+    return m;
+  }, [products]);
+  const railBreakfast = useMemo(() => pickFrom(['breakfast-powders']), [products]); // eslint-disable-line react-hooks/exhaustive-deps
+  const railMasala = useMemo(() => pickFrom(['masala-and-curry-powders']), [products]); // eslint-disable-line react-hooks/exhaustive-deps
+  const railSnacks = useMemo(() => pickFrom(['crisps-and-snacks', 'biscuits-and-sweets']), [products]); // eslint-disable-line react-hooks/exhaustive-deps
+  const railHome = useMemo(() => pickFrom(['personal-care', 'household-and-cleaning']), [products]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shopPhone = config.phone || '+44 7749 132122';
+
   // Theme dynamic gradients
   const heroGradient = 
     config.theme === 'onam'
@@ -218,7 +252,7 @@ export default function HomePage() {
       : 'from-emerald-950 via-slate-900 to-emerald-950';
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#fafaf8]">
+    <div className="min-h-screen flex flex-col bg-shop-cream text-shop-ink">
       {/* Creative Luxury Opening Splash Animation with Transparent Badge */}
       <OpeningSplashAnimation />
 
@@ -226,20 +260,13 @@ export default function HomePage() {
       <Header
         searchQuery={searchQuery}
         onSearch={setSearchQuery}
-        onSelectCategory={(slug) => {
-          setSelectedCategory(slug);
-          if (slug) {
-            const matched = CATEGORIES.find((c) => c.slug === slug);
-            if (matched) setQuickShopCategory(matched);
-          }
-        }}
+        onSelectCategory={(slug) => { setSearchQuery(''); handleSelectCategory(slug); }}
+        hasOffers={offerProducts.length > 0}
         selectedCategory={selectedCategory}
         onOpenPostcodeModal={() => setIsPostcodeModalOpen(true)}
         currentPostcode={customerPostcode || 'Manchester (M9 8DX) & UK'}
       />
 
-      {/* Animated Special Offer Marquee Banner */}
-      <SpecialOfferBanner onScrollToOffers={scrollToOffers} />
 
       <main className="flex-1 pb-4 lg:pb-6">
         {/* Instant Dedicated Search Results Section (Renders immediately at top when search is active) */}
@@ -361,151 +388,35 @@ export default function HomePage() {
             )}
           </section>
         )}
-        {/* EMARKET Supermarket Layout: 3-Column Banner, Arched Categories, and Deals of the Week */}
+        {/* Option 7 homepage: supermarket layout with a human touch */}
         {!searchQuery && (
           <>
-            {(config.modules?.showHeroSlider ?? true) && (
-              <EmarketHeroSection
-                onSelectCategory={(slug) => handleSelectCategory(slug)}
-                selectedCategory={selectedCategory}
-                onQuickShop={(cat) => setQuickShopCategory(cat)}
-                onScrollToDeals={scrollToOffers}
+            <HomeHero
+              staples={staples}
+              onShopStaples={() => handleSelectCategory('rice-and-rice-products')}
+              onSelectCategory={(slug) => handleSelectCategory(slug)}
+            />
+            <ServiceStrip threshold={currentZone?.freeThreshold || 50} onWhatsApp={() => setIsWhatsAppOpen(true)} />
+            <DepartmentGrid counts={categoryCounts} onSelect={(slug) => handleSelectCategory(slug)} />
+            {offerProducts.length > 0 && (
+              <ProductRail
+                id="offers-section"
+                title="This week's offers"
+                note="while stocks last"
+                noteColor="text-shop-red"
+                products={offerProducts}
+                onOpen={(p) => setActiveProduct(p)}
+                onSeeAll={() => { setOnlyOffers(true); document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' }); }}
               />
             )}
-
-            {(config.modules?.showFeaturedCategories ?? true) && (
-              <FeaturedArchedCategories
-                onSelectCategory={(slug) => handleSelectCategory(slug)}
-                selectedCategory={selectedCategory}
-              />
-            )}
+            <ProductRail title="Kerala breakfast" note="puttu, appam, idiyappam" products={railBreakfast} onOpen={(p) => setActiveProduct(p)} onSeeAll={() => handleSelectCategory('breakfast-powders')} />
+            <BrandStrip onPick={(b) => setSearchQuery(b)} />
+            <ProductRail title="Masala & curry powders" note="for the Sunday curry" products={railMasala} onOpen={(p) => setActiveProduct(p)} onSeeAll={() => handleSelectCategory('masala-and-curry-powders')} />
+            <ProductRail title="Tea-time snacks & sweets" note="with a hot chaya" products={railSnacks} onOpen={(p) => setActiveProduct(p)} onSeeAll={() => handleSelectCategory('crisps-and-snacks')} />
+            <ProductRail title="Home & personal care" products={railHome} onOpen={(p) => setActiveProduct(p)} onSeeAll={() => handleSelectCategory('personal-care')} />
+            <HelloFromShop products={staples} />
+            <WhatsAppBand phone={shopPhone} onOpen={() => setIsWhatsAppOpen(true)} />
           </>
-        )}
-
-        {/* TODAY'S FLASH DEALS CONTINUOUS SMOOTH MOVING SHOWCASE (Moved High Up to the Top) */}
-        {(config.modules?.showMovingOffers ?? true) && !searchQuery && offerProducts.length > 0 && (
-          <TodayOffersMovingShowcase
-            products={offerProducts}
-            onSelectProduct={(p) => setActiveProduct(p)}
-            onViewAllDeals={() => {
-              setOnlyOffers(true);
-              const el = document.getElementById('catalog-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-          />
-        )}
-
-        {/* TODAY'S FRESH KITCHEN & DAILY SPECIALS (Biriyanis, Porottas & Tea Snacks) */}
-        {(config.modules?.showKitchenSpecials ?? true) && !searchQuery && (
-          <DailyKitchenSpecialsShowcase />
-        )}
-
-        {/* CREATIVE INFINITE BRAND LOGO MARQUEE TICKER */}
-        {(config.modules?.showBrandMarquee ?? true) && !searchQuery && (
-          <div className="bg-white border-b border-slate-200 py-3 overflow-hidden shadow-2xs">
-            <div className="max-w-7xl mx-auto px-4 mb-2 flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-400 uppercase tracking-widest text-[10px]">
-                Authentic Kerala Brands Stocked Direct:
-              </span>
-              <span className="text-emerald-800 font-bold text-[10px]">
-                100% Genuine Packaging
-              </span>
-            </div>
-            <div className="flex overflow-hidden">
-              <div className="animate-marquee-brands flex items-center gap-6 text-xs font-bold text-slate-700 whitespace-nowrap">
-                {BRANDS.concat(BRANDS).map((b, i) => (
-                  <button
-                    key={`${b.id}-${i}`}
-                    onClick={() => setSelectedBrand(b.name)}
-                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-50 hover:bg-emerald-50 hover:text-emerald-900 border border-slate-200/80 transition-all cursor-pointer shrink-0"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                    <span>{b.name}</span>
-                    <span className="text-[10px] text-slate-400 font-normal">({b.productCount}+ items)</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-
-
-        {/* Luxury 2026 Category Showcase with REAL PHOTOGRAPHIC IMAGES */}
-        {(config.modules?.showCuratedDepartments ?? true) && !searchQuery && (
-          <section id="departments-section" className="max-w-7xl mx-auto px-4 py-8">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
-              <div>
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-widest mb-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                  <span>Curated Departments</span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Explore by Category</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Tap any category to open varieties, brands &amp; quick-add options (like dresses &amp; fashion collections!)
-                </p>
-              </div>
-              {selectedCategory && (
-                <button
-                  onClick={() => setSelectedCategory(null)}
-                  className="text-xs font-bold text-emerald-800 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full transition-all self-start sm:self-auto cursor-pointer"
-                >
-                  Clear Filter • View All Departments
-                </button>
-              )}
-            </div>
-
-            {/* 10 Luxury Category Cards - CLICK OPENS QUICK-SHOP POPUP WITH VARIETIES */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
-              {CATEGORIES.map((cat) => {
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      setQuickShopCategory(cat);
-                      handleSelectCategory(cat.slug);
-                    }}
-                    className="p-3 rounded-3xl border text-left transition-all duration-300 flex flex-col justify-between group cursor-pointer relative overflow-hidden active:scale-98 border-slate-200/90 hover:border-emerald-500 bg-white hover:shadow-xl hover:-translate-y-1"
-                  >
-                    {/* Real Photographic Food Thumbnail */}
-                    <div className="relative w-full aspect-4/3 rounded-2xl overflow-hidden mb-2.5 bg-slate-100 shadow-2xs border border-slate-100">
-                      <Image
-                        src={cat.imageUrl || `/categories/rice.jpg`}
-                        alt={cat.name}
-                        fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-                      
-                      <span className="absolute bottom-2 left-2 text-[9px] font-black text-white bg-slate-950/75 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/20">
-                        {cat.itemCount} items
-                      </span>
-
-                      {/* Quick Shop Hint Pill on Card */}
-                      <span className="absolute top-2 right-2 text-[9px] font-bold text-amber-300 bg-slate-950/80 backdrop-blur-md px-2 py-0.5 rounded-full border border-amber-300/30 flex items-center gap-0.5 opacity-90 group-hover:opacity-100">
-                        <span>Varieties</span>
-                        <ChevronRight className="w-2.5 h-2.5" />
-                      </span>
-                    </div>
-
-                    <div>
-                      <h3 className="font-black text-xs sm:text-sm text-slate-900 group-hover:text-emerald-900 leading-snug line-clamp-1">
-                        {cat.name}
-                      </h3>
-                      <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1 font-medium">
-                        {cat.description}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* Curated Pre-packed Kerala Combo Bundles & Feast Kits */}
-        {(config.modules?.showComboBundles ?? true) && !searchQuery && !selectedCategory && (
-          <ComboBundlesShowcase />
         )}
 
         {/* Main Catalog with Filters & Sidebar (Shown in standard view) */}
@@ -736,6 +647,7 @@ export default function HomePage() {
       />
 
       <CartDrawer />
+      <WhatsAppOrderModal isOpen={isWhatsAppOpen} onClose={() => setIsWhatsAppOpen(false)} />
 
       <PostcodeModal
         isOpen={isPostcodeModalOpen}

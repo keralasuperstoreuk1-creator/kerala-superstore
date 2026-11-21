@@ -262,16 +262,6 @@ export const AppDownloadSection: React.FC = () => {
 
             </div>
 
-            {/* Floating Trust Badge */}
-            <div className="absolute -bottom-4 -left-4 bg-slate-950 border border-amber-400/50 text-white px-3.5 py-2 rounded-2xl shadow-xl flex items-center gap-2">
-              <div className="flex text-amber-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-3 h-3 fill-amber-400" />
-                ))}
-              </div>
-              <span className="text-[11px] font-black text-white">4.9 / 5</span>
-              <span className="text-[9px] text-slate-400 hidden sm:inline">Manchester Rated</span>
-            </div>
 
           </div>
 

@@ -3,27 +3,12 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  Search, 
-  ShoppingCart, 
-  MapPin, 
-  Phone, 
-  Menu, 
-  X,
-  ChevronDown,
-  Bell,
-  Download
-} from 'lucide-react';
+import { X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStoreConfig } from '@/context/StoreConfigContext';
-import { useSpecialsNotification } from '@/context/SpecialsNotificationContext';
-import { useAppDownload } from '@/context/AppDownloadContext';
 import { CATEGORIES } from '@/lib/mock-data';
-import { LuxuryStoreLogo } from '@/components/LuxuryStoreLogo';
-import { PwaInstallPrompt } from '@/components/PwaInstallPrompt';
-import { AppleIcon, AndroidIcon } from '@/components/AppDownloadModal';
 import { WhatsAppOrderModal } from '@/components/WhatsAppOrderModal';
-import { WhatsAppIcon } from '@/components/WhatsAppButton';
+import { HandBasket, HandMenu, HandSearch, HandWhatsApp } from '@/components/home/HandIcons';
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -32,428 +17,243 @@ interface HeaderProps {
   onOpenPostcodeModal?: () => void;
   currentPostcode?: string;
   searchQuery?: string;
+  hasOffers?: boolean;
 }
+
+// Short labels for the department bar; the full list lives in CATEGORIES.
+const NAV_SLUGS: { slug: string; label: string }[] = [
+  { slug: 'rice-and-rice-products', label: 'Rice' },
+  { slug: 'breakfast-powders', label: 'Breakfast & Flours' },
+  { slug: 'masala-and-curry-powders', label: 'Masala' },
+  { slug: 'spices-and-whole-condiments', label: 'Spices' },
+  { slug: 'crisps-and-snacks', label: 'Snacks' },
+  { slug: 'biscuits-and-sweets', label: 'Biscuits & Sweets' },
+  { slug: 'traditional-pickles', label: 'Pickles' },
+  { slug: 'frozen-delights', label: 'Frozen' },
+  { slug: 'tea-coffee-and-drinks', label: 'Drinks' },
+  { slug: 'household-and-cleaning', label: 'Household' },
+];
 
 export const Header: React.FC<HeaderProps> = ({
   onSearch,
   onSelectCategory,
   selectedCategory,
   onOpenPostcodeModal,
-  currentPostcode = 'Manchester (M9 8DX) & Nationwide',
-  searchQuery: searchQueryProp = ''
+  currentPostcode = 'M9 8DX',
+  searchQuery: searchQueryProp = '',
+  hasOffers = false,
 }) => {
-  const { totalItems, setIsCartOpen } = useCart();
+  const { totalItems, subtotal, setIsCartOpen, freeDeliveryThreshold } = useCart();
   const { config } = useStoreConfig();
-  const { unreadCount, setIsNotificationModalOpen } = useSpecialsNotification();
-  const { isIOS, isAndroid, deferredPrompt, triggerInstall, installApp, openModal } = useAppDownload();
   const [searchQuery, setSearchQuery] = useState(searchQueryProp);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
 
-  // Sync internal search query if parent updates it (e.g. reset filters)
   React.useEffect(() => {
     setSearchQuery(searchQueryProp);
   }, [searchQueryProp]);
 
-  // Auto-detect OS for the top download button
-  const handleAppDownloadClick = () => {
-    if (isIOS) {
-      openModal('ios');
-    } else if (isAndroid) {
-      if (deferredPrompt) {
-        triggerInstall();
-      } else {
-        openModal('android');
-      }
-    } else {
-      openModal();
-    }
-  };
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-    if (onSearch) onSearch(val);
+    setSearchQuery(e.target.value);
+    onSearch?.(e.target.value);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (onSearch) onSearch(searchQuery);
-    // Dismiss mobile virtual keyboard
+    onSearch?.(searchQuery);
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    // Scroll smoothly to results
     const el = document.getElementById('search-results-section') || document.getElementById('catalog-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
+    el?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleClearSearch = () => {
-    setSearchQuery('');
-    if (onSearch) onSearch('');
+  const selectCategory = (slug: string | null) => {
+    onSelectCategory?.(slug);
+    setMenuOpen(false);
   };
 
-  // Determine theme announcement bar styling
-  const announcementBg = 
-    config.theme === 'onam' 
-      ? 'bg-amber-900 border-b border-amber-700 text-amber-100'
-      : config.theme === 'christmas'
-      ? 'bg-rose-950 border-b border-rose-800 text-rose-100'
-      : 'bg-emerald-950 text-emerald-100';
-
-  const announcementBadge = 
-    config.theme === 'onam' 
-      ? { text: '🌼 ONAM SPECIAL', bg: 'bg-amber-400 text-amber-950' }
-      : config.theme === 'christmas'
-      ? { text: '🎄 FESTIVE SPECIAL', bg: 'bg-rose-500 text-white' }
-      : { text: 'UK DELIVERY', bg: 'bg-amber-400 text-emerald-950' };
-
-  const announcementMsg =
-    config.theme === 'onam'
-      ? 'Happy Onam! Authentic Kerala Sadya Rice, Banana Chips & Spices Delivered Across the UK'
-      : config.theme === 'christmas'
-      ? 'Merry Christmas & Happy New Year! Festive Kerala Plum Cake, Delicacies & Spices Delivered Across the UK'
-      : config.announcement;
-
-  // Logo size classes
-  const logoDimensions = 
-    config.logoSize === 'compact' 
-      ? 'w-10 h-10' 
-      : config.logoSize === 'prominent' 
-      ? 'w-16 h-16' 
-      : 'w-12 h-12';
-
-  const logoStyleClasses =
-    config.logoStyle === 'glow'
-      ? 'ring-4 ring-amber-400/40 shadow-lg shadow-emerald-900/30'
-      : config.logoStyle === 'minimal'
-      ? 'shadow-none'
-      : 'shadow-xs border-2 border-emerald-600/40';
+  const threshold = freeDeliveryThreshold || 50;
+  const phone = config.phone || '+44 7749 132122';
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white shadow-xs">
-      {/* Mobile App Install Prompt Strip */}
-      <PwaInstallPrompt />
-
-      {/* Top Announcement Bar (Hidden on Mobile as requested, visible on Desktop) */}
-      <div className={`hidden md:block ${announcementBg} text-xs py-2 px-4 transition-colors duration-500`}>
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-center sm:text-left">
-          <div className="flex items-center gap-2">
-            <span className={`inline-block ${announcementBadge.bg} font-black px-2 py-0.5 rounded-full text-[10px]`}>
-              {announcementBadge.text}
-            </span>
-            <p className="font-medium text-xs">
-              {announcementMsg}
-            </p>
-          </div>
-          <div className="flex items-center gap-4 text-xs">
-            <a 
-              href={`https://wa.me/447749132122?text=${encodeURIComponent("Hello Kerala Superstore Manchester! I would like to enquire about grocery delivery.")}`} 
-              target="_blank" 
-              rel="noreferrer"
-              className="flex items-center gap-1.5 text-emerald-200 hover:text-white transition-colors"
+    <header className="sticky top-0 z-40 w-full bg-shop-paper">
+      {/* Info bar */}
+      <div className="bg-shop-green text-[#E4EFE7] text-xs sm:text-[13px]">
+        <div className="max-w-[1320px] mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-5 min-w-0">
+            <span className="whitespace-nowrap">Free delivery over <strong className="text-white">£{threshold}</strong></span>
+            <button
+              type="button"
+              onClick={onOpenPostcodeModal}
+              className="hidden md:inline whitespace-nowrap hover:underline cursor-pointer"
             >
-              <Phone className="w-3.5 h-3.5 text-amber-400" />
-              <span>Hotline: +44 7749 132122</span>
-            </a>
+              Deliver to <strong className="text-white">{currentPostcode}</strong>
+            </button>
+            <span className="hidden lg:inline whitespace-nowrap">Click &amp; collect · Unit 2, 73 Old Market Street, M9 8DX</span>
           </div>
+          <span className="hidden sm:inline whitespace-nowrap">Call or WhatsApp <strong className="text-white">{phone}</strong></span>
         </div>
       </div>
 
-      {/* Main Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-2 sm:py-2.5">
-        <div className="flex items-center justify-between gap-1.5 sm:gap-4">
-          {/* Customer Luxury Emblem with Full Store Title & Subtitle */}
-          <Link href="/" className="shrink-0 flex items-center gap-2 sm:gap-3 group">
-            <LuxuryStoreLogo size={config.logoSize} />
-            {config.showStoreTitle && (
-              <div className="flex flex-col justify-center min-w-0">
-                <div className="flex items-center gap-1 leading-tight">
-                  <span className={`font-black text-sm sm:text-xl tracking-tight leading-none whitespace-nowrap ${
-                    config.theme === 'christmas' ? 'text-rose-700' : 'text-emerald-800'
-                  }`}>
-                    Kerala
-                  </span>
-                  <span className="font-black text-sm sm:text-xl text-slate-900 tracking-tight leading-none whitespace-nowrap">
-                    SUPERSTORE
-                  </span>
-                  <span className="hidden sm:inline-block px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider shadow-2xs ml-0.5">
-                    UK
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-[9px] sm:text-[11px] font-bold text-amber-600 mt-0.5 leading-none whitespace-nowrap">
-                  <span>Kerala Supermarket</span>
-                  <span className="text-slate-300">•</span>
-                  <span className="text-emerald-700 font-semibold">Store</span>
-                </div>
-              </div>
-            )}
-          </Link>
-
-          {/* Postcode & Delivery Location Selector (Desktop) */}
+      {/* Main bar */}
+      <div className="border-b border-shop-line">
+        <div className="max-w-[1320px] mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center gap-x-2 gap-y-2.5 sm:gap-5">
           <button
-            onClick={onOpenPostcodeModal}
-            className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 transition-all text-left text-xs shrink-0"
+            type="button"
+            aria-label="Open departments menu"
+            onClick={() => setMenuOpen(true)}
+            className="lg:hidden w-11 h-11 -ml-2 flex items-center justify-center text-shop-ink cursor-pointer"
           >
-            <MapPin className="w-4 h-4 text-emerald-700 shrink-0" />
-            <div>
-              <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Deliver To</div>
-              <div className="font-bold text-slate-800 truncate max-w-[120px]">{currentPostcode}</div>
-            </div>
-            <ChevronDown className="w-3 h-3 text-slate-400" />
+            <HandMenu size={24} />
           </button>
 
-          {/* Desktop Search Bar (Hidden on Mobile, rendered below on Mobile) */}
-          <div className="hidden md:flex flex-1 max-w-xl relative">
-            <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full">
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 text-shop-ink min-w-0">
+            <Image src="/logo.png" alt="Kerala Superstore logo" width={52} height={52} className="w-10 h-10 sm:w-[52px] sm:h-[52px] object-contain shrink-0" priority />
+            <span className="flex flex-col leading-none min-w-0">
+              <span className="text-[17px] sm:text-[23px] font-extrabold tracking-tight text-shop-green whitespace-nowrap">Kerala Superstore</span>
+              <span className="font-hand text-[14px] sm:text-[19px] text-shop-brown whitespace-nowrap">your Kerala shop in Manchester</span>
+            </span>
+          </Link>
+
+          <div className="ml-auto flex items-center gap-1 sm:gap-2 lg:order-3">
+            <button
+              type="button"
+              aria-label="Order on WhatsApp"
+              onClick={() => setIsWhatsAppModalOpen(true)}
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 text-shop-ink cursor-pointer"
+            >
+              <HandWhatsApp size={24} className="text-shop-green" />
+              <span className="flex flex-col leading-tight text-left">
+                <span className="text-xs text-shop-muted">Send your list</span>
+                <span className="text-sm font-bold">WhatsApp</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              aria-label={`Basket, ${totalItems} items, £${subtotal.toFixed(2)}`}
+              className="relative flex items-center gap-2.5 h-11 sm:h-12 px-2.5 sm:px-4 rounded-[10px] bg-shop-yellow text-shop-ink cursor-pointer shrink-0"
+            >
+              <HandBasket size={24} />
+              {totalItems > 0 && (
+                <span className="sm:hidden absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-shop-green text-white text-[11px] font-bold flex items-center justify-center">{totalItems}</span>
+              )}
+              <span className="hidden sm:flex flex-col leading-tight text-left">
+                <span className="text-[11px] sm:text-xs font-semibold">{totalItems} {totalItems === 1 ? 'item' : 'items'}</span>
+                <span className="text-sm sm:text-[15px] font-extrabold">£{subtotal.toFixed(2)}</span>
+              </span>
+            </button>
+          </div>
+
+          <form onSubmit={handleSearchSubmit} className="w-full lg:w-auto lg:flex-1 lg:order-2" role="search">
+            <label className="flex items-center gap-2.5 h-12 border-[1.5px] border-[#2F3A34] rounded-[10px] bg-white pl-3.5 pr-1.5">
+              <HandSearch className="text-[#2F3A34] shrink-0" />
+              <span className="sr-only">Search products</span>
               <input
                 type="search"
-                inputMode="search"
-                enterKeyHint="search"
-                placeholder="Search Palakkadan Matta Rice, Sambar Masala, Banana Chips..."
                 value={searchQuery}
                 onChange={handleSearchChange}
-                className="w-full pl-10 pr-24 py-2.5 rounded-full border border-slate-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none text-xs sm:text-sm transition-all shadow-xs bg-slate-50/50 focus:bg-white"
+                placeholder="Search 3,700+ products — matta rice, Eastern, achar…"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[15px] text-shop-ink placeholder:text-[#7A827E]"
               />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={handleClearSearch}
-                  className="absolute right-18 p-1 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer transition-colors"
-                  title="Clear search"
                   aria-label="Clear search"
+                  onClick={() => { setSearchQuery(''); onSearch?.(''); }}
+                  className="w-8 h-8 flex items-center justify-center text-shop-muted cursor-pointer"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
-              <button
-                type="submit"
-                className={`absolute right-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white transition-all cursor-pointer active:scale-95 ${
-                  config.theme === 'christmas'
-                    ? 'bg-rose-700 hover:bg-rose-800'
-                    : config.theme === 'onam'
-                    ? 'bg-amber-600 hover:bg-amber-700'
-                    : 'bg-emerald-800 hover:bg-emerald-700'
-                }`}
-              >
+              <button type="submit" className="h-9 px-4 rounded-[7px] bg-shop-green text-white font-bold text-sm cursor-pointer">
                 Search
               </button>
-            </form>
-          </div>
-
-          {/* Action Buttons: App Download & Shopping Cart (Mobile Optimized, No Overflow) */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {/* WhatsApp Quick Shopping List Order Button */}
-            <button
-              type="button"
-              onClick={() => setIsWhatsAppModalOpen(true)}
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-emerald-500/50 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-emerald-950 transition-all text-xs font-black shadow-2xs group cursor-pointer active:scale-95 shrink-0"
-              title="WhatsApp Quick Order / ഷോപ്പിംഗ് ലിസ്റ്റ് അയക്കൂ"
-            >
-              <WhatsAppIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#25D366] fill-current shrink-0 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] sm:text-xs font-black whitespace-nowrap">
-                <span className="hidden sm:inline">WhatsApp </span>Order
-              </span>
-            </button>
-            {/* Official App Download Button (Auto-detects iPhone or Android on click) */}
-            {(config.modules?.showAppDownload ?? true) && (
-              <button
-                type="button"
-                onClick={handleAppDownloadClick}
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-amber-400/80 bg-gradient-to-r from-amber-400/20 via-emerald-500/10 to-amber-400/20 hover:from-amber-400/30 hover:to-amber-400/30 text-slate-900 transition-all text-xs font-black shadow-2xs group cursor-pointer active:scale-95 shrink-0"
-                title="Download Kerala Superstore App"
-              >
-                <Download className="w-3.5 h-3.5 text-emerald-800 group-hover:scale-110 transition-transform shrink-0" />
-                <span className="text-[10px] sm:text-xs font-black whitespace-nowrap">App Download</span>
-              </button>
-            )}
-
-            {/* Daily Specials & Biriyani Alerts Notification Bell (Desktop Only - Mobile has this in bottom nav) */}
-            {(config.modules?.showKitchenSpecials ?? true) && (
-              <button
-                onClick={() => setIsNotificationModalOpen(true)}
-                className="hidden sm:flex relative p-2 sm:p-2.5 rounded-xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 transition-all text-slate-700 cursor-pointer group active:scale-95"
-                title="Store Alerts & Kitchen Specials"
-              >
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800 group-hover:text-amber-600 transition-colors" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-black text-[9px] sm:text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shadow-xs animate-pulse">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {/* Shopping Cart Button (Mobile & Desktop - Always fully fitted) */}
-            <button
-              onClick={() => setIsCartOpen(true)}
-              className={`flex items-center justify-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-xl shadow-xs transition-all cursor-pointer relative text-white active:scale-95 shrink-0 ${
-                config.theme === 'christmas'
-                  ? 'bg-rose-700 hover:bg-rose-800'
-                  : config.theme === 'onam'
-                  ? 'bg-amber-600 hover:bg-amber-700'
-                  : 'bg-emerald-800 hover:bg-emerald-700'
-              }`}
-              aria-label="Shopping Basket"
-            >
-              <div className="relative">
-                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                {totalItems > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-amber-400 text-slate-950 font-black text-[10px] sm:text-xs w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shadow-xs">
-                    {totalItems}
-                  </span>
-                )}
-              </div>
-              <div className="hidden sm:block text-left">
-                <div className="text-[10px] text-emerald-200 font-semibold uppercase leading-tight">My Basket</div>
-                <div className="text-xs font-bold leading-tight">
-                  {totalItems} {totalItems === 1 ? 'item' : 'items'}
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Dedicated Full-Width App-Style Search Bar */}
-        <div className="block md:hidden pt-2 pb-0.5">
-          <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full">
-            <input
-              type="search"
-              inputMode="search"
-              enterKeyHint="search"
-              placeholder="Search Matta Rice, Masalas, Snacks, Kappa..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="w-full pl-9 pr-22 py-2 rounded-full border border-slate-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 outline-none text-xs transition-all shadow-xs bg-slate-50/70 focus:bg-white"
-            />
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={handleClearSearch}
-                className="absolute right-16 p-1 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer transition-colors"
-                title="Clear search"
-                aria-label="Clear search"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-            <button
-              type="submit"
-              className={`absolute right-1 px-3 py-1 rounded-full text-[11px] font-bold text-white transition-all cursor-pointer active:scale-95 ${
-                config.theme === 'christmas'
-                  ? 'bg-rose-700 hover:bg-rose-800'
-                  : config.theme === 'onam'
-                  ? 'bg-amber-600 hover:bg-amber-700'
-                  : 'bg-emerald-800 hover:bg-emerald-700'
-              }`}
-            >
-              Search
-            </button>
+            </label>
           </form>
         </div>
       </div>
 
-      {/* Category Scrollbar (NO Malayalam, Clean English) */}
-      <nav className="border-t border-slate-100 bg-white shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar text-xs">
+      {/* Department bar (desktop) */}
+      <nav aria-label="Departments" className="hidden lg:block border-b border-dashed border-shop-dash bg-shop-paper">
+        <div className="max-w-[1320px] mx-auto px-6 flex items-center gap-0.5 overflow-x-auto">
           <button
-            onClick={() => onSelectCategory && onSelectCategory(null)}
-            className={`whitespace-nowrap px-3.5 py-1.5 rounded-full font-bold transition-all ${
-              selectedCategory === null
-                ? config.theme === 'christmas'
-                  ? 'bg-rose-700 text-white shadow-xs'
-                  : config.theme === 'onam'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-emerald-800 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800'
-            }`}
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="flex items-center gap-2 py-3 pr-4 mr-1.5 font-extrabold text-sm text-shop-green whitespace-nowrap cursor-pointer"
           >
-            All Groceries
+            <HandMenu />
+            All departments
           </button>
-          {CATEGORIES.map((cat) => (
+          {NAV_SLUGS.map((n) => (
             <button
-              key={cat.id}
-              onClick={() => onSelectCategory && onSelectCategory(cat.slug)}
-              className={`whitespace-nowrap px-3.5 py-1.5 rounded-full font-semibold transition-all ${
-                selectedCategory === cat.slug
-                  ? config.theme === 'christmas'
-                    ? 'bg-rose-700 text-white shadow-xs'
-                    : config.theme === 'onam'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'bg-emerald-800 text-white shadow-xs'
-                  : 'bg-slate-50 text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
+              key={n.slug}
+              type="button"
+              onClick={() => selectCategory(n.slug)}
+              className={`py-3 px-2.5 font-semibold text-sm whitespace-nowrap cursor-pointer ${
+                selectedCategory === n.slug ? 'text-shop-green underline decoration-2 underline-offset-[6px]' : 'text-[#2F3A34] hover:text-shop-green'
               }`}
             >
-              {cat.name}
+              {n.label}
             </button>
           ))}
+          {hasOffers && (
+          <button
+            type="button"
+            onClick={() => document.getElementById('offers-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="ml-auto offer-stamp text-[13px] whitespace-nowrap cursor-pointer"
+            style={{ transform: 'rotate(-2deg)' }}
+          >
+            This week&apos;s offers
+          </button>
+          )}
         </div>
       </nav>
 
-      {/* Mobile Drawer (No admin links, purely customer navigation) */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white p-4 space-y-4 shadow-xl">
-          <button
-            onClick={() => {
-              if (onOpenPostcodeModal) onOpenPostcodeModal();
-              setMobileMenuOpen(false);
-            }}
-            className="flex items-center gap-2 text-xs font-semibold text-emerald-800 w-full p-2.5 rounded-xl bg-emerald-50"
-          >
-            <MapPin className="w-4 h-4" />
-            <span>Deliver to: {currentPostcode}</span>
-          </button>
-
-          {/* Mobile Download App Banner in Menu */}
-          <button
-            onClick={() => {
-              installApp();
-              setMobileMenuOpen(false);
-            }}
-            className="w-full p-3 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white flex items-center justify-between text-left shadow-lg border border-amber-400/30 active:scale-98 transition-all"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center -space-x-1">
-                <AndroidIcon className="w-4 h-4 text-emerald-400" />
-                <AppleIcon className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <div className="font-black text-xs text-amber-300">Download Mobile App</div>
-                <div className="text-[10px] text-slate-300">Free for Android &amp; iPhone</div>
-              </div>
+      {/* All departments drawer */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="All departments">
+          <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/40 cursor-default" onClick={() => setMenuOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-[86%] max-w-sm bg-shop-paper shadow-xl overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-shop-line">
+              <span className="font-extrabold text-lg text-shop-green">All departments</span>
+              <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="w-11 h-11 flex items-center justify-center cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[9px]">
-              INSTALL
-            </span>
-          </button>
-          <div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Shop Categories</div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              {CATEGORIES.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => {
-                    if (onSelectCategory) onSelectCategory(c.slug);
-                    setMobileMenuOpen(false);
-                  }}
-                  className="text-left py-2 px-3 rounded-lg hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 font-medium"
-                >
-                  {c.name}
+            <p className="px-5 pt-3 font-hand text-xl text-shop-brown">23 aisles, just like the shop</p>
+            <ul className="p-3">
+              <li>
+                <button type="button" onClick={() => selectCategory(null)} className="w-full text-left px-3 py-3 rounded-lg font-semibold text-shop-ink hover:bg-white cursor-pointer">
+                  All groceries
                 </button>
+              </li>
+              {CATEGORIES.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => selectCategory(c.slug)}
+                    className={`w-full text-left px-3 py-3 rounded-lg font-semibold hover:bg-white cursor-pointer ${selectedCategory === c.slug ? 'text-shop-green bg-white' : 'text-shop-ink'}`}
+                  >
+                    {c.name}
+                  </button>
+                </li>
               ))}
+            </ul>
+            <div className="m-4 p-4 rounded-xl bg-white border border-shop-line space-y-2 text-sm">
+              <button type="button" onClick={() => { setMenuOpen(false); onOpenPostcodeModal?.(); }} className="font-semibold text-shop-green cursor-pointer">
+                Deliver to {currentPostcode} · change
+              </button>
+              <button type="button" onClick={() => { setMenuOpen(false); setIsWhatsAppModalOpen(true); }} className="flex items-center gap-2 font-semibold text-shop-ink cursor-pointer">
+                <HandWhatsApp size={20} className="text-shop-green" /> Send your list on WhatsApp
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      <WhatsAppOrderModal
-        isOpen={isWhatsAppModalOpen}
-        onClose={() => setIsWhatsAppModalOpen(false)}
-      />
+      <WhatsAppOrderModal isOpen={isWhatsAppModalOpen} onClose={() => setIsWhatsAppModalOpen(false)} />
     </header>
   );
 };
