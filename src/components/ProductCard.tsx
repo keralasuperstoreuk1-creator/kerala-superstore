@@ -168,68 +168,69 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenDetails
 
       {/* Out of Stock "Notify Me" Modal */}
       {showNotifyModal && (
-        <div 
+        <div
           onClick={(e) => e.stopPropagation()}
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tell me when it's back"
         >
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 space-y-4 animate-fadeIn">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
-                <Bell className="w-4 h-4 text-amber-500" />
-                <span>Back in Stock Alert</span>
+          <div className="absolute inset-0 bg-[#1E2420]/55" onClick={() => setShowNotifyModal(false)} aria-hidden="true" />
+          <div className="relative z-10 w-full sm:max-w-sm bg-shop-cream text-shop-ink rounded-t-[18px] sm:rounded-[14px] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] flex flex-col gap-4 shadow-[0_10px_40px_rgba(30,36,32,0.25)]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <Bell className="w-5 h-5 text-shop-brown shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <h2 className="font-extrabold text-lg leading-tight">Tell me when it&apos;s back</h2>
+                  <p className="text-sm text-shop-muted line-clamp-1">{displayName(product.name)}</p>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowNotifyModal(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
+                className="w-10 h-10 -mt-1 -mr-1 rounded-full bg-white border border-shop-line flex items-center justify-center cursor-pointer shrink-0"
+                aria-label="Close"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {notifySuccess ? (
-              <div className="py-6 text-center space-y-2">
-                <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
-                <h4 className="font-bold text-sm text-slate-900">Request Received!</h4>
-                <p className="text-xs text-slate-500">
-                  We will WhatsApp you as soon as this item arrives fresh in Manchester!
-                </p>
+              <div className="py-4 flex flex-col items-center text-center gap-2">
+                <CheckCircle2 className="w-12 h-12 text-shop-green" />
+                <p className="font-hand text-2xl text-shop-brown">got it, thank you!</p>
+                <p className="text-sm text-shop-muted">We&apos;ll message you on WhatsApp when it&apos;s back on the shelf.</p>
               </div>
             ) : (
-              <form onSubmit={handleNotifySubmit} className="space-y-3 text-xs">
+              <form onSubmit={handleNotifySubmit} className="flex flex-col gap-3">
                 <div>
-                  <span className="font-bold text-slate-900 block line-clamp-1">{product.name}</span>
-                  <span className="text-[11px] text-slate-500">Enter your contact details to receive a free restock alert.</span>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Your Name</label>
+                  <label htmlFor={`notify-name-${product.id}`} className="block text-[13px] font-bold mb-1">Your name</label>
                   <input
+                    id={`notify-name-${product.id}`}
                     type="text"
                     required
+                    autoComplete="name"
                     placeholder="e.g. Biju Kumar"
                     value={notifyName}
                     onChange={(e) => setNotifyName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-emerald-600 bg-slate-50 focus:bg-white"
+                    className="w-full h-11 px-3 rounded-[9px] border border-shop-line bg-white text-[15px] outline-none focus:border-shop-green focus:ring-2 focus:ring-shop-green/15"
                   />
                 </div>
-
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">UK Phone / WhatsApp *</label>
+                  <label htmlFor={`notify-phone-${product.id}`} className="block text-[13px] font-bold mb-1">WhatsApp number</label>
                   <input
+                    id={`notify-phone-${product.id}`}
                     type="tel"
                     required
+                    autoComplete="tel"
                     placeholder="07700 900000"
                     value={notifyPhone}
                     onChange={(e) => setNotifyPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-emerald-600 bg-slate-50 focus:bg-white font-medium"
+                    className="w-full h-11 px-3 rounded-[9px] border border-shop-line bg-white text-[15px] outline-none focus:border-shop-green focus:ring-2 focus:ring-shop-green/15"
                   />
                 </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-sm transition-all cursor-pointer mt-1"
-                >
-                  Alert Me on WhatsApp When In Stock
+                <button type="submit" className="w-full h-12 mt-1 rounded-[10px] bg-shop-yellow text-shop-ink font-extrabold cursor-pointer">
+                  Message me when it&apos;s back
                 </button>
               </form>
             )}

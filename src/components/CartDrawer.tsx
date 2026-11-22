@@ -2,24 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { 
-  X, 
-  Trash2, 
-  Plus, 
-  Minus, 
-  ShoppingBag, 
-  Truck, 
-  ShieldCheck, 
-  ArrowRight,
-  ArrowLeft,
-  Clock,
-  Tag,
-  Check,
-  CheckCircle2
-} from 'lucide-react';
+import { X, Trash2, Minus, ArrowLeft, Check } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStoreConfig } from '@/context/StoreConfigContext';
-import { WhatsAppIcon } from '@/components/WhatsAppButton';
+import { displayName } from '@/components/ProductCard';
+import { HandBasket, HandPlus, HandTag, HandVan, HandWhatsApp } from '@/components/home/HandIcons';
+
+const WHATSAPP_NUMBER = '447749132122';
+const SHOP_ADDRESS = 'Unit 2, 73 Old Market Street, Manchester M9 8DX';
+
+const inputClass =
+  'w-full h-11 px-3 rounded-[9px] border border-shop-line bg-white text-[15px] text-shop-ink placeholder:text-[#9AA19C] outline-none focus:border-shop-green focus:ring-2 focus:ring-shop-green/15';
+const labelClass = 'block text-[13px] font-bold text-shop-ink mb-1';
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -31,9 +25,8 @@ export const CartDrawer: React.FC = () => {
     clearCart,
     subtotal,
     deliveryCharge,
-    totalAmount,
     freeDeliveryThreshold,
-    amountNeededForFreeDelivery
+    amountNeededForFreeDelivery,
   } = useCart();
 
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'checkout' | 'success'>('cart');
@@ -44,28 +37,25 @@ export const CartDrawer: React.FC = () => {
     address: '',
     city: '',
     postcode: '',
-    notes: ''
+    notes: '',
   });
 
   const { config, validateCoupon } = useStoreConfig();
-  const [placedOrderNumber, setPlacedOrderNumber] = useState('');
+  const [placedOrder, setPlacedOrder] = useState<{ number: string; total: number } | null>(null);
   const [couponCodeInput, setCouponCodeInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number; message: string } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
 
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const finalTotalAmount = Math.max(0, subtotal - discountAmount + deliveryCharge);
+  const itemCount = cart.reduce((n, it) => n + it.quantity, 0);
 
   const handleApplyCoupon = (e: React.FormEvent) => {
     e.preventDefault();
     setCouponError(null);
     const res = validateCoupon(couponCodeInput, subtotal);
     if (res.isValid && res.coupon) {
-      setAppliedCoupon({
-        code: res.coupon.code,
-        discountAmount: res.discountAmount,
-        message: res.message,
-      });
+      setAppliedCoupon({ code: res.coupon.code, discountAmount: res.discountAmount, message: res.message });
       setCouponCodeInput('');
     } else {
       setCouponError(res.message);
@@ -77,13 +67,16 @@ export const CartDrawer: React.FC = () => {
     setCouponError(null);
   };
 
-  // Close cart on Escape key press
+  const closeDrawer = () => {
+    setIsCartOpen(false);
+    if (checkoutStep === 'success') setCheckoutStep('cart');
+  };
+
+  // Close on Escape
   useEffect(() => {
     if (!isCartOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsCartOpen(false);
-      }
+      if (e.key === 'Escape') setIsCartOpen(false);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -91,7 +84,7 @@ export const CartDrawer: React.FC = () => {
 
   if (!isCartOpen) return null;
 
-  const freeDeliveryProgress = Math.min(100, (subtotal / freeDeliveryThreshold) * 100);
+  const freeDeliveryProgress = freeDeliveryThreshold > 0 ? Math.min(100, (subtotal / freeDeliveryThreshold) * 100) : 100;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -100,9 +93,9 @@ export const CartDrawer: React.FC = () => {
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
     const newOrderNum = `KSS-UK-${Math.floor(1000 + Math.random() * 9000)}`;
-    setPlacedOrderNumber(newOrderNum);
+    // Keep the total before the basket is cleared, so the receipt shows what is owed.
+    setPlacedOrder({ number: newOrderNum, total: finalTotalAmount });
 
-    // Create full order record
     try {
       const newOrder = {
         id: `ord-${Date.now()}`,
@@ -134,8 +127,7 @@ export const CartDrawer: React.FC = () => {
 
       const existingRaw = localStorage.getItem('kss_orders');
       const existingList = existingRaw ? JSON.parse(existingRaw) : [];
-      const updatedList = [newOrder, ...existingList];
-      localStorage.setItem('kss_orders', JSON.stringify(updatedList));
+      localStorage.setItem('kss_orders', JSON.stringify([newOrder, ...existingList]));
       window.dispatchEvent(new Event('kss_orders_updated'));
     } catch (err) {
       console.error('Failed to save order:', err);
@@ -143,461 +135,356 @@ export const CartDrawer: React.FC = () => {
 
     setCheckoutStep('success');
     clearCart();
+    setAppliedCoupon(null);
   };
 
+  const sendBasketToWhatsApp = () => {
+    const itemsText = cart
+      .map((it) => `• ${displayName(it.product.name)} × ${it.quantity} — £${((it.product.offerPrice ?? it.product.price) * it.quantity).toFixed(2)}`)
+      .join('\n');
+    const msg = `Hello Kerala Superstore! I'd like to order:\n\n${itemsText}\n\nTotal: £${finalTotalAmount.toFixed(2)}\n\nPlease let me know the delivery time. Thank you!`;
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const title =
+    checkoutStep === 'cart' ? 'Your basket' : checkoutStep === 'checkout' ? 'Your details' : 'Order placed';
+
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
-      {/* Backdrop - Tap outside to close */}
-      <div 
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity cursor-pointer"
-        onClick={() => setIsCartOpen(false)}
-        aria-label="Close cart backdrop"
-      />
+    <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="absolute inset-0 bg-[#1E2420]/55 cursor-pointer" onClick={() => setIsCartOpen(false)} aria-hidden="true" />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-4 sm:pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col">
-          {/* Header with prominent Back & Close buttons */}
-          <div className="p-3.5 sm:p-4 border-b border-emerald-900 flex items-center justify-between bg-emerald-950 text-white sticky top-0 z-20 shadow-md">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
+        <div className="w-screen max-w-md bg-shop-cream text-shop-ink flex flex-col shadow-[-8px_0_30px_rgba(30,36,32,0.18)]">
+          {/* Header */}
+          <div className="px-4 h-16 flex items-center justify-between gap-2 bg-shop-green text-white shrink-0">
             <div className="flex items-center gap-2 min-w-0">
-              <button
-                type="button"
-                onClick={() => {
-                  if (checkoutStep === 'checkout') {
-                    setCheckoutStep('cart');
-                  } else {
-                    setIsCartOpen(false);
-                  }
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 text-white font-black text-xs transition-all cursor-pointer shrink-0"
-                aria-label="Go Back"
-              >
-                <ArrowLeft className="w-4 h-4 text-amber-300" />
-                <span>Back</span>
-              </button>
-
-              <div className="flex items-center gap-2 min-w-0">
-                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0" />
-                <h2 className="font-bold text-sm sm:text-base truncate">
-                  {checkoutStep === 'cart' && 'Your Basket'}
-                  {checkoutStep === 'checkout' && 'Cash on Delivery'}
-                  {checkoutStep === 'success' && 'Order Placed!'}
-                </h2>
-              </div>
+              {checkoutStep === 'checkout' ? (
+                <button
+                  type="button"
+                  onClick={() => setCheckoutStep('cart')}
+                  className="w-10 h-10 -ml-1 rounded-[9px] flex items-center justify-center hover:bg-white/10 cursor-pointer shrink-0"
+                  aria-label="Back to basket"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              ) : (
+                <HandBasket size={26} className="text-shop-yellow shrink-0" />
+              )}
+              <h2 className="font-extrabold text-lg truncate">{title}</h2>
+              {checkoutStep === 'cart' && itemCount > 0 && (
+                <span className="font-hand text-xl text-shop-yellow whitespace-nowrap">
+                  {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                </span>
+              )}
             </div>
-
             <button
               type="button"
-              onClick={() => {
-                setIsCartOpen(false);
-                if (checkoutStep === 'success') setCheckoutStep('cart');
-              }}
-              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
+              onClick={closeDrawer}
+              className="w-10 h-10 rounded-[9px] flex items-center justify-center hover:bg-white/10 cursor-pointer shrink-0"
               aria-label="Close basket"
-              title="Close basket"
             >
-              <span className="hidden sm:inline">Close</span>
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Free Delivery Bar */}
-          {checkoutStep !== 'success' && (
-            <div className="bg-emerald-50 px-4 py-2.5 border-b border-emerald-100 text-xs">
-              <div className="flex items-center justify-between font-semibold text-emerald-900 mb-1">
-                <span className="flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-emerald-700" />
+          {/* Free delivery progress */}
+          {checkoutStep !== 'success' && cart.length > 0 && (
+            <div className="px-4 py-3 bg-shop-paper border-b border-dashed border-shop-dash shrink-0">
+              <div className="flex items-center gap-2.5 text-[13px]">
+                <HandVan size={28} className="text-shop-green shrink-0" />
+                <span className="flex-1 min-w-0 leading-snug">
                   {amountNeededForFreeDelivery > 0 ? (
-                    <>Add <strong className="text-amber-700">£{amountNeededForFreeDelivery.toFixed(2)}</strong> for FREE UK Delivery</>
+                    <>
+                      Add <strong>£{amountNeededForFreeDelivery.toFixed(2)}</strong> more for free UK delivery
+                    </>
                   ) : (
-                    <span className="text-emerald-700 flex items-center gap-1">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 inline" />
-                      Congratulations! You unlocked FREE UK Delivery
-                    </span>
+                    <strong className="text-shop-green">Free UK delivery on this order</strong>
                   )}
                 </span>
-                <span className="text-slate-500 font-bold">{freeDeliveryProgress.toFixed(0)}%</span>
               </div>
-              <div className="w-full bg-emerald-200/80 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-emerald-600 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${freeDeliveryProgress}%` }}
-                />
+              <div className="mt-2 h-2 rounded-full bg-shop-line overflow-hidden">
+                <div className="h-full rounded-full bg-shop-green transition-all duration-500" style={{ width: `${freeDeliveryProgress}%` }} />
               </div>
             </div>
           )}
 
-          {/* Body Content */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {checkoutStep === 'cart' && (
-              <>
-                {cart.length === 0 ? (
-                  <div className="text-center py-16 space-y-4">
-                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                      <ShoppingBag className="w-8 h-8" />
-                    </div>
-                    <p className="text-slate-500 font-medium">Your basket is currently empty.</p>
-                    <button
-                      onClick={() => setIsCartOpen(false)}
-                      className="px-5 py-2 bg-emerald-800 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-all"
-                    >
-                      Browse Kerala Groceries
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {cart.map((item) => {
-                      const itemPrice = item.product.offerPrice ?? item.product.price;
-                      return (
-                        <div
-                          key={item.product.id}
-                          className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/50 transition-all"
-                        >
-                          <div className="relative w-16 h-16 rounded-lg bg-white overflow-hidden border border-slate-200 shrink-0">
-                            <Image
-                              src={item.product.imageUrl || '/products/matta-rice.png'}
-                              alt={item.product.name}
-                              fill
-                              className="object-contain p-1"
-                              onError={(e) => {
-                                const target = e.currentTarget as HTMLImageElement;
-                                if (target && target.src.indexOf('/products/matta-rice.png') === -1) {
-                                  target.src = '/products/matta-rice.png';
-                                }
-                              }}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-xs text-slate-900 truncate">
-                              {item.product.name}
-                            </h4>
-                            <div className="text-[11px] text-slate-500 font-medium">
-                              {item.product.sizeWeight} • {item.product.brand}
-                            </div>
-                            <div className="text-xs font-bold text-emerald-800 mt-1">
-                              £{itemPrice.toFixed(2)}
-                            </div>
-                          </div>
-                          
-                          {/* Quantity Controls */}
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden">
-                              <button
-                                onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                                className="p-1 hover:bg-slate-100 text-slate-600 transition-colors"
-                              >
-                                <Minus className="w-3.5 h-3.5" />
-                              </button>
-                              <span className="px-2 text-xs font-bold text-slate-800">
-                                {item.quantity}
-                              </span>
-                              <button
-                                onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                                className="p-1 hover:bg-slate-100 text-slate-600 transition-colors"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            {checkoutStep === 'cart' &&
+              (cart.length === 0 ? (
+                <div className="text-center py-16 flex flex-col items-center gap-3">
+                  <span className="w-20 h-20 rounded-full bg-white border border-shop-line flex items-center justify-center text-shop-muted">
+                    <HandBasket size={38} />
+                  </span>
+                  <p className="font-hand text-[26px] text-shop-brown leading-tight">your basket is empty</p>
+                  <p className="text-sm text-shop-muted">Add a few things from the shelves and they&apos;ll show up here.</p>
+                  <button
+                    type="button"
+                    onClick={() => setIsCartOpen(false)}
+                    className="mt-2 h-12 px-6 rounded-[10px] bg-shop-yellow text-shop-ink font-extrabold cursor-pointer"
+                  >
+                    Start shopping
+                  </button>
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-2.5">
+                  {cart.map((item) => {
+                    const itemPrice = item.product.offerPrice ?? item.product.price;
+                    const showBrand = item.product.brand && item.product.brand !== 'Kerala Superstore';
+                    const showSize = item.product.sizeWeight && item.product.sizeWeight !== 'Standard';
+                    const meta = [showBrand ? item.product.brand : null, showSize ? item.product.sizeWeight : null].filter(Boolean).join(' · ');
+                    const atStockLimit = item.product.stock > 0 && item.quantity >= item.product.stock;
+                    return (
+                      <li key={item.product.id} className="flex gap-3 p-2.5 rounded-[10px] bg-white border border-shop-line">
+                        <div className="relative w-[72px] h-[72px] rounded-lg bg-shop-paper shrink-0">
+                          <Image
+                            src={item.product.imageUrl || '/products/matta-rice.png'}
+                            alt={item.product.name}
+                            fill
+                            sizes="72px"
+                            className="object-contain p-1.5"
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              if (target && target.src.indexOf('/products/matta-rice.png') === -1) target.src = '/products/matta-rice.png';
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col">
+                          <div className="flex items-start gap-2">
+                            <h3 className="flex-1 min-w-0 text-sm font-semibold leading-snug line-clamp-2">{displayName(item.product.name)}</h3>
                             <button
+                              type="button"
                               onClick={() => removeFromCart(item.product.id)}
-                              className="text-slate-400 hover:text-red-500 text-[11px] transition-colors"
+                              className="w-8 h-8 -mt-1 -mr-1 rounded-lg flex items-center justify-center text-shop-muted hover:text-shop-red hover:bg-[#FFF6F4] cursor-pointer shrink-0"
+                              aria-label={`Remove ${item.product.name}`}
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
+                          {meta && <span className="text-xs text-shop-muted truncate">{meta}</span>}
+                          <div className="mt-auto pt-1.5 flex items-center justify-between gap-2">
+                            <div className="flex items-center rounded-[9px] border border-shop-line bg-shop-paper">
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                                className="w-9 h-9 flex items-center justify-center text-shop-ink cursor-pointer"
+                                aria-label="One less"
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+                              <span className="min-w-6 text-center text-sm font-bold tabular-nums" aria-live="polite">{item.quantity}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                                disabled={atStockLimit}
+                                className="w-9 h-9 flex items-center justify-center text-shop-ink cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
+                                aria-label="One more"
+                              >
+                                <HandPlus size={16} />
+                              </button>
+                            </div>
+                            <div className="text-right leading-tight">
+                              <div className="text-[15px] font-extrabold tabular-nums">£{(itemPrice * item.quantity).toFixed(2)}</div>
+                              {item.quantity > 1 && <div className="text-[11px] text-shop-muted tabular-nums">£{itemPrice.toFixed(2)} each</div>}
+                            </div>
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ))}
 
-            {/* Checkout Form */}
             {checkoutStep === 'checkout' && (
-              <form id="checkout-form" onSubmit={handlePlaceOrder} className="space-y-3 text-xs">
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-xs">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-amber-700" />
-                    <span>Payment: Cash on Delivery (COD)</span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-amber-800">
-                    Pay in cash directly to our delivery courier when your fresh Kerala groceries arrive at your UK doorstep. Dispatched from <strong>Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX</strong>.
+              <form id="checkout-form" onSubmit={handlePlaceOrder} className="flex flex-col gap-3.5">
+                <div className="p-3.5 rounded-[10px] bg-[#FFE9BE] text-[#2A1A05]">
+                  <div className="font-extrabold text-[15px]">Pay cash on delivery</div>
+                  <p className="mt-0.5 text-[13px] text-[#5A4220] leading-snug">
+                    Nothing to pay now. Pay our driver when your order arrives. Packed at {SHOP_ADDRESS}.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Full Name *</label>
-                  <input
-                    required
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="e.g. Thomas Mathew"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none"
-                  />
+                  <label htmlFor="co-name" className={labelClass}>Full name</label>
+                  <input id="co-name" required name="name" autoComplete="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Thomas Mathew" className={inputClass} />
                 </div>
-
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">UK Phone *</label>
-                    <input
-                      required
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      placeholder="07700 900000"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none"
-                    />
+                    <label htmlFor="co-phone" className={labelClass}>Phone</label>
+                    <input id="co-phone" required type="tel" name="phone" autoComplete="tel" value={formData.phone} onChange={handleInputChange} placeholder="07700 900000" className={inputClass} />
                   </div>
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Email *</label>
-                    <input
-                      required
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="thomas@example.com"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none"
-                    />
+                    <label htmlFor="co-email" className={labelClass}>Email</label>
+                    <input id="co-email" required type="email" name="email" autoComplete="email" value={formData.email} onChange={handleInputChange} placeholder="you@example.com" className={inputClass} />
                   </div>
                 </div>
-
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Street Address *</label>
-                  <input
-                    required
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    placeholder="House number, Street name"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none"
-                  />
+                  <label htmlFor="co-address" className={labelClass}>Street address</label>
+                  <input id="co-address" required name="address" autoComplete="street-address" value={formData.address} onChange={handleInputChange} placeholder="House number and street" className={inputClass} />
                 </div>
-
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3.5">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">City / Town *</label>
-                    <input
-                      required
-                      name="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      placeholder="e.g. Croydon / London"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none"
-                    />
+                    <label htmlFor="co-city" className={labelClass}>Town / city</label>
+                    <input id="co-city" required name="city" autoComplete="address-level2" value={formData.city} onChange={handleInputChange} placeholder="e.g. Manchester" className={inputClass} />
                   </div>
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">UK Postcode *</label>
-                    <input
-                      required
-                      name="postcode"
-                      value={formData.postcode}
-                      onChange={handleInputChange}
-                      placeholder="e.g. CR0 1XX"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg uppercase focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none"
-                    />
+                    <label htmlFor="co-postcode" className={labelClass}>Postcode</label>
+                    <input id="co-postcode" required name="postcode" autoComplete="postal-code" value={formData.postcode} onChange={handleInputChange} placeholder="e.g. M9 8DX" className={`${inputClass} uppercase`} />
                   </div>
                 </div>
-
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Delivery Notes (Optional)</label>
+                  <label htmlFor="co-notes" className={labelClass}>
+                    Delivery notes <span className="font-normal text-shop-muted">(optional)</span>
+                  </label>
                   <textarea
+                    id="co-notes"
                     rows={2}
                     name="notes"
                     value={formData.notes}
                     onChange={handleInputChange}
-                    placeholder="e.g. Leave with neighbour or ring flat 4B buzzer"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none"
+                    placeholder="e.g. Leave with the neighbour at no. 12"
+                    className={`${inputClass} h-auto py-2.5`}
                   />
                 </div>
               </form>
             )}
 
-            {/* Success Step */}
-            {checkoutStep === 'success' && (
-              <div className="text-center py-8 space-y-4">
-                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-10 h-10" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-slate-900">Thank You, {formData.name || 'Customer'}!</h3>
-                  <p className="text-xs text-slate-600 mt-1">Your order has been received and is being prepared.</p>
-                </div>
+            {checkoutStep === 'success' && placedOrder && (
+              <div className="py-6 flex flex-col items-center text-center gap-3">
+                <span className="w-16 h-16 rounded-full bg-shop-green text-white flex items-center justify-center">
+                  <Check className="w-8 h-8" strokeWidth={3} />
+                </span>
+                <h3 className="text-2xl font-extrabold tracking-tight">Thank you, {formData.name.split(' ')[0] || 'friend'}!</h3>
+                <p className="font-hand text-2xl text-shop-brown -mt-1">we&apos;re packing your order now</p>
 
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-left space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Order Reference:</span>
-                    <span className="font-bold text-emerald-800">{placedOrderNumber}</span>
+                <div className="w-full mt-2 p-4 rounded-[10px] bg-white border border-dashed border-shop-dash text-left text-sm flex flex-col gap-2">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-shop-muted">Order number</span>
+                    <span className="font-bold">{placedOrder.number}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Delivery To:</span>
-                    <span className="font-medium text-slate-800 truncate max-w-[200px]">{formData.address}, {formData.postcode}</span>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-shop-muted shrink-0">Delivering to</span>
+                    <span className="font-medium text-right truncate">{formData.address}, {formData.postcode.toUpperCase()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Payment:</span>
-                    <span className="font-bold text-amber-700">Cash on Delivery</span>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-shop-muted">Payment</span>
+                    <span className="font-medium">Cash on delivery</span>
                   </div>
-                  <div className="flex justify-between border-t border-slate-200 pt-2 font-bold text-slate-900">
-                    <span>Total Amount to Pay:</span>
-                    <span className="text-emerald-800 text-sm">£{totalAmount.toFixed(2)}</span>
+                  <div className="flex justify-between items-baseline gap-3 pt-2 border-t border-shop-line">
+                    <span className="font-bold">To pay on delivery</span>
+                    <span className="text-xl font-extrabold tabular-nums">£{placedOrder.total.toFixed(2)}</span>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <a
-                    href={`https://wa.me/447749132122?text=${encodeURIComponent(`Hello Kerala Superstore Manchester! I just placed order ${placedOrderNumber} for £${totalAmount.toFixed(2)} to ${formData.postcode}. Please confirm delivery dispatch.`)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
-                  >
-                    <span>Confirm Order via WhatsApp</span>
-                  </a>
-                  <button
-                    onClick={() => {
-                      setCheckoutStep('cart');
-                      setIsCartOpen(false);
-                    }}
-                    className="w-full py-2.5 px-4 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold transition-all"
-                  >
-                    Back to Store
-                  </button>
-                </div>
+                <a
+                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hello Kerala Superstore! I just placed order ${placedOrder.number} for £${placedOrder.total.toFixed(2)} to ${formData.postcode.toUpperCase()}. Please confirm the delivery time.`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full h-12 mt-1 rounded-[10px] bg-shop-green text-white font-extrabold flex items-center justify-center gap-2"
+                >
+                  <HandWhatsApp size={22} />
+                  Confirm on WhatsApp
+                </a>
+                <button
+                  type="button"
+                  onClick={closeDrawer}
+                  className="w-full h-12 rounded-[10px] border border-shop-line bg-white font-bold cursor-pointer"
+                >
+                  Back to the shop
+                </button>
               </div>
             )}
           </div>
 
-          {/* Footer Totals & Action */}
+          {/* Footer: totals + actions */}
           {cart.length > 0 && checkoutStep !== 'success' && (
-            <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-3">
-              {/* Promo Code Input / Applied Badge */}
-              {(config.modules?.showPromoCoupons ?? true) && (
-                <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2">
-                  {appliedCoupon ? (
-                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-2 rounded-lg text-xs">
-                      <div className="flex items-center gap-1.5 font-bold text-emerald-800">
-                        <Tag className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Coupon &quot;{appliedCoupon.code}&quot; Applied (-£{appliedCoupon.discountAmount.toFixed(2)})</span>
-                      </div>
+            <div className="px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] bg-white border-t border-shop-line flex flex-col gap-3 shrink-0">
+              {(config.modules?.showPromoCoupons ?? true) &&
+                checkoutStep === 'cart' &&
+                (appliedCoupon ? (
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-[9px] bg-[#EAF4EE] text-sm">
+                    <span className="flex items-center gap-1.5 font-bold text-shop-green min-w-0">
+                      <HandTag size={18} className="shrink-0" />
+                      <span className="truncate">{appliedCoupon.code} applied</span>
+                    </span>
+                    <button type="button" onClick={handleRemoveCoupon} className="text-[13px] font-bold text-shop-red underline cursor-pointer shrink-0">
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleApplyCoupon}>
+                    <div className="flex gap-2">
+                      <label htmlFor="co-coupon" className="sr-only">Promo code</label>
+                      <input
+                        id="co-coupon"
+                        type="text"
+                        placeholder="Promo code"
+                        value={couponCodeInput}
+                        onChange={(e) => {
+                          setCouponCodeInput(e.target.value.toUpperCase());
+                          setCouponError(null);
+                        }}
+                        className={`${inputClass} h-10 uppercase text-sm font-bold tracking-wide`}
+                      />
                       <button
-                        type="button"
-                        onClick={handleRemoveCoupon}
-                        className="text-[11px] font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
+                        type="submit"
+                        disabled={!couponCodeInput.trim()}
+                        className="h-10 px-4 rounded-[9px] border-[1.5px] border-shop-green text-shop-green font-bold text-sm cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        Remove
+                        Apply
                       </button>
                     </div>
-                  ) : (
-                    <form onSubmit={handleApplyCoupon} className="space-y-1">
-                      <div className="flex gap-1.5">
-                        <div className="relative flex-1">
-                          <Tag className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            placeholder="Promo code (e.g. M9LOCAL, FIRSTORDER)"
-                            value={couponCodeInput}
-                            onChange={(e) => {
-                              setCouponCodeInput(e.target.value.toUpperCase());
-                              setCouponError(null);
-                            }}
-                            className="w-full pl-8 pr-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-mono uppercase font-bold outline-none focus:border-emerald-600"
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shrink-0"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                      {couponError && (
-                        <p className="text-[10px] text-rose-600 font-bold px-1">{couponError}</p>
-                      )}
-                    </form>
-                  )}
-                </div>
-              )}
+                    {couponError && <p className="mt-1 text-xs font-bold text-shop-red">{couponError}</p>}
+                  </form>
+                ))}
 
-              <div className="space-y-1.5 text-xs text-slate-600">
+              <dl className="flex flex-col gap-1 text-sm">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span className="font-semibold text-slate-900">£{subtotal.toFixed(2)}</span>
+                  <dt className="text-shop-muted">Items</dt>
+                  <dd className="tabular-nums">£{subtotal.toFixed(2)}</dd>
                 </div>
                 {appliedCoupon && (
-                  <div className="flex justify-between text-emerald-700 font-bold">
-                    <span>Discount ({appliedCoupon.code})</span>
-                    <span>-£{appliedCoupon.discountAmount.toFixed(2)}</span>
+                  <div className="flex justify-between text-shop-green font-bold">
+                    <dt>Promo ({appliedCoupon.code})</dt>
+                    <dd className="tabular-nums">−£{appliedCoupon.discountAmount.toFixed(2)}</dd>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="flex items-center gap-1">
-                    <span>UK Delivery Charge</span>
-                    {deliveryCharge === 0 && (
-                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.2 rounded">
-                        FREE
-                      </span>
-                    )}
-                  </span>
-                  <span className="font-semibold text-slate-900">
-                    {deliveryCharge === 0 ? '£0.00' : `£${deliveryCharge.toFixed(2)}`}
-                  </span>
+                  <dt className="text-shop-muted">Delivery</dt>
+                  <dd className="tabular-nums">{deliveryCharge === 0 ? <span className="font-bold text-shop-green">Free</span> : `£${deliveryCharge.toFixed(2)}`}</dd>
                 </div>
-                <div className="text-[10px] text-slate-500">
-                  📍 Dispatched from Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX
+                <div className="flex justify-between items-baseline pt-2 mt-1 border-t border-dashed border-shop-dash">
+                  <dt className="font-extrabold">Total</dt>
+                  <dd className="text-[22px] font-extrabold tabular-nums">£{finalTotalAmount.toFixed(2)}</dd>
                 </div>
-                <div className="flex justify-between border-t border-slate-200 pt-2 text-sm font-black text-slate-900">
-                  <span>Total Amount</span>
-                  <span className="text-emerald-800 text-base">£{finalTotalAmount.toFixed(2)}</span>
-                </div>
-              </div>
+              </dl>
 
               {checkoutStep === 'cart' ? (
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <button
+                    type="button"
                     onClick={() => setCheckoutStep('checkout')}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer active:scale-98"
+                    className="w-full h-12 rounded-[10px] bg-shop-yellow text-shop-ink font-extrabold cursor-pointer"
                   >
-                    <span>Proceed to UK Cash on Delivery Checkout</span>
-                    <ArrowRight className="w-4 h-4" />
+                    Checkout · pay on delivery
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      const itemsText = cart.map(it => `• ${it.product.name} (Qty: ${it.quantity}) - £${((it.product.offerPrice || it.product.price) * it.quantity).toFixed(2)}`).join('\n');
-                      const msg = `🛒 *Kerala Superstore Manchester — Quick WhatsApp Order*\n\n${itemsText}\n\n*Total:* £${finalTotalAmount.toFixed(2)}\n\n_Please confirm delivery schedule to my address. Thank you!_`;
-                      window.open(`https://wa.me/447749132122?text=${encodeURIComponent(msg)}`, '_blank');
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl font-bold text-xs shadow-sm transition-all cursor-pointer active:scale-98"
+                    onClick={sendBasketToWhatsApp}
+                    className="w-full h-12 rounded-[10px] border-[1.5px] border-shop-green text-shop-green font-bold flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <WhatsAppIcon className="w-4 h-4 fill-current text-white" />
-                    <span>Or Send Order to WhatsApp (+44 7749 132122)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsCartOpen(false)}
-                    className="w-full py-2.5 px-4 text-center text-xs font-bold text-slate-700 hover:text-emerald-900 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-xl transition-all cursor-pointer"
-                  >
-                    ← Continue Shopping (Back to Store)
+                    <HandWhatsApp size={22} />
+                    Send this basket on WhatsApp
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCheckoutStep('cart')}
-                    className="w-1/3 py-2.5 px-3 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl font-semibold text-xs transition-all"
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="submit"
-                    form="checkout-form"
-                    className="w-2/3 py-2.5 px-3 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
-                  >
-                    Confirm &amp; Place Order (£{finalTotalAmount.toFixed(2)})
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  form="checkout-form"
+                  className="w-full h-12 rounded-[10px] bg-shop-green text-white font-extrabold cursor-pointer"
+                >
+                  Place order · £{finalTotalAmount.toFixed(2)}
+                </button>
               )}
             </div>
           )}

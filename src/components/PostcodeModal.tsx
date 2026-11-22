@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, MapPin, CheckCircle2, Truck, Clock } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Check } from 'lucide-react';
 import { useStoreConfig } from '@/context/StoreConfigContext';
+import { DeliveryZone } from '@/types';
+import { HandVan } from '@/components/home/HandIcons';
 
 interface PostcodeModalProps {
   isOpen: boolean;
@@ -11,128 +13,132 @@ interface PostcodeModalProps {
   currentPostcode: string;
 }
 
-export const PostcodeModal: React.FC<PostcodeModalProps> = ({
-  isOpen,
-  onClose,
-  onSavePostcode,
-  currentPostcode
-}) => {
-  const { getDeliveryZoneForPostcode } = useStoreConfig();
-  const [inputVal, setInputVal] = useState(currentPostcode || 'M9 8DX');
-  const [matchedZone, setMatchedZone] = useState<any>(null);
+export const PostcodeModal: React.FC<PostcodeModalProps> = ({ isOpen, onClose, onSavePostcode, currentPostcode }) => {
+  const { config, getDeliveryZoneForPostcode } = useStoreConfig();
+  const [inputVal, setInputVal] = useState(currentPostcode || '');
+  const [matchedZone, setMatchedZone] = useState<DeliveryZone | null>(null);
+
+  // Reset each time the popup opens.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setInputVal(currentPostcode || '');
+      setMatchedZone(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
+  // Rates come from the zones set in Admin → Settings, so this list never goes stale.
+  const zones = config.deliveryZones.filter((z) => z.enabled);
+
   const handleCheck = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputVal.trim()) return;
-    const cleanPostcode = inputVal.toUpperCase().trim();
-    const zone = getDeliveryZoneForPostcode(cleanPostcode);
-    setMatchedZone(zone);
-    setTimeout(() => {
-      onSavePostcode(cleanPostcode);
-      onClose();
-    }, 1200);
+    const clean = inputVal.toUpperCase().trim();
+    if (!clean) return;
+    setMatchedZone(getDeliveryZoneForPostcode(clean) || null);
+    onSavePostcode(clean);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl z-10 space-y-4 border border-slate-100 animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true" aria-label="Check delivery to your postcode">
+      <div className="absolute inset-0 bg-[#1E2420]/55" onClick={onClose} aria-hidden="true" />
+      <div className="relative z-10 w-full sm:max-w-md bg-shop-cream text-shop-ink rounded-t-[18px] sm:rounded-[14px] p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] flex flex-col gap-4 shadow-[0_10px_40px_rgba(30,36,32,0.25)]">
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white border border-shop-line flex items-center justify-center cursor-pointer"
+          aria-label="Close"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
-            <Truck className="w-6 h-6" />
-          </div>
+        <div className="flex items-center gap-3 pr-10">
+          <HandVan size={40} className="text-shop-green shrink-0" />
           <div>
-            <h3 className="font-black text-sm sm:text-base text-slate-900">Check UK Delivery Rates</h3>
-            <p className="text-xs text-slate-500">Dispatched from Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX</p>
+            <h2 className="text-xl font-extrabold tracking-tight">Do we deliver to you?</h2>
+            <p className="font-hand text-xl text-shop-brown leading-none">packed in Manchester, sent across the UK</p>
           </div>
         </div>
 
-        <form onSubmit={handleCheck} className="space-y-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Enter your UK Postcode:
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={inputVal}
-                onChange={(e) => {
-                  setInputVal(e.target.value);
-                  setMatchedZone(null);
-                }}
-                placeholder="e.g. M9 8DX, SK4 1AB, or SW1A 1AA"
-                className="flex-1 px-3.5 py-2.5 border border-slate-200 rounded-xl uppercase font-bold text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
-                required
-              />
-              <button
-                type="submit"
-                className="px-5 py-2.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
-              >
-                Check
-              </button>
-            </div>
+        <form onSubmit={handleCheck}>
+          <label htmlFor="pc-input" className="block text-[13px] font-bold mb-1">Your postcode</label>
+          <div className="flex gap-2">
+            <input
+              id="pc-input"
+              type="text"
+              autoComplete="postal-code"
+              value={inputVal}
+              onChange={(e) => {
+                setInputVal(e.target.value);
+                setMatchedZone(null);
+              }}
+              placeholder="e.g. M9 8DX"
+              className="flex-1 min-w-0 h-12 px-3.5 rounded-[10px] border border-shop-line bg-white uppercase font-bold text-base outline-none focus:border-shop-green focus:ring-2 focus:ring-shop-green/15"
+              required
+            />
+            <button type="submit" className="h-12 px-5 rounded-[10px] bg-shop-yellow text-shop-ink font-extrabold cursor-pointer shrink-0">
+              Check
+            </button>
           </div>
-
-          {matchedZone && (
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2 text-xs text-emerald-950 animate-fadeIn">
-              <div className="flex items-center gap-2 font-bold text-emerald-900">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Delivery Available to {inputVal.toUpperCase()}!</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
-                <div className="bg-white p-2 rounded-xl border border-emerald-100">
-                  <span className="text-slate-500 block">Matched Area:</span>
-                  <strong className="text-slate-900 truncate block">{matchedZone.name}</strong>
-                </div>
-                <div className="bg-white p-2 rounded-xl border border-emerald-100">
-                  <span className="text-slate-500 block">Standard Fee:</span>
-                  <strong className="text-emerald-800 block">£{matchedZone.charge.toFixed(2)}</strong>
-                </div>
-                <div className="bg-white p-2 rounded-xl border border-emerald-100">
-                  <span className="text-slate-500 block">Free Delivery:</span>
-                  <strong className="text-amber-800 block">Orders over £{matchedZone.freeThreshold.toFixed(0)}</strong>
-                </div>
-                <div className="bg-white p-2 rounded-xl border border-emerald-100">
-                  <span className="text-slate-500 block">Estimated Time:</span>
-                  <strong className="text-slate-800 block">{matchedZone.estimatedTime}</strong>
-                </div>
-              </div>
-            </div>
-          )}
         </form>
 
-        {/* Quick Area Samples */}
-        <div className="pt-2 border-t border-slate-100 space-y-1.5 text-[11px] text-slate-500">
-          <div className="flex items-center justify-between">
-            <span>📍 Manchester Local (M1 - M9):</span>
-            <span className="font-bold text-slate-800">£1.99 (Free over £30)</span>
+        {matchedZone && (
+          <div className="p-4 rounded-[10px] bg-white border border-shop-green" aria-live="polite">
+            <div className="flex items-center gap-2 font-extrabold text-shop-green">
+              <Check className="w-5 h-5" strokeWidth={3} />
+              Yes, we deliver to {inputVal.toUpperCase().trim()}
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div>
+                <dt className="text-shop-muted text-xs">Area</dt>
+                <dd className="font-bold">{matchedZone.name}</dd>
+              </div>
+              <div>
+                <dt className="text-shop-muted text-xs">Delivery</dt>
+                <dd className="font-bold">£{matchedZone.charge.toFixed(2)}</dd>
+              </div>
+              <div>
+                <dt className="text-shop-muted text-xs">Free delivery</dt>
+                <dd className="font-bold">over £{matchedZone.freeThreshold.toFixed(0)}</dd>
+              </div>
+              {matchedZone.estimatedTime && (
+                <div>
+                  <dt className="text-shop-muted text-xs">Usually arrives</dt>
+                  <dd className="font-bold">{matchedZone.estimatedTime}</dd>
+                </div>
+              )}
+            </dl>
+            <button type="button" onClick={onClose} className="mt-4 w-full h-11 rounded-[10px] bg-shop-green text-white font-extrabold cursor-pointer">
+              Carry on shopping
+            </button>
           </div>
-          <div className="flex items-center justify-between">
-            <span>📍 Greater Manchester (SK, WA, BL):</span>
-            <span className="font-bold text-slate-800">£3.49 (Free over £45)</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>📍 UK Mainland Nationwide:</span>
-            <span className="font-bold text-slate-800">£4.99 (Free over £50)</span>
-          </div>
-        </div>
+        )}
 
-        <div className="pt-1 flex items-center justify-between text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-          <span className="flex items-center gap-1 font-semibold text-emerald-800">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            Cash on Delivery Available
-          </span>
-          <span className="text-[10px] text-slate-500 font-medium">Kerala Superstore • Unit 2, 73 Old Market Street, Manchester M9 8DX</span>
-        </div>
+        {!matchedZone && zones.length > 0 && (
+          <ul className="p-3.5 rounded-[10px] bg-shop-paper border border-dashed border-shop-dash text-sm flex flex-col gap-1.5">
+            {zones.map((z) => (
+              <li key={z.id} className="flex items-baseline justify-between gap-3">
+                <span className="text-shop-muted">{z.name}</span>
+                <span className="font-bold whitespace-nowrap">
+                  £{z.charge.toFixed(2)} <span className="font-normal text-shop-muted">· free over £{z.freeThreshold.toFixed(0)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <p className="text-xs text-shop-muted">Pay cash on delivery, or collect from Unit 2, 73 Old Market Street, Manchester M9 8DX.</p>
       </div>
     </div>
   );
